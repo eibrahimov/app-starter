@@ -1,0 +1,8 @@
+target
+data
+.env
+.git
+interface/node_modules
+interface/dist
+desktop
+docs

@@ -1,0 +1,17 @@
+{
+  "identifier": "default",
+  "description": "Default capability for the main window. The shell scope lets frontend code talk to the bundled sidecar if you ever spawn it from JS; the Rust-side spawn in main.rs does not need it.",
+  "windows": ["main"],
+  "permissions": [
+    "core:default",
+    {
+      "identifier": "shell:allow-execute",
+      "allow": [
+        {
+          "name": "binaries/app-starter",
+          "sidecar": true
+        }
+      ]
+    }
+  ]
+}

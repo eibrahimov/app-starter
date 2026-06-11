@@ -1,0 +1,12 @@
+/target
+/data
+*.db
+*.db-shm
+*.db-wal
+.env
+interface/node_modules
+interface/dist
+desktop/node_modules
+desktop/src-tauri/target
+desktop/src-tauri/binaries
+desktop/src-tauri/gen

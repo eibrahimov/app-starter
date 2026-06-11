@@ -1,0 +1,33 @@
+{
+  "$schema": "https://schema.tauri.app/config/2",
+  "productName": "App Starter",
+  "version": "0.1.0",
+  "identifier": "com.example.app-starter",
+  "build": {
+    "beforeDevCommand": "cd ../interface && bun install && bun run dev",
+    "devUrl": "http://localhost:5173",
+    "beforeBuildCommand": "cd ../interface && bun install && bun run build",
+    "frontendDist": "../../interface/dist"
+  },
+  "app": {
+    "windows": [
+      {
+        "label": "main",
+        "title": "App Starter",
+        "width": 1100,
+        "height": 750,
+        "minWidth": 800,
+        "minHeight": 600
+      }
+    ],
+    "security": {
+      "csp": null
+    }
+  },
+  "bundle": {
+    "active": true,
+    "targets": "all",
+    "externalBin": ["binaries/app-starter"],
+    "icon": ["icons/icon.png"]
+  }
+}
