@@ -7,6 +7,7 @@ fn main() {
     println!("cargo:rerun-if-changed=interface/src");
     println!("cargo:rerun-if-changed=interface/index.html");
     println!("cargo:rerun-if-changed=interface/package.json");
+    println!("cargo:rerun-if-env-changed=SKIP_FRONTEND_BUILD");
 
     if std::env::var("SKIP_FRONTEND_BUILD").is_ok() {
         ensure_dist();

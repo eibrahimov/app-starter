@@ -82,7 +82,7 @@ just desktop-dev      # run backend separately with `cargo run` first
 just desktop-build    # bundles sidecar + frontend + installer
 ```
 
-Before the first real build: generate the platform icon set from the placeholder with `cd desktop && bunx tauri icon src-tauri/icons/icon.png`, and change the bundle identifier in `desktop/src-tauri/tauri.conf.json` from `com.example.*` to your reverse domain.
+Before shipping: replace the placeholder icon if needed with `cd desktop && bunx tauri icon src-tauri/icons/icon.png`, and change the bundle identifier in `desktop/src-tauri/tauri.conf.json` from `com.example.*` to your reverse domain.
 
 ## Deploy
 
@@ -92,7 +92,7 @@ Before the first real build: generate the platform icon set from the placeholder
 docker compose up --build
 ```
 
-Works as-is on Coolify or any Docker host: point it at the repo, the Dockerfile does the rest. Pushing a `v*` tag publishes an image to GHCR via `.github/workflows/release.yml`.
+Works as-is on Coolify or any Docker host: point it at the repo, the Dockerfile does the rest. Pushing a `v*` tag publishes a multi-arch image to GHCR via `.github/workflows/release.yml`.
 
 Note: CORS is permissive so the Tauri shell can reach the sidecar. Tighten `CorsLayer` in `src/api/mod.rs` before exposing the API publicly without the embedded UI.
 

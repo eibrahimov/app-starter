@@ -1,13 +1,14 @@
 //! Black-box API tests: build the router against an in-memory SQLite
 //! database and drive it with tower's `oneshot`.
 
-use app_starter::{AppState, api};
 use axum::Router;
 use axum::body::Body;
 use axum::http::{Request, StatusCode, header};
 use http_body_util::BodyExt;
 use sqlx::sqlite::SqlitePoolOptions;
 use tower::util::ServiceExt;
+
+use app_starter::{AppState, api};
 
 async fn test_app() -> Router {
     let pool = SqlitePoolOptions::new()

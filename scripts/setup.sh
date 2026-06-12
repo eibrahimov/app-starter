@@ -51,11 +51,12 @@ if [[ -z "$FILES" ]]; then
 fi
 
 for f in $FILES; do
-  sed -i \
+  sed -i.bak \
     -e "s/$DEFAULT_CRATE/$CRATE/g" \
     -e "s/$DEFAULT_SLUG/$SLUG/g" \
     -e "s/$DEFAULT_NAME/$NAME_ESC/g" \
     "$f"
+  rm -f -- "$f.bak"
   echo "updated $f"
 done
 
