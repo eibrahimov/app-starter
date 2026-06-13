@@ -9,6 +9,7 @@ embedded React SPA. The backend is the single source of truth for API types.
 just lint      # cargo fmt --check + clippy -D warnings + frontend tsc
 just test      # backend black-box tests against in-memory SQLite
 just typegen   # regenerate interface/src/api/schema.d.ts from the OpenAPI spec
+just check-typegen  # fail if the committed types are stale (CI enforces this)
 just build     # production build: frontend, then release binary with UI embedded
 ```
 

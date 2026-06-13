@@ -48,6 +48,7 @@ This is the core workflow. The backend is the single source of truth for API typ
 just dev            # run the backend
 just frontend-dev   # run Vite with API proxy
 just typegen        # regenerate TS types from the OpenAPI spec
+just check-typegen  # fail if committed TS types are stale, same as CI
 just lint           # fmt check + clippy -D warnings + tsc, same as CI
 just test           # backend tests (in-memory SQLite)
 just build          # production build: frontend, then binary with UI embedded
