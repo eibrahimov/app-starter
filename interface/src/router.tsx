@@ -7,6 +7,7 @@ import {
 } from "@tanstack/react-router";
 import { HomePage } from "./pages/Home";
 import { ItemsPage } from "./pages/Items";
+import { PostsPage } from "./pages/Posts";
 
 function Layout() {
   return (
@@ -21,6 +22,12 @@ function Layout() {
           className="text-sm text-zinc-400 [&.active]:text-zinc-100"
         >
           Items
+        </Link>
+        <Link
+          to="/posts"
+          className="text-sm text-zinc-400 [&.active]:text-zinc-100"
+        >
+          Posts
         </Link>
       </nav>
       <Outlet />
@@ -42,8 +49,14 @@ const itemsRoute = createRoute({
   component: ItemsPage,
 });
 
+const postsRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: "/posts",
+  component: PostsPage,
+});
+
 export const router = createRouter({
-  routeTree: rootRoute.addChildren([indexRoute, itemsRoute]),
+  routeTree: rootRoute.addChildren([indexRoute, itemsRoute, postsRoute]),
 });
 
 declare module "@tanstack/react-router" {

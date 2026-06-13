@@ -19,6 +19,10 @@ typegen:
 fmt:
     cargo fmt --all
 
+# Fail if the committed TS types are stale relative to the OpenAPI spec
+check-typegen: typegen
+    git diff --exit-code -- interface/src/api/schema.d.ts
+
 # Everything CI checks, locally
 lint:
     cargo fmt --all -- --check
