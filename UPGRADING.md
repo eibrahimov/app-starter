@@ -6,7 +6,7 @@ reusable changes, review conflicts, and never rerun setup.
 
 ## Principles
 
-- **Do not rerun `scripts/setup.sh`** in an initialized project. It is a one-time rename script for fresh clones.
+- **Do not rerun `scripts/setup.sh`** (or `scripts/setup.ps1` on Windows) in an initialized project. It is a one-time rename script for fresh clones.
 - **Cherry-pick template fixes; do not blindly copy the repo.** Generated apps
   have their own domain, migrations, names, icons, secrets, and deployments.
 - **Preserve generated-app identity.** Template references such as `app-starter`,

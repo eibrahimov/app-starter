@@ -11,7 +11,7 @@ See `AGENTS.md` for the full conventions and the step-by-step recipe for adding 
 Required before normal PR/commit handoff:
 
 ```bash
-just lint            # fmt check + clippy -D warnings + tsc, same as CI
+just lint            # fmt check + clippy -D warnings + tsc (fast gate; `just verify` runs the full CI set)
 just test            # backend black-box tests
 just check-typegen   # fail if committed TS types are stale (CI enforces this)
 ```

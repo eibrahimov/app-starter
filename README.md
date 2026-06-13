@@ -32,6 +32,7 @@ Prerequisites: [Rust](https://rustup.rs), [Bun](https://bun.sh), and optionally 
 ```bash
 # 1. Rename the project (one time, the script deletes itself)
 ./scripts/setup.sh "My Project"
+# Windows (PowerShell): ./scripts/setup.ps1 "My Project"
 
 # 2. Install frontend deps and build everything
 cd interface && bun install && bun run build && cd ..
@@ -70,7 +71,8 @@ just dev            # run the backend
 just frontend-dev   # run Vite with API proxy
 just typegen        # regenerate TS types from the OpenAPI spec
 just check-typegen  # fail if committed TS types are stale, same as CI
-just lint           # fmt check + clippy -D warnings + tsc, same as CI
+just lint           # fmt check + clippy -D warnings + tsc (fast gate)
+just verify         # everything CI runs: lint + test + typegen + frontend build/test + cargo-deny
 just test           # backend tests (in-memory SQLite)
 just build          # production build: frontend, then binary with UI embedded
 just docker-build   # build the Docker image

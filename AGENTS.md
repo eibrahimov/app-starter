@@ -16,6 +16,7 @@ Required before normal PR/commit handoff:
 just lint      # cargo fmt --check + clippy -D warnings + frontend tsc
 just test      # backend black-box tests against in-memory SQLite
 just check-typegen  # fail if the committed types are stale (CI enforces this)
+just verify    # everything CI runs: lint + test + typegen drift + frontend build/test + cargo-deny
 ```
 
 Also run when relevant:
@@ -144,7 +145,7 @@ Use `docs/contribution-prompts.md` for structured issue, change-request, backpor
 - Keep clippy clean: CI runs `-D warnings`; run `cargo fmt --all` before committing.
 - Tests refer to the crate as `app_starter`; scripts use the `app-starter` binary
   name. `scripts/setup.sh` renames both — do not hardcode other variants.
-- `scripts/setup.sh` is only for fresh-template initialization; do not run it during normal feature, bugfix, or audit work.
+- `scripts/setup.sh` (or `scripts/setup.ps1` on Windows) is only for fresh-template initialization; do not run it during normal feature, bugfix, or audit work.
 - Code copied from external projects must be license-compatible (this template is
   MIT) and free of third-party product names; prefer clean-room reimplementation of
   patterns over copying files.
