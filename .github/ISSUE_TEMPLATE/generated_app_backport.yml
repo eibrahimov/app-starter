@@ -1,0 +1,46 @@
+name: Generated-app backport
+description: Propose a template improvement discovered while building a generated app
+labels: [enhancement]
+body:
+  - type: textarea
+    id: context
+    attributes:
+      label: Generated app context
+      description: What kind of app were you building, and which template commit/version did it start from?
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem seen in the real app
+      description: What failed, slowed you down, or repeated across work?
+    validations:
+      required: true
+  - type: textarea
+    id: template_level
+    attributes:
+      label: Why is this template-level, not domain-specific?
+      description: Explain why another generated app would benefit.
+    validations:
+      required: true
+  - type: textarea
+    id: files
+    attributes:
+      label: Template files likely affected
+      description: List repo-relative paths if known.
+  - type: textarea
+    id: examples
+    attributes:
+      label: How should it apply to both worked examples?
+      description: If it does not apply to `items` and `posts`, explain why it belongs in the template anyway.
+    validations:
+      required: true
+  - type: textarea
+    id: unchanged
+    attributes:
+      label: Existing behavior that must remain unchanged
+  - type: textarea
+    id: validation
+    attributes:
+      label: Validation evidence or plan
+      description: Commands run in the generated app and commands expected in the template PR.

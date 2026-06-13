@@ -1,0 +1,58 @@
+name: Change request
+description: Request approval before changing high-impact template defaults or governance
+labels: [enhancement]
+body:
+  - type: dropdown
+    id: area
+    attributes:
+      label: Approval-required area
+      options:
+        - Security, auth, CORS, request limits, or public exposure default
+        - Dependencies, Rust toolchain, JS package manager, or framework version
+        - Release workflow, Docker publishing, package identity, or binary names
+        - Migration/data policy or destructive behavior
+        - Generated-file policy or API contract policy
+        - Architecture/conventions not represented by both examples
+        - Governance, CODEOWNERS, support windows, or required labels
+        - License policy or copied third-party code
+    validations:
+      required: true
+  - type: textarea
+    id: current
+    attributes:
+      label: Current behavior
+      description: What does the template do today?
+    validations:
+      required: true
+  - type: textarea
+    id: proposed
+    attributes:
+      label: Proposed change
+      description: What default, workflow, or convention would change?
+    validations:
+      required: true
+  - type: textarea
+    id: why_now
+    attributes:
+      label: Why now?
+      description: What evidence shows this is needed before v1 or for generated apps?
+    validations:
+      required: true
+  - type: textarea
+    id: tradeoff
+    attributes:
+      label: Tradeoff and risk
+      description: What complexity, maintenance burden, or future scope does this introduce?
+    validations:
+      required: true
+  - type: textarea
+    id: alternative
+    attributes:
+      label: Smallest safer alternative
+  - type: textarea
+    id: decision
+    attributes:
+      label: Decision requested
+      description: What should maintainers approve or reject before implementation begins?
+    validations:
+      required: true

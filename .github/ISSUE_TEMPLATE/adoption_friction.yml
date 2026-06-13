@@ -1,0 +1,49 @@
+name: Adoption friction
+description: Report where the template stopped being clear, fast, or safe to use
+labels: [enhancement]
+body:
+  - type: textarea
+    id: goal
+    attributes:
+      label: What were you trying to build?
+      description: Personal app, startup app, internal tool, desktop app, deployment, upgrade, or another context.
+    validations:
+      required: true
+  - type: dropdown
+    id: stage
+    attributes:
+      label: Where did friction appear?
+      options:
+        - First clone / setup
+        - Running the app locally
+        - Adding or replacing a resource
+        - Typegen / API contract
+        - Frontend page or routing
+        - Tests / validation commands
+        - Docker / deployment
+        - Desktop / Tauri
+        - Upgrading a generated project
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: friction
+    attributes:
+      label: What stopped making sense?
+      description: Name the command, file, doc, error, or missing explanation.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect the template to provide?
+  - type: textarea
+    id: workaround
+    attributes:
+      label: Workaround
+      description: If you found a workaround, what did you do?
+  - type: input
+    id: baseline
+    attributes:
+      label: Template commit or generated project baseline
+      description: Paste a commit SHA, tag, or approximate date if known.

@@ -6,18 +6,43 @@ body:
     id: problem
     attributes:
       label: Problem
-      description: What does the template make hard or unsafe today?
+      description: What does the template make hard, unsafe, repetitive, or unclear today?
     validations:
       required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence / real-world origin
+      description: Where did this show up? Fresh clone, generated app, repeated project, user report, or another concrete source.
   - type: textarea
     id: proposal
     attributes:
       label: Proposed direction
-      description: Where it lives in the recipe (migration/domain/API/UI/CI) and how it applies to both worked examples.
+      description: Which layer changes (migration/domain/API/UI/CI/docs), how it applies to both worked examples, and what users can delete if unused.
+    validations:
+      required: true
+  - type: dropdown
+    id: approval_area
+    attributes:
+      label: Does this touch an approval-required area?
+      options:
+        - No / routine pattern
+        - Security, auth, CORS, request limits, or public exposure default
+        - Dependencies, Rust toolchain, JS package manager, or framework version
+        - Release workflow, Docker publishing, package identity, or binary names
+        - Migration/data policy or destructive behavior
+        - Generated-file policy or API contract policy
+        - Architecture/conventions not represented by both examples
+        - License policy or copied third-party code
     validations:
       required: true
   - type: textarea
-    id: origin
+    id: alternatives
     attributes:
-      label: Real-world origin
-      description: If this came from a generated project, describe the case.
+      label: Simpler alternatives considered
+      description: What smaller docs, workflow, or code change could solve most of the problem?
+  - type: textarea
+    id: validation_plan
+    attributes:
+      label: Validation plan
+      description: Which commands, tests, or fresh-clone checks would prove this works?
