@@ -98,6 +98,7 @@ export function PostsPage() {
           className="flex-1 rounded-md border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm outline-none focus:border-zinc-600"
         />
         <button
+          type="button"
           onClick={() => title.trim() && create.mutate(title)}
           disabled={create.isPending}
           className="rounded-md bg-zinc-100 px-4 py-2 text-sm font-medium text-zinc-900 hover:bg-white disabled:opacity-50"
@@ -110,6 +111,7 @@ export function PostsPage() {
         {FILTERS.map((f) => (
           <button
             key={f}
+            type="button"
             onClick={() => setFilter(f)}
             className={`rounded-md px-3 py-1 text-xs capitalize ${
               filter === f
@@ -139,6 +141,7 @@ export function PostsPage() {
             <span className="flex-1 text-sm">{post.title}</span>
             {post.status === "draft" && (
               <button
+                type="button"
                 onClick={() => publish.mutate(post.id)}
                 className="text-xs text-zinc-500 hover:text-emerald-400"
               >
@@ -147,6 +150,7 @@ export function PostsPage() {
             )}
             {post.status === "published" && (
               <button
+                type="button"
                 onClick={() => archive.mutate(post.id)}
                 className="text-xs text-zinc-500 hover:text-amber-400"
               >
