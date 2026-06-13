@@ -8,19 +8,70 @@ stay unversioned so probes and tooling have a stable path across versions.
 The repository's founding intent is recorded in [VISION.md](VISION.md) — human-maintained;
 reference it for intent, never edit it (see Hard rules).
 
-## Gate commands (run before any commit)
+## Validation matrix
+
+Required before normal PR/commit handoff:
 
 ```
 just lint      # cargo fmt --check + clippy -D warnings + frontend tsc
 just test      # backend black-box tests against in-memory SQLite
-just typegen   # regenerate interface/src/api/schema.d.ts from the OpenAPI spec
 just check-typegen  # fail if the committed types are stale (CI enforces this)
-just build     # production build: frontend, then release binary with UI embedded
+```
+
+Also run when relevant:
+
+```
+just typegen   # when API/OpenAPI annotations changed; commit interface/src/api/schema.d.ts
+just build     # release, embedded UI, Docker, frontend build, or packaging changes
+just docker-build    # Dockerfile/compose/deployment changes
+just desktop-build   # desktop/Tauri sidecar changes
 ```
 
 Rust-only commands must set `SKIP_FRONTEND_BUILD=1` (build.rs otherwise shells out to
 bun). JS tooling is bun/bunx only — never npm, pnpm, yarn, or npx. Run
 `cd interface && bun install` once before lint/typegen on a fresh clone.
+
+If a relevant validation command cannot be run, report why and state the remaining risk.
+
+## Agent operating checklist
+
+Before editing:
+
+- Check `git status --short` and do not overwrite unrelated user changes.
+- Identify the touched layer: migration, domain, API, typegen, frontend, desktop, CI, docs, or release.
+- For multi-layer work, state the validation commands you expect to run.
+
+While editing:
+
+- Keep changes scoped to the request; do not refactor adjacent code unless required.
+- Do not run `scripts/setup.sh` unless explicitly asked to initialize a fresh clone.
+- Never hand-edit generated `interface/src/api/schema.d.ts`; run `just typegen`.
+- Never edit or rename committed migrations.
+
+Before handoff:
+
+- Run the validation matrix commands that apply.
+- Report commands run and results.
+- State the reason and remaining risk for any skipped command.
+
+## Approval boundaries
+
+Agents may proceed without additional approval for:
+
+- small bug fixes, tests, and docs clarifications;
+- resource additions that follow the existing `items`/`posts` pattern.
+
+Ask for human approval before changing:
+
+- security posture, authentication, authorization, CORS, request limits, or public exposure defaults;
+- dependency policy, major dependency upgrades, Rust edition/toolchain, or JS package manager;
+- release workflow, Docker publishing, tags, package names, binary names, or registry targets;
+- migration history, data-destructive behavior, or committed migration edits/renames;
+- generated-file policy or hand-editing `interface/src/api/schema.d.ts`;
+- architectural conventions not represented by both worked examples;
+- license policy or third-party code/vendor naming.
+
+Record the approval issue, PR, or comment in the change description.
 
 ## Adding a resource end to end
 
@@ -70,6 +121,20 @@ pagination, get-by-id, and an aggregate stats endpoint). Copy their shape exactl
 9. Route: in `interface/src/router.tsx` add a `createRoute({...})`, append it to
    `rootRoute.addChildren([...])`, and add a nav `<Link>` in `Layout`.
 
+See `docs/add-a-resource.md` for the human-facing version of this recipe.
+
+## Feeding learnings back
+
+Each generated app can improve the template. When work reveals reusable friction or a repeated pitfall:
+
+- Update `AGENTS.md` if it changes how agents or contributors should work.
+- Update `README.md` if it changes setup, development, deployment, or release behavior.
+- Update `docs/add-a-resource.md`, `docs/production-readiness.md`, or `UPGRADING.md` when resource, hardening, or upgrade guidance changes.
+- Open an issue before adding a reusable pattern or changing template defaults.
+- Keep generated-app/domain-specific details out of the template; port the pattern, not the feature.
+
+Use `docs/contribution-prompts.md` for structured issue, change-request, backport, and PR prompts.
+
 ## Hard rules
 
 - Migrations are append-only; new files must sort last.
@@ -79,6 +144,7 @@ pagination, get-by-id, and an aggregate stats endpoint). Copy their shape exactl
 - Keep clippy clean: CI runs `-D warnings`; run `cargo fmt --all` before committing.
 - Tests refer to the crate as `app_starter`; scripts use the `app-starter` binary
   name. `scripts/setup.sh` renames both — do not hardcode other variants.
+- `scripts/setup.sh` is only for fresh-template initialization; do not run it during normal feature, bugfix, or audit work.
 - Code copied from external projects must be license-compatible (this template is
   MIT) and free of third-party product names; prefer clean-room reimplementation of
   patterns over copying files.

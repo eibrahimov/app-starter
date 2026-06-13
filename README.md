@@ -10,6 +10,21 @@ Full-stack Rust starter. One binary serves the API and the UI, typed end to end 
 
 Two example resources are wired through every layer (migration, queries, API handlers, generated TypeScript types, UI page, tests): `items`, a minimal todo CRUD, and `posts`, which adds a status lifecycle (draft -> published -> archived), filtered queries with pagination, and an aggregate stats endpoint. Replace them with your real domain. The wiring pattern stays.
 
+## Use this when
+
+- You want one Rust server to own the API and serve the built UI.
+- You want generated TypeScript types from the backend OpenAPI contract.
+- You want SQLite and Docker to cover local development through small-team deployment.
+- You prefer explicit files and examples over generators and hidden framework behavior.
+- You may want a desktop shell later, but do not want desktop concerns to dominate the web/API core.
+
+## Choose another path when
+
+- You need built-in auth, tenancy, billing, or admin screens on day one.
+- You need multiple database backends or a framework-neutral frontend choice.
+- You want a Kubernetes/cloud-platform template more than a single-binary app foundation.
+- You want a CRUD generator or no-code system instead of a small code template.
+
 ## Setup
 
 Prerequisites: [Rust](https://rustup.rs), [Bun](https://bun.sh), and optionally [just](https://github.com/casey/just).
@@ -62,6 +77,8 @@ just docker-build   # build the Docker image
 ```
 
 If you don't have `just`, run the commands directly — see the [`justfile`](justfile) for the exact recipe behind each task.
+
+For contribution gates and approval boundaries, see [`CONTRIBUTING.md`](CONTRIBUTING.md); for template direction and v1 priorities, see [`docs/template-direction.md`](docs/template-direction.md).
 
 ## Project layout
 
