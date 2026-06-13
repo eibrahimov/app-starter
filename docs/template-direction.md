@@ -37,7 +37,7 @@ maintenance cost, security ambiguity, or template bloat.
 - Clear full-stack spine: axum API, sqlx migrations, embedded React UI, OpenAPI-generated TypeScript.
 - Two end-to-end resource examples that cover minimal CRUD and a richer lifecycle/list/stats flow.
 - Useful validation commands and CI for Rust formatting, clippy, backend tests,
-  frontend typecheck/build, and typegen drift.
+  frontend typecheck/build, typegen drift, and license/advisory checks (cargo-deny).
 - Docker and Tauri paths exist without forcing every app into those paths.
 - Project guidance already documents the most common OpenAPI registration failure and migration/typegen rules.
 
@@ -100,6 +100,12 @@ Do not make these as incidental cleanups:
 - Architectural conventions not demonstrated by both worked examples.
 - Formal governance systems such as CODEOWNERS, branch protection policy, support windows, or required labels.
 - License policy or copied third-party code.
+
+Some of these shipped in v1 with maintainer approval rather than as incidental
+cleanups: a `.github/CODEOWNERS` gate protecting `VISION.md`, a prebuilt-binary
+release job, `cargo-deny` in CI, and production-minded server defaults (body-size
+limit, request timeout, request id, graceful shutdown, and a readiness probe).
+The bar above still applies to future changes in these areas.
 
 ## Decision tests for future proposals
 

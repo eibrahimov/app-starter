@@ -131,20 +131,18 @@ SQLite via sqlx — a single file on disk (or `:memory:` in tests). It is a **si
 docker compose up --build
 ```
 
-Works as-is on Coolify or any Docker host: point it at the repo, the Dockerfile does the rest. Pushing a `v*` tag publishes a multi-arch image to GHCR via `.github/workflows/release.yml`.
+Works as-is on Coolify or any Docker host: point it at the repo, the Dockerfile does the rest. Pushing a `v*` tag publishes a multi-arch image to GHCR and attaches prebuilt Linux/macOS/Windows binaries to the GitHub Release via `.github/workflows/release.yml`.
 
 Note: CORS is permissive so the Tauri shell can reach the sidecar. Tighten `CorsLayer` in `src/api/mod.rs` before exposing the API publicly without the embedded UI.
 
 ## Roadmap
 
-v1 ships and supports today: **Web** (embedded SPA), **Docker** (multi-arch image to GHCR on `v*` tags), and **Desktop** (macOS/Windows/Linux installers built locally via `just desktop-build`).
+v1 ships and supports today: **Web** (embedded SPA), **Docker** (multi-arch image to GHCR on `v*` tags), **Desktop** (macOS/Windows/Linux installers built locally via `just desktop-build`), **prebuilt binaries** (Linux/macOS/Windows) attached to the GitHub Release on each `v*` tag, and a **Vitest** frontend test harness with non-blocking coverage reporting.
 
 Planned, explicitly post-v1 (tracked as issues — contributions welcome):
 
-- **Prebuilt binaries** for Linux/macOS/Windows attached to GitHub Releases (server + CLI use).
 - **Signed desktop installers** in CI (macOS notarization, Windows code-signing) — requires developer certificates.
 - **Mobile (iOS/Android)** via Tauri 2 — icons are present, but build/signing/store wiring is not. Do not assume `tauri build ios`/`android` works yet.
-- **Frontend test harness** (Vitest) and coverage reporting (non-blocking).
 - **Accessibility for non-technical builders** — guided scaffolding and AI-assisted generation.
 
 ## License

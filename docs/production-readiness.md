@@ -76,12 +76,14 @@ For deployments:
 
 ## Observability and operations
 
-The template includes tracing and a health endpoint. A production app should decide:
+The template ships request tracing, an `x-request-id` layer, graceful shutdown on
+SIGTERM, and a database-checking readiness probe at `/api/health`. A production app
+should still decide:
 
 - structured log format and retention;
-- request IDs or trace propagation if needed;
+- propagating the request id into your log aggregator or tracing backend;
 - error reporting destination;
-- health, readiness, and liveness expectations;
+- liveness vs readiness expectations beyond the bundled `/api/health`;
 - database and disk-space alerts for SQLite deployments;
 - what information is safe to expose from `/api/health`.
 
