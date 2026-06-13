@@ -11,6 +11,12 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
+        /**
+         * Readiness probe: confirms the process is up AND the database answers a
+         *     trivial query, so orchestrators stop routing traffic to an instance whose
+         *     database is gone (returns 503). A liveness-only check would report healthy
+         *     with a dead database and keep receiving requests.
+         */
         get: operations["health"];
         put?: never;
         post?: never;
@@ -20,7 +26,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/items": {
+    "/api/v1/items": {
         parameters: {
             query?: never;
             header?: never;
@@ -36,7 +42,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/items/{id}": {
+    "/api/v1/items/{id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -52,7 +58,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/items/{id}/toggle": {
+    "/api/v1/items/{id}/toggle": {
         parameters: {
             query?: never;
             header?: never;
@@ -68,7 +74,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/posts": {
+    "/api/v1/posts": {
         parameters: {
             query?: never;
             header?: never;
@@ -84,7 +90,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/posts/stats": {
+    "/api/v1/posts/stats": {
         parameters: {
             query?: never;
             header?: never;
@@ -100,7 +106,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/posts/{id}": {
+    "/api/v1/posts/{id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -116,7 +122,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/posts/{id}/archive": {
+    "/api/v1/posts/{id}/archive": {
         parameters: {
             query?: never;
             header?: never;
@@ -132,7 +138,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/posts/{id}/publish": {
+    "/api/v1/posts/{id}/publish": {
         parameters: {
             query?: never;
             header?: never;
@@ -160,6 +166,9 @@ export interface components {
             title: string;
         };
         Health: {
+            /** @description "ok" when a trivial query against the database succeeds, else "unreachable". */
+            database: string;
+            /** @description "ok" when the service and its database are reachable, else "degraded". */
             status: string;
             version: string;
         };
@@ -207,8 +216,17 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Service is healthy */
+            /** @description Service and database are healthy */
             200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Health"];
+                };
+            };
+            /** @description Database is unreachable */
+            503: {
                 headers: {
                     [name: string]: unknown;
                 };

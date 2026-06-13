@@ -1,0 +1,13 @@
+{
+  "$comment": "Project settings for Claude Code, shipped with the template. The deny rules below make VISION.md human-only: AI agents cannot Edit/Write it. Humans change it directly. See AGENTS.md hard rules and .github/CODEOWNERS.",
+  "permissions": {
+    "deny": [
+      "Edit(./VISION.md)",
+      "Write(./VISION.md)",
+      "MultiEdit(./VISION.md)",
+      "Edit(VISION.md)",
+      "Write(VISION.md)",
+      "MultiEdit(VISION.md)"
+    ]
+  }
+}

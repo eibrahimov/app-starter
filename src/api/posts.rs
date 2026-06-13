@@ -27,7 +27,7 @@ fn default_limit() -> i64 {
 
 #[utoipa::path(
     get,
-    path = "/api/posts",
+    path = "/api/v1/posts",
     tag = "posts",
     params(ListPostsQuery),
     responses(
@@ -57,7 +57,7 @@ pub async fn list_posts(
 
 #[utoipa::path(
     post,
-    path = "/api/posts",
+    path = "/api/v1/posts",
     tag = "posts",
     request_body = CreatePost,
     responses(
@@ -79,7 +79,7 @@ pub async fn create_post(
 
 #[utoipa::path(
     get,
-    path = "/api/posts/stats",
+    path = "/api/v1/posts/stats",
     tag = "posts",
     responses((status = 200, description = "Post counts per status", body = PostStats))
 )]
@@ -89,7 +89,7 @@ pub async fn post_stats(State(state): State<AppState>) -> Result<Json<PostStats>
 
 #[utoipa::path(
     get,
-    path = "/api/posts/{id}",
+    path = "/api/v1/posts/{id}",
     tag = "posts",
     params(("id" = String, Path, description = "Post id")),
     responses(
@@ -109,7 +109,7 @@ pub async fn get_post(
 
 #[utoipa::path(
     post,
-    path = "/api/posts/{id}/publish",
+    path = "/api/v1/posts/{id}/publish",
     tag = "posts",
     params(("id" = String, Path, description = "Post id")),
     responses(
@@ -141,7 +141,7 @@ pub async fn publish_post(
 
 #[utoipa::path(
     post,
-    path = "/api/posts/{id}/archive",
+    path = "/api/v1/posts/{id}/archive",
     tag = "posts",
     params(("id" = String, Path, description = "Post id")),
     responses(

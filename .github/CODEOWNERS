@@ -1,0 +1,7 @@
+# Code owners. A path listed here requires the named owner's review on any pull
+# request that changes it. Fork owners: replace @eibrahimov with your own GitHub
+# username or team.
+
+# The founding vision is human-maintained — require a maintainer's review for any
+# change, and keep automated agents from quietly editing it.
+/VISION.md @eibrahimov

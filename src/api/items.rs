@@ -7,7 +7,7 @@ use axum::http::StatusCode;
 
 #[utoipa::path(
     get,
-    path = "/api/items",
+    path = "/api/v1/items",
     tag = "items",
     responses((status = 200, description = "All items, newest first", body = [Item]))
 )]
@@ -17,7 +17,7 @@ pub async fn list_items(State(state): State<AppState>) -> Result<Json<Vec<Item>>
 
 #[utoipa::path(
     post,
-    path = "/api/items",
+    path = "/api/v1/items",
     tag = "items",
     request_body = CreateItem,
     responses(
@@ -39,7 +39,7 @@ pub async fn create_item(
 
 #[utoipa::path(
     post,
-    path = "/api/items/{id}/toggle",
+    path = "/api/v1/items/{id}/toggle",
     tag = "items",
     params(("id" = String, Path, description = "Item id")),
     responses(
@@ -62,7 +62,7 @@ pub async fn toggle_item(
 
 #[utoipa::path(
     delete,
-    path = "/api/items/{id}",
+    path = "/api/v1/items/{id}",
     tag = "items",
     params(("id" = String, Path, description = "Item id")),
     responses(

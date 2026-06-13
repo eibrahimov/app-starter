@@ -51,3 +51,72 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+  create-release:
+    name: Create GitHub release
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+    steps:
+      # Create (or reuse) the release once, up front, so the per-OS binary jobs
+      # below only upload assets to an existing release. Without this barrier,
+      # the three matrix jobs can call action-gh-release concurrently for a tag
+      # whose release does not exist yet and race to create it.
+      - uses: softprops/action-gh-release@v2
+
+  binaries:
+    name: Binary (${{ matrix.os }})
+    needs: create-release
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            asset: app-starter-linux-amd64.tar.gz
+            bin: app-starter
+          - os: macos-14
+            asset: app-starter-macos-arm64.tar.gz
+            bin: app-starter
+          - os: windows-latest
+            asset: app-starter-windows-amd64.zip
+            bin: app-starter.exe
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+
+      # Build the frontend so rust-embed bundles the UI into the binary.
+      - name: Build frontend
+        run: cd interface && bun install --frozen-lockfile && bun run build
+
+      - name: Build release binary
+        run: cargo build --release --bin app-starter
+        env:
+          SKIP_FRONTEND_BUILD: "1"
+
+      # Package with each platform's native tool: tar on Unix, PowerShell's
+      # Compress-Archive on Windows. The previous single `tar -a` step produced
+      # a real .zip only because windows-latest ships bsdtar as `tar`; GNU tar
+      # cannot write zips, so that assumption was fragile.
+      - name: Package (tar.gz)
+        if: runner.os != 'Windows'
+        run: tar -czf "${{ matrix.asset }}" -C target/release "${{ matrix.bin }}"
+
+      - name: Package (zip)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: Compress-Archive -Path "target/release/${{ matrix.bin }}" -DestinationPath "${{ matrix.asset }}" -Force
+
+      - name: Attach to GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ matrix.asset }}

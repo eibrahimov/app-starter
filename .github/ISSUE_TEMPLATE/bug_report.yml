@@ -1,19 +1,32 @@
 name: Bug report
-description: Something in the template is broken
+description: Report broken template behavior
 labels: [bug]
 body:
   - type: dropdown
     id: where
     attributes:
       label: Where does it happen?
-      options: [Fresh clone of the template, A project generated from it]
+      options:
+        - Fresh clone of the template
+        - A project generated from it
     validations:
       required: true
+  - type: input
+    id: version
+    attributes:
+      label: Template commit or generated project baseline
+      description: Paste a commit SHA, tag, or approximate date if known.
   - type: textarea
     id: repro
     attributes:
       label: Steps to reproduce
-      description: Commands you ran and what failed (include `just` recipe output).
+      description: Commands you ran and what failed. Include relevant `just` recipe output.
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior / error output
     validations:
       required: true
   - type: textarea
@@ -22,3 +35,8 @@ body:
       label: Expected behavior
     validations:
       required: true
+  - type: textarea
+    id: validation
+    attributes:
+      label: Validation commands tried
+      description: List `just lint`, `just test`, `just check-typegen`, `just build`, or why they could not run.

@@ -1,0 +1,90 @@
+name: Change request
+description: Propose or request approval for a change to template defaults, conventions, wiring, or release
+title: "change: "
+labels: ["change-request"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this for changes to the template itself — defaults, conventions, build/CI,
+        release, or a reusable pattern — especially something learned while building a
+        real app on top of App Starter. High-impact areas (security, dependencies,
+        release, governance) need approval BEFORE a PR; low-risk changes can go
+        straight to a PR. For a plain defect use the Bug report; for a brand-new
+        capability use the Feature request.
+  - type: dropdown
+    id: area
+    attributes:
+      label: Area / category
+      options:
+        - Wiring / recipe (migration, domain, handler, typegen, UI)
+        - Convention or docs (AGENTS.md, README)
+        - Default — security, auth, CORS, or request limits
+        - Dependencies, Rust toolchain, or JS package manager
+        - Release workflow, Docker publishing, package/binary names, or registry
+        - Migration / data policy or destructive behavior
+        - Generated-file or API-contract policy
+        - Architecture/conventions not represented by both examples
+        - Governance, CODEOWNERS, or required labels
+        - License policy or copied third-party code
+    validations:
+      required: true
+  - type: dropdown
+    id: risk
+    attributes:
+      label: Risk level (be honest — it sets the path)
+      options:
+        - "Low: isolated, copies an existing pattern — a PR is welcome now"
+        - "Medium: touches multiple layers — file this, then open a PR"
+        - "High: changes a default, breaks the API contract, or sets direction — get approval here BEFORE a PR"
+    validations:
+      required: true
+  - type: textarea
+    id: current
+    attributes:
+      label: Current behavior
+      description: What does the template do today, and where (file or step in the AGENTS.md recipe)?
+    validations:
+      required: true
+  - type: textarea
+    id: proposed
+    attributes:
+      label: Proposed change
+      description: What default, workflow, or convention would change, and how would it work for BOTH worked examples (items and posts)?
+    validations:
+      required: true
+  - type: textarea
+    id: why_now
+    attributes:
+      label: Why now / evidence
+      description: What evidence (ideally from a real app built on the template) shows this is needed before v1 or for generated apps? Keep it free of your app's domain code.
+    validations:
+      required: true
+  - type: textarea
+    id: tradeoff
+    attributes:
+      label: Tradeoff and risk
+      description: What complexity, maintenance burden, or future scope does this introduce?
+    validations:
+      required: true
+  - type: textarea
+    id: alternative
+    attributes:
+      label: Smallest safer alternative
+      description: What simpler option did you consider, and why is it not enough?
+  - type: textarea
+    id: decision
+    attributes:
+      label: Decision requested
+      description: What should maintainers approve or reject before implementation begins?
+    validations:
+      required: true
+  - type: checkboxes
+    id: checks
+    attributes:
+      label: Checks
+      options:
+        - label: This is not specific to my app's domain; it improves the template for everyone.
+          required: true
+        - label: I have read the "Backporting from generated projects" section in CONTRIBUTING.md.
+          required: true

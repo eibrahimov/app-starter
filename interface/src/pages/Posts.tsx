@@ -13,7 +13,7 @@ export function PostsPage() {
   const posts = useQuery({
     queryKey: ["posts", filter],
     queryFn: async () => {
-      const { data, error } = await api.GET("/api/posts", {
+      const { data, error } = await api.GET("/api/v1/posts", {
         params: {
           query: filter === "all" ? {} : { status: filter },
         },
@@ -26,7 +26,7 @@ export function PostsPage() {
   const stats = useQuery({
     queryKey: ["posts", "stats"],
     queryFn: async () => {
-      const { data, error } = await api.GET("/api/posts/stats");
+      const { data, error } = await api.GET("/api/v1/posts/stats");
       if (error) throw error;
       return data;
     },
@@ -37,7 +37,7 @@ export function PostsPage() {
 
   const create = useMutation({
     mutationFn: async (newTitle: string) => {
-      const { data, error } = await api.POST("/api/posts", {
+      const { data, error } = await api.POST("/api/v1/posts", {
         body: { title: newTitle },
       });
       if (error) throw error;
@@ -51,7 +51,7 @@ export function PostsPage() {
 
   const publish = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await api.POST("/api/posts/{id}/publish", {
+      const { error } = await api.POST("/api/v1/posts/{id}/publish", {
         params: { path: { id } },
       });
       if (error) throw error;
@@ -61,7 +61,7 @@ export function PostsPage() {
 
   const archive = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await api.POST("/api/posts/{id}/archive", {
+      const { error } = await api.POST("/api/v1/posts/{id}/archive", {
         params: { path: { id } },
       });
       if (error) throw error;

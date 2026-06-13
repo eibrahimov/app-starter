@@ -30,7 +30,42 @@ async fn main() -> anyhow::Result<()> {
     let app = app_starter::api::router(app_starter::AppState { pool });
 
     let listener = TcpListener::bind(("0.0.0.0", args.port)).await?;
-    tracing::info!(port = args.port, "listening");
-    axum::serve(listener, app).await?;
+    tracing::info!(
+        port = args.port,
+        database = %app_starter::db::redact_url(&args.database_url),
+        "listening"
+    );
+    axum::serve(listener, app)
+        .with_graceful_shutdown(shutdown_signal())
+        .await?;
     Ok(())
+}
+
+/// Resolves when the process receives Ctrl-C or (on Unix) SIGTERM, so axum
+/// drains in-flight requests before stopping. This matters most for SQLite:
+/// a hard kill mid-write can leave the database locked.
+async fn shutdown_signal() {
+    let ctrl_c = async {
+        tokio::signal::ctrl_c()
+            .await
+            .expect("install Ctrl-C handler");
+    };
+
+    #[cfg(unix)]
+    let terminate = async {
+        tokio::signal::unix::signal(tokio::signal::unix::SignalKind::terminate())
+            .expect("install SIGTERM handler")
+            .recv()
+            .await;
+    };
+
+    #[cfg(not(unix))]
+    let terminate = std::future::pending::<()>();
+
+    tokio::select! {
+        _ = ctrl_c => {},
+        _ = terminate => {},
+    }
+
+    tracing::info!("shutdown signal received, draining connections");
 }
