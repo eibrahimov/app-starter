@@ -103,14 +103,18 @@ jobs:
         env:
           SKIP_FRONTEND_BUILD: "1"
 
-      - name: Package
-        shell: bash
-        run: |
-          if [[ "${{ matrix.asset }}" == *.zip ]]; then
-            tar -a -cf "${{ matrix.asset }}" -C target/release "${{ matrix.bin }}"
-          else
-            tar -czf "${{ matrix.asset }}" -C target/release "${{ matrix.bin }}"
-          fi
+      # Package with each platform's native tool: tar on Unix, PowerShell's
+      # Compress-Archive on Windows. The previous single `tar -a` step produced
+      # a real .zip only because windows-latest ships bsdtar as `tar`; GNU tar
+      # cannot write zips, so that assumption was fragile.
+      - name: Package (tar.gz)
+        if: runner.os != 'Windows'
+        run: tar -czf "${{ matrix.asset }}" -C target/release "${{ matrix.bin }}"
+
+      - name: Package (zip)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: Compress-Archive -Path "target/release/${{ matrix.bin }}" -DestinationPath "${{ matrix.asset }}" -Force
 
       - name: Attach to GitHub release
         uses: softprops/action-gh-release@v2
