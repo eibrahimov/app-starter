@@ -30,7 +30,11 @@ async fn main() -> anyhow::Result<()> {
     let app = app_starter::api::router(app_starter::AppState { pool });
 
     let listener = TcpListener::bind(("0.0.0.0", args.port)).await?;
-    tracing::info!(port = args.port, database_url = %args.database_url, "listening");
+    tracing::info!(
+        port = args.port,
+        database = %app_starter::db::redact_url(&args.database_url),
+        "listening"
+    );
     axum::serve(listener, app)
         .with_graceful_shutdown(shutdown_signal())
         .await?;
