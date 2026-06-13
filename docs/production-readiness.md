@@ -1,12 +1,16 @@
 # Production readiness
 
-App Starter is production-minded, not production-complete. It gives you a small, explicit foundation for real apps, then leaves high-stakes product and infrastructure choices visible instead of hiding them behind defaults that may be wrong for your domain.
+App Starter is production-minded, not production-complete. It gives real apps a
+small, explicit foundation and leaves high-stakes product and infrastructure
+choices visible instead of hiding them behind defaults that may not fit your
+domain.
 
 Before exposing a generated app to real users, make deliberate decisions in the areas below.
 
 ## Public exposure and CORS
 
-The template ships with `CorsLayer::permissive()` in `src/api/mod.rs` so the optional Tauri desktop shell can call the sidecar API from `tauri://localhost`.
+The template ships with `CorsLayer::permissive()` in `src/api/mod.rs` so the
+optional Tauri desktop shell can call the sidecar API from `tauri://localhost`.
 
 Before exposing the API publicly:
 
@@ -54,7 +58,8 @@ SQLite is the default operational path. Treat it seriously:
 - test restore on a throwaway environment;
 - never edit committed migrations after they have run anywhere important.
 
-If a generated app needs a different database, prove the need in that app first. Do not add database abstraction to the template speculatively.
+If a generated app needs a different database, prove the need there first. Do
+not add database abstraction to the template speculatively.
 
 ## Secrets and environment
 
@@ -102,7 +107,8 @@ Before shipping desktop builds:
 - verify lifecycle behavior on every supported platform;
 - plan codesigning, notarization, and auto-update outside the template defaults.
 
-Do not remove Tauri-aware base URL logic from `interface/src/api/client.ts` unless the generated app has intentionally dropped desktop support.
+Do not remove Tauri-aware base URL logic from `interface/src/api/client.ts`
+unless the generated app has intentionally dropped desktop support.
 
 ## Docker and release
 

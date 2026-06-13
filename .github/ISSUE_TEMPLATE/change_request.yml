@@ -1,5 +1,5 @@
 name: Change request
-description: Request approval before changing high-impact template defaults or governance
+description: Request approval for high-impact template defaults or governance changes
 labels: [enhancement]
 body:
   - type: dropdown

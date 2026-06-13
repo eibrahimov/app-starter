@@ -8,9 +8,9 @@ problems. You will get an acknowledgement within a few days.
 
 ## Supported versions
 
-The template tracks its default branch. Generated projects own their own
-security posture after `scripts/setup.sh` runs; re-apply template fixes by
-cherry-picking. See `UPGRADING.md` for the generated-project upgrade workflow.
+The template tracks its default branch. After `scripts/setup.sh`, generated
+projects own their security posture. Re-apply template fixes by cherry-picking.
+See `UPGRADING.md` for the generated-project upgrade workflow.
 
 ## Hardening checklist for generated apps
 

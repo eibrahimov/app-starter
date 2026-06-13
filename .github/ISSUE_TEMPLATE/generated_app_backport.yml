@@ -1,12 +1,12 @@
 name: Generated-app backport
-description: Propose a template improvement discovered while building a generated app
+description: Report a reusable improvement discovered while building a generated app
 labels: [enhancement]
 body:
   - type: textarea
     id: context
     attributes:
       label: Generated app context
-      description: What kind of app were you building, and which template commit/version did it start from?
+      description: What kind of app, and which template commit/version did it start from?
     validations:
       required: true
   - type: textarea

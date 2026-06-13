@@ -29,7 +29,7 @@ body:
   - type: textarea
     id: friction
     attributes:
-      label: What stopped making sense?
+      label: What was unclear or missing?
       description: Name the command, file, doc, error, or missing explanation.
     validations:
       required: true

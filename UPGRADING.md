@@ -1,14 +1,21 @@
 # Upgrading generated projects
 
-Generated projects own their product code after `scripts/setup.sh` runs, but they can still pull useful fixes from the App Starter template. Upgrade deliberately: cherry-pick reusable improvements, review conflicts, and avoid re-running setup.
+After `scripts/setup.sh`, generated projects own their product code, but they
+can still pull useful App Starter fixes. Upgrade deliberately: cherry-pick
+reusable changes, review conflicts, and never rerun setup.
 
 ## Principles
 
 - **Do not rerun `scripts/setup.sh`** in an initialized project. It is a one-time rename script for fresh clones.
-- **Cherry-pick template fixes; do not blindly copy the repo.** Generated apps have their own domain, migrations, names, icons, secrets, and deployment choices.
-- **Preserve generated-app identity.** Template references such as `app-starter`, `app_starter`, `App Starter`, package names, bundle IDs, and example resources may have been renamed or removed.
-- **Port the pattern, not the example.** If a template change improves `items` or `posts`, adapt the idea to your app's real resources.
-- **Run the app's gates after every upgrade.** At minimum run the equivalents of `just lint`, `just test`, and `just check-typegen`.
+- **Cherry-pick template fixes; do not blindly copy the repo.** Generated apps
+  have their own domain, migrations, names, icons, secrets, and deployments.
+- **Preserve generated-app identity.** Template references such as `app-starter`,
+  `app_starter`, `App Starter`, package names, bundle IDs, and example resources
+  may be renamed or removed.
+- **Port the pattern, not the example.** If a template change improves `items` or
+  `posts`, adapt it to your app's real resources.
+- **Run the app's gates after every upgrade.** At minimum, run equivalents of
+  `just lint`, `just test`, and `just check-typegen`.
 
 ## Track the upstream template
 
@@ -60,7 +67,8 @@ just test
 just check-typegen
 ```
 
-If the cherry-picked change modifies API annotations or schemas, run `just typegen` before `just check-typegen` and commit the regenerated schema.
+If the cherry-picked change modifies API annotations or schemas, run
+`just typegen` before `just check-typegen` and commit the regenerated schema.
 
 For release, embedded UI, Docker, or desktop changes, also run the relevant build gate:
 

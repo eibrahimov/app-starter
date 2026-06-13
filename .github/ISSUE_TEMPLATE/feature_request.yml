@@ -1,5 +1,5 @@
 name: Feature or pattern proposal
-description: Propose an improvement to the template
+description: Propose a template improvement
 labels: [enhancement]
 body:
   - type: textarea
@@ -13,12 +13,12 @@ body:
     id: evidence
     attributes:
       label: Evidence / real-world origin
-      description: Where did this show up? Fresh clone, generated app, repeated project, user report, or another concrete source.
+      description: Fresh clone, generated app, repeated project, user report, or another concrete source.
   - type: textarea
     id: proposal
     attributes:
       label: Proposed direction
-      description: Which layer changes (migration/domain/API/UI/CI/docs), how it applies to both worked examples, and what users can delete if unused.
+      description: Which layer changes, how it applies to both worked examples, and what users can delete if unused.
     validations:
       required: true
   - type: dropdown

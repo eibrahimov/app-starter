@@ -47,11 +47,14 @@ Before handoff:
 
 - Run the validation matrix commands that apply.
 - Report commands run and results.
-- If a command could not be run, state the reason and remaining risk.
+- State the reason and remaining risk for any skipped command.
 
 ## Approval boundaries
 
-Agents may proceed without additional approval for small bug fixes, tests, docs clarifications, and resource additions that follow the existing `items`/`posts` pattern.
+Agents may proceed without additional approval for:
+
+- small bug fixes, tests, and docs clarifications;
+- resource additions that follow the existing `items`/`posts` pattern.
 
 Ask for human approval before changing:
 
@@ -114,11 +117,11 @@ See `docs/add-a-resource.md` for the human-facing version of this recipe.
 
 ## Feeding learnings back
 
-Every generated app is a source of learning. When work reveals reusable friction or a repeated pitfall:
+Each generated app can improve the template. When work reveals reusable friction or a repeated pitfall:
 
 - Update `AGENTS.md` if it changes how agents or contributors should work.
 - Update `README.md` if it changes setup, development, deployment, or release behavior.
-- Update `docs/add-a-resource.md`, `docs/production-readiness.md`, or `UPGRADING.md` when the recipe, hardening map, or generated-project lifecycle changes.
+- Update `docs/add-a-resource.md`, `docs/production-readiness.md`, or `UPGRADING.md` when resource, hardening, or upgrade guidance changes.
 - Open an issue before adding a reusable pattern or changing template defaults.
 - Keep generated-app/domain-specific details out of the template; port the pattern, not the feature.
 
@@ -133,7 +136,7 @@ Use `docs/contribution-prompts.md` for structured issue, change-request, backpor
 - Keep clippy clean: CI runs `-D warnings`; run `cargo fmt --all` before committing.
 - Tests refer to the crate as `app_starter`; scripts use the `app-starter` binary
   name. `scripts/setup.sh` renames both — do not hardcode other variants.
-- `scripts/setup.sh` is a one-time fresh-template initializer; do not run it during normal feature, bugfix, or audit work.
+- `scripts/setup.sh` is only for fresh-template initialization; do not run it during normal feature, bugfix, or audit work.
 - Code copied from external projects must be license-compatible (this template is
   MIT) and free of third-party product names; prefer clean-room reimplementation of
   patterns over copying files.

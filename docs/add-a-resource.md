@@ -1,8 +1,12 @@
 # Add a resource end to end
 
-Use this guide when replacing the worked examples with your real domain or adding another resource beside them. The pattern is intentionally explicit: migration, domain queries, API handlers, OpenAPI registration, generated TypeScript, frontend page, route, and tests.
+Use this guide when replacing the worked examples with your real domain or
+adding another resource beside them. The pattern stays explicit: migration,
+domain queries, API handlers, OpenAPI registration, generated TypeScript,
+frontend page, route, and tests.
 
-The fastest path is to copy the shape of `items` for simple CRUD or `posts` for a resource with lifecycle transitions, filtered lists, pagination, get-by-id, and stats.
+The fastest path is to copy `items` for simple CRUD or `posts` for lifecycle
+transitions, filtered lists, pagination, get-by-id, and stats.
 
 ## Files you usually touch
 
@@ -37,7 +41,8 @@ Conventions used by the template:
 - `TEXT` timestamps.
 - Indexes on sort/filter columns.
 
-Never edit or rename a committed migration. sqlx records migration checksums, and changing history can break existing databases.
+Never edit or rename a committed migration. sqlx records migration checksums,
+so changing history can break existing databases.
 
 ### 2. Add the domain module
 
@@ -46,7 +51,8 @@ Create `src/<resource>.rs` with:
 - row structs deriving `Debug`, `Serialize`, `sqlx::FromRow`, and `utoipa::ToSchema`;
 - request payload structs deriving `Debug`, `Deserialize`, and `ToSchema`;
 - plain async query functions that take `&SqlitePool`;
-- by-id mutations returning `Result<bool, sqlx::Error>` from `rows_affected()` when the caller needs to map missing rows to 404.
+- by-id mutations returning `Result<bool, sqlx::Error>` from `rows_affected()`
+  when callers map missing rows to 404.
 
 Avoid repository traits or generic service layers until repeated real apps prove they are needed.
 
@@ -85,7 +91,8 @@ In `src/api/mod.rs`:
 
 Use axum 0.8 brace syntax for route params, such as `{id}`.
 
-Most common mistake: an endpoint missing from the OpenAPI `paths(...)` list still works at runtime but silently disappears from `interface/src/api/schema.d.ts` after typegen.
+Most common mistake: an endpoint missing from OpenAPI `paths(...)` still works
+at runtime but disappears from `interface/src/api/schema.d.ts` after typegen.
 
 ### 6. Add backend tests
 
@@ -148,11 +155,13 @@ just check-typegen   # verifies generated TypeScript is current
 just build           # for embedded UI, release, Docker, or packaging changes
 ```
 
-If you changed API annotations or schemas, run `just typegen` before `just check-typegen` and commit the regenerated schema.
+If you changed API annotations or schemas, run `just typegen` before
+`just check-typegen` and commit the regenerated schema.
 
 ## Removing the examples
 
-Generated apps should replace `items` and `posts` with their own domain when they are no longer useful. Remove them deliberately across every layer:
+Generated apps should replace `items` and `posts` with their own domain when
+the examples are no longer useful. Remove them deliberately across every layer:
 
 - migration/data model if the app has not shipped with those tables;
 - domain modules and `pub mod` exports;

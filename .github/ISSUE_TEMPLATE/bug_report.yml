@@ -1,5 +1,5 @@
 name: Bug report
-description: Something in the template is broken
+description: Report broken template behavior
 labels: [bug]
 body:
   - type: dropdown
@@ -39,4 +39,4 @@ body:
     id: validation
     attributes:
       label: Validation commands tried
-      description: Include commands such as `just lint`, `just test`, `just check-typegen`, `just build`, or why they could not be run.
+      description: List `just lint`, `just test`, `just check-typegen`, `just build`, or why they could not run.

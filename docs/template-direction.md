@@ -1,6 +1,10 @@
 # App Starter direction and v1 readiness
 
-App Starter is an opinionated foundation for building serious Rust + TypeScript applications quickly without hiding the system behind framework magic. Its long-term ambition is high, but the v1 path should protect the thing that already makes the template valuable: one understandable app, one binary, one API contract, and a clear way to grow from examples into a real domain.
+App Starter is an opinionated foundation for serious Rust + TypeScript
+applications without hiding the system behind framework magic. The v1 path
+should protect what already makes it valuable: one understandable app, one
+binary, one API contract, and a clear way to grow from examples into a real
+domain.
 
 ## Decision standard
 
@@ -8,14 +12,23 @@ For any proposed change, ask:
 
 > Is this good for App Starter, or bad for App Starter?
 
-A change is good when it makes generated projects easier to start, safer to ship, clearer to maintain, and easier for humans and AI agents to improve responsibly. A change is bad when it adds impressive surface area while increasing confusion, lock-in, maintenance cost, security ambiguity, or template bloat.
+A change is good when it makes generated projects easier to start, safer to
+ship, clearer to maintain, and easier for humans and AI agents to improve. A
+change is bad when it adds surface area while increasing confusion, lock-in,
+maintenance cost, security ambiguity, or template bloat.
 
 ## Product identity to protect
 
-- **One Rust server owns the backend and serves the embedded UI.** The default deployment story remains simple: build one binary, optionally containerize it, and run it with SQLite.
+- **One Rust server owns the backend and serves the embedded UI.** The default
+  deployment story stays simple: build one binary, optionally containerize it,
+  and run it with SQLite.
 - **The backend is the source of truth for API types.** OpenAPI annotations and `just typegen` keep frontend calls honest.
-- **Examples teach the architecture.** `items` and `posts` are not product features; they are worked examples meant to be copied, replaced, and eventually deleted by generated apps.
-- **SQLite-first is a feature, not a limitation.** It keeps local development, Docker deployment, and small-team operations understandable. Multi-database abstractions require strong evidence before entering the template.
+- **Examples teach the architecture.** `items` and `posts` are worked examples,
+  not product features. Generated apps can copy, replace, and eventually delete
+  them.
+- **SQLite-first is a feature, not a limitation.** It keeps local development,
+  Docker deployment, and small-team operations understandable. Multi-database
+  abstractions need strong evidence before entering the template.
 - **Optional platform surfaces stay optional.** Docker and Tauri are delivery paths, not reasons to complicate the core web/API foundation.
 - **Explicit code beats hidden framework behavior.** Generated apps should be easy to inspect six months later.
 
@@ -23,7 +36,8 @@ A change is good when it makes generated projects easier to start, safer to ship
 
 - Clear full-stack spine: axum API, sqlx migrations, embedded React UI, OpenAPI-generated TypeScript.
 - Two end-to-end resource examples that cover minimal CRUD and a richer lifecycle/list/stats flow.
-- Useful validation commands and CI for Rust formatting, clippy, backend tests, frontend typecheck/build, and typegen drift.
+- Useful validation commands and CI for Rust formatting, clippy, backend tests,
+  frontend typecheck/build, and typegen drift.
 - Docker and Tauri paths exist without forcing every app into those paths.
 - Project guidance already documents the most common OpenAPI registration failure and migration/typegen rules.
 
@@ -43,10 +57,11 @@ These are the changes most likely to improve adoption and shipping readiness wit
 
 3. **Production boundary map**
    - Keep `docs/production-readiness.md` honest: production-minded, not production-complete.
-   - Document seams for auth, CORS, request limits, database backup/restore, secrets, observability, Docker, and desktop sidecar behavior.
+   - Document seams for auth, CORS, request limits, database backup/restore,
+     secrets, observability, Docker, and desktop sidecar behavior.
 
 4. **Generated-project upgrade story**
-   - Maintain `UPGRADING.md` so generated apps know how to pull fixes without rerunning setup or blindly copying template files.
+   - Maintain `UPGRADING.md` so generated apps can pull fixes without rerunning setup or blindly copying template files.
    - Release notes should call out generated-project impact when relevant.
 
 5. **Contribution loop from real apps**
@@ -55,7 +70,9 @@ These are the changes most likely to improve adoption and shipping readiness wit
    - Port patterns back to `items`/`posts`; never copy domain-specific app code into the template.
 
 6. **Fresh-clone trials before v1**
-   - Ask at least three people or agents who did not build the template to create a project, run it, add one resource, run typegen/tests, and identify what confused them.
+   - Ask at least three people or agents who did not build the template to create
+     a project, run it, add one resource, run typegen/tests, and identify what
+     confused them.
    - Fix repeated friction in docs or defaults before adding new features.
 
 ## Defer until repeated evidence appears
@@ -100,7 +117,8 @@ Use these before accepting new template scope:
 
 ## AI-native operating model
 
-AI agents should be able to make routine changes safely, but they need explicit boundaries. The template should continue to encode:
+AI agents should be able to make routine changes safely, but they need explicit
+boundaries. The template should continue to encode:
 
 - where to add code for each layer;
 - which files are generated or append-only;
@@ -109,4 +127,5 @@ AI agents should be able to make routine changes safely, but they need explicit 
 - how to report skipped checks and residual risk;
 - how to turn recurring generated-app friction into issues, docs, or template changes.
 
-The goal is not autonomous churn. The goal is higher-quality human/agent collaboration where the repo itself makes correct work easier than incorrect work.
+The goal is not autonomous churn. The goal is better human/agent collaboration
+where the repo itself makes correct work easier than incorrect work.

@@ -1,4 +1,4 @@
-See AGENTS.md for authoritative project conventions, validation commands, and the step-by-step recipe for adding a resource.
+See AGENTS.md for project conventions, validation commands, and the resource recipe.
 
 Quick reminders:
 - Routine gates: `just lint`, `just test`, `just check-typegen`.

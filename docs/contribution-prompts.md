@@ -1,6 +1,8 @@
 # Contribution prompts
 
-Use these prompts when a human or AI agent discovers something that may improve the App Starter template. They are designed to turn real-world friction into maintainable issues and PRs instead of vague wishlist items.
+Use these prompts when a human or AI agent discovers something that may improve
+the App Starter template. They turn real-world friction into maintainable issues
+and PRs instead of vague wishlists.
 
 ## Adoption friction issue
 
@@ -134,7 +136,8 @@ Rules:
 - Inspect git status before editing and do not overwrite unrelated work.
 - Keep the one-binary + OpenAPI-source-of-truth identity intact.
 - Do not edit committed migrations or hand-edit interface/src/api/schema.d.ts.
-- Ask before changing security, CORS, dependencies, release workflow, migration policy, generated-file policy, or architecture conventions.
+- Ask before changing security, CORS, dependencies, release workflow, migration
+  policy, generated-file policy, or architecture conventions.
 - If this came from a generated app, port the reusable pattern, not the app domain.
 
 Validation:
