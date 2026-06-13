@@ -1,0 +1,23 @@
+name: Feature or pattern proposal
+description: Propose an improvement to the template
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What does the template make hard or unsafe today?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed direction
+      description: Where it lives in the recipe (migration/domain/API/UI/CI) and how it applies to both worked examples.
+    validations:
+      required: true
+  - type: textarea
+    id: origin
+    attributes:
+      label: Real-world origin
+      description: If this came from a generated project, describe the case.

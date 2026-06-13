@@ -35,6 +35,29 @@ jobs:
         env:
           SKIP_FRONTEND_BUILD: "1"
 
+  typegen:
+    name: Typegen drift
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Install frontend dependencies
+        run: cd interface && bun install --frozen-lockfile
+
+      - name: Regenerate types and compare
+        run: |
+          cargo run --bin openapi_spec > /tmp/openapi.json
+          (cd interface && bunx openapi-typescript /tmp/openapi.json -o src/api/schema.d.ts)
+          git diff --exit-code -- interface/src/api/schema.d.ts
+        env:
+          SKIP_FRONTEND_BUILD: "1"
+
   frontend:
     name: Frontend
     runs-on: ubuntu-24.04

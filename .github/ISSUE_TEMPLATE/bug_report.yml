@@ -1,0 +1,24 @@
+name: Bug report
+description: Something in the template is broken
+labels: [bug]
+body:
+  - type: dropdown
+    id: where
+    attributes:
+      label: Where does it happen?
+      options: [Fresh clone of the template, A project generated from it]
+    validations:
+      required: true
+  - type: textarea
+    id: repro
+    attributes:
+      label: Steps to reproduce
+      description: Commands you ran and what failed (include `just` recipe output).
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
