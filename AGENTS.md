@@ -1,7 +1,9 @@
 # Agent Guide
 
-Full-stack Rust starter: one axum binary serves the JSON API under `/api/*` and the
-embedded React SPA. The backend is the single source of truth for API types.
+Full-stack Rust starter: one axum binary serves the JSON API and the embedded React
+SPA. The backend is the single source of truth for API types. Resource endpoints live
+under `/api/v1/*` (versioned); operational endpoints (`/api/health`, `/api/openapi.json`)
+stay unversioned so probes and tooling have a stable path across versions.
 
 ## Gate commands (run before any commit)
 
@@ -37,7 +39,7 @@ pagination, get-by-id, and an aggregate stats endpoint). Copy their shape exactl
    shared values; the pool usually suffices.
 4. Handlers: `src/api/<resource>.rs` — thin functions taking
    `State(state): State<AppState>`, returning `Result<_, AppError>`. Every handler
-   carries `#[utoipa::path(...)]` with the FULL literal path including the `/api`
+   carries `#[utoipa::path(...)]` with the FULL literal path including the `/api/v1`
    prefix, a per-resource `tag`, `params` for path/query inputs, `request_body` for
    POST bodies, and every response status with `body =` schema. Validate input in the
    handler (`AppError::BadRequest`); map a `false`/`None` store result to
@@ -45,13 +47,16 @@ pagination, get-by-id, and an aggregate stats endpoint). Copy their shape exactl
    delete-like actions.
 5. Register in `src/api/mod.rs` in THREE places: (a) `pub mod <resource>;`, (b) the
    handler in the `#[openapi(paths(...))]` list AND every new ToSchema type in
-   `components(schemas(...))`, (c) a `.route("/api/...", ...)` entry placed before
+   `components(schemas(...))`, (c) a `.route("/api/v1/...", ...)` entry placed before
    `.fallback(crate::frontend::spa)`, using axum 0.8 brace syntax (`{id}`).
    An endpoint missing from (b) does NOT error — it silently vanishes from the
    OpenAPI spec and the generated TypeScript types. This is the most common mistake.
 6. Tests: extend `tests/api.rs` reusing `test_app()` and `body_json()`; import the
    crate as `app_starter::...`. Cover the happy-path roundtrip plus one 400 and one
-   404 case. Run `just test`.
+   404 case. Run `just test`. Unit-test pure logic (enums, parsers, aggregates) in a
+   `#[cfg(test)] mod tests` inside the domain module, as `src/posts.rs` does. The
+   `openapi_spec_has_no_dangling_schema_refs` guard test fails if a handler's type is
+   missing from `components(schemas(...))` — a safety net for the step 5 footgun.
 7. Run `just typegen` and COMMIT the regenerated `interface/src/api/schema.d.ts`.
    Never hand-edit that file. Skipping typegen makes `just lint` (tsc) fail.
 8. Frontend page: `interface/src/pages/<Name>.tsx` modeled on `Items.tsx` — data
@@ -74,3 +79,11 @@ pagination, get-by-id, and an aggregate stats endpoint). Copy their shape exactl
 - Code copied from external projects must be license-compatible (this template is
   MIT) and free of third-party product names; prefer clean-room reimplementation of
   patterns over copying files.
+- API endpoints are versioned: new resource routes go under `/api/v1/`. Within v1,
+  only ADD fields or endpoints — never remove or repurpose them (the generated TS
+  client and any downstream consumer are pinned to the contract). A breaking change
+  opens `/api/v2` alongside v1.
+- Shared HTTP concerns (body-size limit, request timeout, request-id, CORS, graceful
+  shutdown) live as layers in `src/api/mod.rs::router` and `src/main.rs`, not per
+  handler. `/api/health` is a readiness probe that pings the database — keep it cheap
+  and side-effect free.

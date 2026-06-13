@@ -36,6 +36,13 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 COPY --from=backend /app/target/release/app-starter /usr/local/bin/app-starter
 
+# Run as an unprivileged user. /data is created and owned by appuser, so a fresh
+# named volume inherits that ownership; bind-mounted hosts must chown it themselves.
+RUN useradd --uid 10001 --user-group --create-home appuser \
+    && mkdir -p /data \
+    && chown -R appuser:appuser /data
+USER appuser
+
 ENV PORT=8080
 ENV DATABASE_URL="sqlite:///data/app.db?mode=rwc"
 VOLUME /data

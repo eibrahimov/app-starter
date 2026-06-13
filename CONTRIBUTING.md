@@ -38,5 +38,12 @@ something in a generated project that is not specific to its domain:
 - Anything touching defaults (security, CORS, dependencies, release): open an
   issue for discussion before a PR.
 
+Signals that something belongs upstream: repeated friction in the recipe, a
+missing abstraction you had to invent, a weak or unsafe default, release or build
+pain, a security gap, platform inconsistency, a performance regression, or a
+developer-experience papercut. The **Change request** issue template captures the
+category and risk level so the right path (PR now, or discuss first) is obvious to
+humans and AI agents alike.
+
 Keep backports free of your app's domain code; port the pattern, not the
 feature.

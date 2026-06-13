@@ -2,6 +2,8 @@
 
 Full-stack Rust starter. One binary serves the API and the UI, typed end to end via OpenAPI.
 
+**Who it's for:** technical builders and AI coding agents who want a fast, type-safe foundation for shipping real software. It assumes Rust, Bun, and a terminal. Making this accessible to non-technical builders (guided scaffolding, AI-driven generation) is a deliberate next-phase goal on the [Roadmap](#roadmap), not a v1 claim.
+
 **Stack:** axum + SQLite (sqlx) on the backend. React 19 + Vite + Tailwind 4 + TanStack Router/Query on the frontend, embedded into the binary with rust-embed. Optional Tauri 2 desktop shell that bundles the server as a sidecar. Bun for JS tooling, just for tasks.
 
 Two example resources are wired through every layer (migration, queries, API handlers, generated TypeScript types, UI page, tests): `items`, a minimal todo CRUD, and `posts`, which adds a status lifecycle (draft -> published -> archived), filtered queries with pagination, and an aggregate stats endpoint. Replace them with your real domain. The wiring pattern stays.
@@ -42,6 +44,8 @@ This is the core workflow. The backend is the single source of truth for API typ
 2. Run `just typegen`
 3. The frontend client (`interface/src/api/client.ts`) is now fully typed for the new endpoint. Wrong paths, params, or body shapes fail `tsc`.
 
+Resource endpoints are versioned under `/api/v1/`, and the contract is additive within a version: add fields and endpoints freely, but a breaking change opens `/api/v2`. Health and the spec stay unversioned at `/api/health` and `/api/openapi.json`.
+
 ## Tasks
 
 ```bash
@@ -54,6 +58,8 @@ just test           # backend tests (in-memory SQLite)
 just build          # production build: frontend, then binary with UI embedded
 just docker-build   # build the Docker image
 ```
+
+If you don't have `just`, run the commands directly — see the [`justfile`](justfile) for the exact recipe behind each task.
 
 ## Project layout
 
@@ -86,6 +92,18 @@ just desktop-build    # bundles sidecar + frontend + installer
 
 Before shipping: replace the placeholder icon if needed with `cd desktop && bunx tauri icon src-tauri/icons/icon.png`, and change the bundle identifier in `desktop/src-tauri/tauri.conf.json` from `com.example.*` to your reverse domain.
 
+## Database
+
+SQLite via sqlx — a single file on disk (or `:memory:` in tests). It is a **single-writer** database: ideal for single-instance apps, internal tools, and desktop, but it does not support multiple server instances writing concurrently. For multi-instance or high-write deployments, swap sqlx to Postgres — that touches the pool type in `src/db.rs`, every `query`/`query_as`, and the migrations, so treat it as a fork, not a config flag. Migrations are forward-only and append-only: to fix a bad migration, add a new one; never edit a committed file (sqlx checksums them).
+
+## Troubleshooting
+
+- **`bun: command not found`** during build: install [Bun](https://bun.sh), then `cd interface && bun install`.
+- **Port 8080 already in use:** run `PORT=8081 cargo run`, or stop the other process.
+- **`frontend not built` page:** run `cd interface && bun install && bun run build`, then `cargo run`.
+- **`tsc` errors after changing an endpoint:** run `just typegen` and commit `interface/src/api/schema.d.ts` — it is generated, never hand-edited.
+- **`database is locked`:** another process holds the SQLite file; stop it, or point `DATABASE_URL` at a different path.
+
 ## Deploy
 
 `Dockerfile` builds a multi-stage image: bun for the frontend, cargo for the binary, slim Debian runtime. SQLite lives on a volume at `/data`.
@@ -97,6 +115,18 @@ docker compose up --build
 Works as-is on Coolify or any Docker host: point it at the repo, the Dockerfile does the rest. Pushing a `v*` tag publishes a multi-arch image to GHCR via `.github/workflows/release.yml`.
 
 Note: CORS is permissive so the Tauri shell can reach the sidecar. Tighten `CorsLayer` in `src/api/mod.rs` before exposing the API publicly without the embedded UI.
+
+## Roadmap
+
+v1 ships and supports today: **Web** (embedded SPA), **Docker** (multi-arch image to GHCR on `v*` tags), and **Desktop** (macOS/Windows/Linux installers built locally via `just desktop-build`).
+
+Planned, explicitly post-v1 (tracked as issues — contributions welcome):
+
+- **Prebuilt binaries** for Linux/macOS/Windows attached to GitHub Releases (server + CLI use).
+- **Signed desktop installers** in CI (macOS notarization, Windows code-signing) — requires developer certificates.
+- **Mobile (iOS/Android)** via Tauri 2 — icons are present, but build/signing/store wiring is not. Do not assume `tauri build ios`/`android` works yet.
+- **Frontend test harness** (Vitest) and coverage reporting (non-blocking).
+- **Accessibility for non-technical builders** — guided scaffolding and AI-assisted generation.
 
 ## License
 

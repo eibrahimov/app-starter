@@ -1,0 +1,39 @@
+# cargo-deny configuration.
+#
+# Turns the "dependencies must be license-compatible" hard rule (this template
+# is MIT) into an enforced gate, and surfaces RUSTSEC advisories. Run
+# `cargo deny check` locally; CI runs it on every push and PR.
+
+[licenses]
+# Permissive licenses compatible with an MIT-licensed template. A crate offering
+# a choice (e.g. "MIT OR Apache-2.0") passes if any listed option matches.
+allow = [
+    "MIT",
+    "Apache-2.0",
+    "Apache-2.0 WITH LLVM-exception",
+    "BSD-3-Clause",
+    "BSL-1.0",
+    "CDLA-Permissive-2.0",
+    "ISC",
+    "Unicode-3.0",
+    "Unlicense",
+    "Zlib",
+]
+confidence-threshold = 0.8
+
+[advisories]
+# Vulnerabilities are denied by default. Keep unmaintained checks scoped to the
+# workspace to avoid CI noise from transitive dev-only crates; add entries to
+# `ignore` (with a rationale) if a specific advisory must be tolerated.
+yanked = "deny"
+unmaintained = "workspace"
+ignore = []
+
+[bans]
+multiple-versions = "allow"
+wildcards = "deny"
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]

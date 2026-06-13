@@ -51,3 +51,54 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+
+  binaries:
+    name: Binary (${{ matrix.os }})
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: ubuntu-24.04
+            asset: app-starter-linux-amd64.tar.gz
+            bin: app-starter
+          - os: macos-14
+            asset: app-starter-macos-arm64.tar.gz
+            bin: app-starter
+          - os: windows-latest
+            asset: app-starter-windows-amd64.zip
+            bin: app-starter.exe
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+
+      - uses: dtolnay/rust-toolchain@stable
+
+      - uses: Swatinem/rust-cache@v2
+
+      # Build the frontend so rust-embed bundles the UI into the binary.
+      - name: Build frontend
+        run: cd interface && bun install --frozen-lockfile && bun run build
+
+      - name: Build release binary
+        run: cargo build --release --bin app-starter
+        env:
+          SKIP_FRONTEND_BUILD: "1"
+
+      - name: Package
+        shell: bash
+        run: |
+          if [[ "${{ matrix.asset }}" == *.zip ]]; then
+            tar -a -cf "${{ matrix.asset }}" -C target/release "${{ matrix.bin }}"
+          else
+            tar -czf "${{ matrix.asset }}" -C target/release "${{ matrix.bin }}"
+          fi
+
+      - name: Attach to GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ matrix.asset }}
