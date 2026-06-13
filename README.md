@@ -4,6 +4,8 @@ Full-stack Rust starter. One binary serves the API and the UI, typed end to end 
 
 **Who it's for:** technical builders and AI coding agents who want a fast, type-safe foundation for shipping real software. It assumes Rust, Bun, and a terminal. Making this accessible to non-technical builders (guided scaffolding, AI-driven generation) is a deliberate next-phase goal on the [Roadmap](#roadmap), not a v1 claim.
 
+**Vision:** the long-horizon intent behind this template is in [VISION.md](VISION.md) — human-maintained; agents reference it but never edit it.
+
 **Stack:** axum + SQLite (sqlx) on the backend. React 19 + Vite + Tailwind 4 + TanStack Router/Query on the frontend, embedded into the binary with rust-embed. Optional Tauri 2 desktop shell that bundles the server as a sidecar. Bun for JS tooling, just for tasks.
 
 Two example resources are wired through every layer (migration, queries, API handlers, generated TypeScript types, UI page, tests): `items`, a minimal todo CRUD, and `posts`, which adds a status lifecycle (draft -> published -> archived), filtered queries with pagination, and an aggregate stats endpoint. Replace them with your real domain. The wiring pattern stays.

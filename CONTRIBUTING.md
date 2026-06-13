@@ -24,6 +24,9 @@ Keep commits small and focused.
 - No code copied from license-incompatible projects and no third-party
   product names in the template. Prefer clean-room reimplementation of
   patterns over copying files.
+- `VISION.md` is human-maintained. Do not edit it in a PR unless you are a human
+  maintainer intentionally revising the vision; agents and tooling must leave it
+  untouched.
 
 ## Backporting from generated projects
 

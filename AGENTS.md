@@ -5,6 +5,9 @@ SPA. The backend is the single source of truth for API types. Resource endpoints
 under `/api/v1/*` (versioned); operational endpoints (`/api/health`, `/api/openapi.json`)
 stay unversioned so probes and tooling have a stable path across versions.
 
+The repository's founding intent is recorded in [VISION.md](VISION.md) — human-maintained;
+reference it for intent, never edit it (see Hard rules).
+
 ## Gate commands (run before any commit)
 
 ```
@@ -87,3 +90,7 @@ pagination, get-by-id, and an aggregate stats endpoint). Copy their shape exactl
   shutdown) live as layers in `src/api/mod.rs::router` and `src/main.rs`, not per
   handler. `/api/health` is a readiness probe that pings the database — keep it cheap
   and side-effect free.
+- `VISION.md` is human-maintained: AI agents MUST NOT edit, rewrite, reformat, or
+  delete it — reference it for intent only. `.claude/settings.json` denies write
+  access and `.github/CODEOWNERS` gates it to human review; changing the vision is a
+  human-only action.
