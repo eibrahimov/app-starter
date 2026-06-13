@@ -38,6 +38,72 @@ async fn health_returns_ok() {
     assert_eq!(response.status(), StatusCode::OK);
     let json = body_json(response).await;
     assert_eq!(json["status"], "ok");
+    // Readiness probe also confirms the database is reachable.
+    assert_eq!(json["database"], "ok");
+}
+
+/// Guards the typegen loop's biggest footgun: a handler is registered in
+/// `paths(...)` but its request/response type is missing from
+/// `components(schemas(...))` in src/api/mod.rs. That produces a dangling
+/// `$ref` in the served spec, which silently breaks the generated TypeScript.
+/// This fails CI before the broken types reach the frontend.
+#[tokio::test]
+async fn openapi_spec_has_no_dangling_schema_refs() {
+    let app = test_app().await;
+    let response = app
+        .oneshot(
+            Request::get("/api/openapi.json")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+    let spec = body_json(response).await;
+
+    let defined: std::collections::HashSet<String> = spec
+        .pointer("/components/schemas")
+        .and_then(|s| s.as_object())
+        .map(|m| m.keys().cloned().collect())
+        .unwrap_or_default();
+
+    let mut referenced = Vec::new();
+    collect_schema_refs(&spec, &mut referenced);
+
+    let dangling: Vec<&String> = referenced
+        .iter()
+        .filter(|r| !defined.contains(*r))
+        .collect();
+    assert!(
+        dangling.is_empty(),
+        "OpenAPI references schemas missing from components(schemas(...)) in \
+         src/api/mod.rs: {dangling:?}"
+    );
+}
+
+/// Collects every `#/components/schemas/<Name>` referenced anywhere in the spec.
+fn collect_schema_refs(value: &serde_json::Value, out: &mut Vec<String>) {
+    match value {
+        serde_json::Value::Object(map) => {
+            for (key, val) in map {
+                if key == "$ref"
+                    && let Some(name) = val
+                        .as_str()
+                        .and_then(|s| s.strip_prefix("#/components/schemas/"))
+                {
+                    out.push(name.to_owned());
+                } else {
+                    collect_schema_refs(val, out);
+                }
+            }
+        }
+        serde_json::Value::Array(items) => {
+            for item in items {
+                collect_schema_refs(item, out);
+            }
+        }
+        _ => {}
+    }
 }
 
 #[tokio::test]
@@ -48,7 +114,7 @@ async fn items_crud_roundtrip() {
     let response = app
         .clone()
         .oneshot(
-            Request::post("/api/items")
+            Request::post("/api/v1/items")
                 .header(header::CONTENT_TYPE, "application/json")
                 .body(Body::from(r#"{"title":"first item"}"#))
                 .unwrap(),
@@ -63,7 +129,7 @@ async fn items_crud_roundtrip() {
     // List
     let response = app
         .clone()
-        .oneshot(Request::get("/api/items").body(Body::empty()).unwrap())
+        .oneshot(Request::get("/api/v1/items").body(Body::empty()).unwrap())
         .await
         .unwrap();
     assert_eq!(response.status(), StatusCode::OK);
@@ -74,7 +140,7 @@ async fn items_crud_roundtrip() {
     let response = app
         .clone()
         .oneshot(
-            Request::post(format!("/api/items/{id}/toggle"))
+            Request::post(format!("/api/v1/items/{id}/toggle"))
                 .body(Body::empty())
                 .unwrap(),
         )
@@ -88,7 +154,7 @@ async fn items_crud_roundtrip() {
     let response = app
         .clone()
         .oneshot(
-            Request::delete(format!("/api/items/{id}"))
+            Request::delete(format!("/api/v1/items/{id}"))
                 .body(Body::empty())
                 .unwrap(),
         )
@@ -100,7 +166,7 @@ async fn items_crud_roundtrip() {
     let response = app
         .clone()
         .oneshot(
-            Request::post("/api/items")
+            Request::post("/api/v1/items")
                 .header(header::CONTENT_TYPE, "application/json")
                 .body(Body::from(r#"{"title":"   "}"#))
                 .unwrap(),
@@ -112,7 +178,7 @@ async fn items_crud_roundtrip() {
     // Unknown id is a 404
     let response = app
         .oneshot(
-            Request::delete("/api/items/does-not-exist")
+            Request::delete("/api/v1/items/does-not-exist")
                 .body(Body::empty())
                 .unwrap(),
         )
@@ -129,7 +195,7 @@ async fn posts_lifecycle_roundtrip() {
     let response = app
         .clone()
         .oneshot(
-            Request::post("/api/posts")
+            Request::post("/api/v1/posts")
                 .header(header::CONTENT_TYPE, "application/json")
                 .body(Body::from(r#"{"title":"hello world","body":"first post"}"#))
                 .unwrap(),
@@ -146,7 +212,7 @@ async fn posts_lifecycle_roundtrip() {
     let response = app
         .clone()
         .oneshot(
-            Request::get("/api/posts/stats")
+            Request::get("/api/v1/posts/stats")
                 .body(Body::empty())
                 .unwrap(),
         )
@@ -161,7 +227,7 @@ async fn posts_lifecycle_roundtrip() {
     let response = app
         .clone()
         .oneshot(
-            Request::get(format!("/api/posts/{id}"))
+            Request::get(format!("/api/v1/posts/{id}"))
                 .body(Body::empty())
                 .unwrap(),
         )
@@ -173,7 +239,7 @@ async fn posts_lifecycle_roundtrip() {
     let response = app
         .clone()
         .oneshot(
-            Request::post(format!("/api/posts/{id}/publish"))
+            Request::post(format!("/api/v1/posts/{id}/publish"))
                 .body(Body::empty())
                 .unwrap(),
         )
@@ -188,7 +254,7 @@ async fn posts_lifecycle_roundtrip() {
     let response = app
         .clone()
         .oneshot(
-            Request::post(format!("/api/posts/{id}/publish"))
+            Request::post(format!("/api/v1/posts/{id}/publish"))
                 .body(Body::empty())
                 .unwrap(),
         )
@@ -200,7 +266,7 @@ async fn posts_lifecycle_roundtrip() {
     let response = app
         .clone()
         .oneshot(
-            Request::get("/api/posts?status=published")
+            Request::get("/api/v1/posts?status=published")
                 .body(Body::empty())
                 .unwrap(),
         )
@@ -211,7 +277,7 @@ async fn posts_lifecycle_roundtrip() {
     let response = app
         .clone()
         .oneshot(
-            Request::get("/api/posts?status=draft")
+            Request::get("/api/v1/posts?status=draft")
                 .body(Body::empty())
                 .unwrap(),
         )
@@ -224,7 +290,7 @@ async fn posts_lifecycle_roundtrip() {
     let response = app
         .clone()
         .oneshot(
-            Request::post(format!("/api/posts/{id}/archive"))
+            Request::post(format!("/api/v1/posts/{id}/archive"))
                 .body(Body::empty())
                 .unwrap(),
         )
@@ -243,7 +309,7 @@ async fn post_invalid_input_rejected() {
     let response = app
         .clone()
         .oneshot(
-            Request::post("/api/posts")
+            Request::post("/api/v1/posts")
                 .header(header::CONTENT_TYPE, "application/json")
                 .body(Body::from(r#"{"title":"   "}"#))
                 .unwrap(),
@@ -255,7 +321,7 @@ async fn post_invalid_input_rejected() {
     // Unknown status filter is a 400
     let response = app
         .oneshot(
-            Request::get("/api/posts?status=bogus")
+            Request::get("/api/v1/posts?status=bogus")
                 .body(Body::empty())
                 .unwrap(),
         )
@@ -269,7 +335,7 @@ async fn post_unknown_id_is_404() {
     let app = test_app().await;
     let response = app
         .oneshot(
-            Request::post("/api/posts/does-not-exist/publish")
+            Request::post("/api/v1/posts/does-not-exist/publish")
                 .body(Body::empty())
                 .unwrap(),
         )

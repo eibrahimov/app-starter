@@ -9,7 +9,7 @@ export function ItemsPage() {
   const items = useQuery({
     queryKey: ["items"],
     queryFn: async () => {
-      const { data, error } = await api.GET("/api/items");
+      const { data, error } = await api.GET("/api/v1/items");
       if (error) throw error;
       return data;
     },
@@ -20,7 +20,7 @@ export function ItemsPage() {
 
   const create = useMutation({
     mutationFn: async (newTitle: string) => {
-      const { data, error } = await api.POST("/api/items", {
+      const { data, error } = await api.POST("/api/v1/items", {
         body: { title: newTitle },
       });
       if (error) throw error;
@@ -34,7 +34,7 @@ export function ItemsPage() {
 
   const toggle = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await api.POST("/api/items/{id}/toggle", {
+      const { error } = await api.POST("/api/v1/items/{id}/toggle", {
         params: { path: { id } },
       });
       if (error) throw error;
@@ -44,7 +44,7 @@ export function ItemsPage() {
 
   const remove = useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await api.DELETE("/api/items/{id}", {
+      const { error } = await api.DELETE("/api/v1/items/{id}", {
         params: { path: { id } },
       });
       if (error) throw error;

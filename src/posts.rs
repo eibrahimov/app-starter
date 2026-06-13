@@ -163,3 +163,33 @@ pub async fn stats(pool: &SqlitePool) -> Result<PostStats, sqlx::Error> {
     }
     Ok(stats)
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    // Pure, branchy logic (status parsing) is unit-tested here; the full
+    // request/response path is covered by the black-box tests in tests/api.rs.
+    // Use this pattern for any non-trivial stateless logic you add.
+
+    #[test]
+    fn parse_accepts_known_statuses_and_rejects_everything_else() {
+        assert_eq!(PostStatus::parse("draft"), Some(PostStatus::Draft));
+        assert_eq!(PostStatus::parse("published"), Some(PostStatus::Published));
+        assert_eq!(PostStatus::parse("archived"), Some(PostStatus::Archived));
+        assert_eq!(PostStatus::parse("Published"), None);
+        assert_eq!(PostStatus::parse(""), None);
+        assert_eq!(PostStatus::parse("bogus"), None);
+    }
+
+    #[test]
+    fn as_str_round_trips_through_parse() {
+        for status in [
+            PostStatus::Draft,
+            PostStatus::Published,
+            PostStatus::Archived,
+        ] {
+            assert_eq!(PostStatus::parse(status.as_str()), Some(status));
+        }
+    }
+}
