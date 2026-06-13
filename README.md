@@ -4,7 +4,7 @@ Full-stack Rust starter. One binary serves the API and the UI, typed end to end 
 
 **Stack:** axum + SQLite (sqlx) on the backend. React 19 + Vite + Tailwind 4 + TanStack Router/Query on the frontend, embedded into the binary with rust-embed. Optional Tauri 2 desktop shell that bundles the server as a sidecar. Bun for JS tooling, just for tasks.
 
-The example resource is `items`, a todo list wired through every layer: migration, queries, API handlers, generated TypeScript types, UI page, tests. Replace it with your real domain. The wiring pattern stays.
+Two example resources are wired through every layer (migration, queries, API handlers, generated TypeScript types, UI page, tests): `items`, a minimal todo CRUD, and `posts`, which adds a status lifecycle (draft -> published -> archived), filtered queries with pagination, and an aggregate stats endpoint. Replace them with your real domain. The wiring pattern stays.
 
 ## Setup
 
@@ -62,6 +62,7 @@ src/
   lib.rs           AppState
   api/             HTTP layer: routes + OpenAPI annotations
   items.rs         example domain module: types + queries
+  posts.rs         second example: status lifecycle, filtered queries, stats
   db.rs            pool init + migrations
   error.rs         AppError -> HTTP status mapping
   frontend.rs      embedded SPA serving with index.html fallback

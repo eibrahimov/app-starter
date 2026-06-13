@@ -120,3 +120,160 @@ async fn items_crud_roundtrip() {
         .unwrap();
     assert_eq!(response.status(), StatusCode::NOT_FOUND);
 }
+
+#[tokio::test]
+async fn posts_lifecycle_roundtrip() {
+    let app = test_app().await;
+
+    // Create lands as a draft
+    let response = app
+        .clone()
+        .oneshot(
+            Request::post("/api/posts")
+                .header(header::CONTENT_TYPE, "application/json")
+                .body(Body::from(r#"{"title":"hello world","body":"first post"}"#))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::CREATED);
+    let created = body_json(response).await;
+    let id = created["id"].as_str().unwrap().to_owned();
+    assert_eq!(created["status"], "draft");
+    assert!(created["published_at"].is_null());
+
+    // Stats count the draft
+    let response = app
+        .clone()
+        .oneshot(
+            Request::get("/api/posts/stats")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+    let stats = body_json(response).await;
+    assert_eq!(stats["draft"], 1);
+    assert_eq!(stats["published"], 0);
+
+    // Get by id
+    let response = app
+        .clone()
+        .oneshot(
+            Request::get(format!("/api/posts/{id}"))
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+
+    // Publish sets status and timestamp
+    let response = app
+        .clone()
+        .oneshot(
+            Request::post(format!("/api/posts/{id}/publish"))
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+    let published = body_json(response).await;
+    assert_eq!(published["status"], "published");
+    assert!(published["published_at"].is_string());
+
+    // Publishing twice is an invalid transition
+    let response = app
+        .clone()
+        .oneshot(
+            Request::post(format!("/api/posts/{id}/publish"))
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
+    // Status filter narrows the list
+    let response = app
+        .clone()
+        .oneshot(
+            Request::get("/api/posts?status=published")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    let list = body_json(response).await;
+    assert_eq!(list.as_array().unwrap().len(), 1);
+    let response = app
+        .clone()
+        .oneshot(
+            Request::get("/api/posts?status=draft")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    let list = body_json(response).await;
+    assert_eq!(list.as_array().unwrap().len(), 0);
+
+    // Archive completes the lifecycle
+    let response = app
+        .clone()
+        .oneshot(
+            Request::post(format!("/api/posts/{id}/archive"))
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+    let archived = body_json(response).await;
+    assert_eq!(archived["status"], "archived");
+}
+
+#[tokio::test]
+async fn post_invalid_input_rejected() {
+    let app = test_app().await;
+
+    // Empty title is a 400
+    let response = app
+        .clone()
+        .oneshot(
+            Request::post("/api/posts")
+                .header(header::CONTENT_TYPE, "application/json")
+                .body(Body::from(r#"{"title":"   "}"#))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
+    // Unknown status filter is a 400
+    let response = app
+        .oneshot(
+            Request::get("/api/posts?status=bogus")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+}
+
+#[tokio::test]
+async fn post_unknown_id_is_404() {
+    let app = test_app().await;
+    let response = app
+        .oneshot(
+            Request::post("/api/posts/does-not-exist/publish")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::NOT_FOUND);
+}

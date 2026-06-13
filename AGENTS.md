@@ -18,8 +18,9 @@ bun). JS tooling is bun/bunx only — never npm, pnpm, yarn, or npx. Run
 
 ## Adding a resource end to end
 
-The `items` resource is the worked example wired through every layer. Copy its shape
-exactly:
+Two worked examples are wired through every layer: `items` (minimal CRUD) and
+`posts` (status lifecycle with transition validation, filtered list queries with
+pagination, get-by-id, and an aggregate stats endpoint). Copy their shape exactly:
 
 1. Migration: `migrations/<YYYYMMDDHHMMSS>_<description>.sql`. The timestamp must sort
    after every existing migration. NEVER edit or rename a committed migration — sqlx

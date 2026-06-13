@@ -3,6 +3,7 @@ pub mod db;
 pub mod error;
 pub mod frontend;
 pub mod items;
+pub mod posts;
 
 use sqlx::SqlitePool;
 
