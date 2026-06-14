@@ -104,12 +104,16 @@ tests/             black-box API tests via tower::oneshot
 
 ## Desktop app (optional)
 
-The Tauri shell wraps the same UI and ships the server binary as a sidecar. Release builds spawn it on launch and kill it on exit. Needs the [Tauri prerequisites](https://tauri.app/start/prerequisites/) for your platform.
+The Tauri shell wraps the same UI and ships the server binary as a sidecar. The shell spawns it on launch and kills it on exit, in both dev and packaged builds, so a single command runs the whole app. Needs the [Tauri prerequisites](https://tauri.app/start/prerequisites/) for your platform.
 
 ```bash
-just desktop-dev      # run backend separately with `cargo run` first
+just desktop-dev      # spawns the bundled backend automatically
 just desktop-build    # bundles sidecar + frontend + installer
 ```
+
+To iterate on the backend with hot reload instead, run `cargo run` at the repo
+root first; the shell's sidecar then fails to bind the port and exits while your
+`cargo run` serves the window.
 
 Before shipping: replace the placeholder icon if needed with `cd desktop && bunx tauri icon src-tauri/icons/icon.png`, and change the bundle identifier in `desktop/src-tauri/tauri.conf.json` from `com.example.*` to your reverse domain.
 
