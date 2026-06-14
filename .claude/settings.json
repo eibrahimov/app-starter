@@ -1,5 +1,5 @@
 {
-  "$comment": "Project settings for Claude Code, shipped with the template. The deny rules below make VISION.md human-only: AI agents cannot Edit/Write it. Humans change it directly. See AGENTS.md hard rules and .github/CODEOWNERS.",
+  "$comment": "Project settings for Claude Code, shipped with the template. VISION.md is human-only: the permission deny-rules below discourage agent writes (advisory pattern matches), and the PreToolUse hook (.claude/hooks/protect-vision.sh) is the enforced backstop that hard-blocks Edit/Write/MultiEdit targeting VISION.md. Humans change VISION.md directly. See AGENTS.md hard rules and .github/CODEOWNERS.",
   "permissions": {
     "deny": [
       "Edit(./VISION.md)",
@@ -8,6 +8,19 @@
       "Edit(VISION.md)",
       "Write(VISION.md)",
       "MultiEdit(VISION.md)"
+    ]
+  },
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "bash \"$CLAUDE_PROJECT_DIR/.claude/hooks/protect-vision.sh\""
+          }
+        ]
+      }
     ]
   }
 }
