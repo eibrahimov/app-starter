@@ -6,12 +6,13 @@ one-binary + OpenAPI-source-of-truth identity.
 
 ## Setup and validation
 
-See `AGENTS.md` for the full conventions and the step-by-step recipe for adding a resource.
+See `AGENTS.md` for the full conventions and the step-by-step recipe for adding a
+resource, and `RUST_STYLE_GUIDE.md` / `TS_STYLE_GUIDE.md` for language-level conventions.
 
 Required before normal PR/commit handoff:
 
 ```bash
-just lint            # fmt check + clippy -D warnings + tsc (fast gate; `just verify` runs the full CI set)
+just lint            # fmt check + clippy -D warnings + Biome + tsc (fast gate; `just verify` runs the full CI set)
 just test            # backend black-box tests
 just check-typegen   # fail if committed TS types are stale (CI enforces this)
 ```
@@ -51,7 +52,7 @@ the `items`/`posts` pattern do not need a separate approval issue.
 - JS tooling is bun/bunx only.
 - `scripts/setup.sh` is only for fresh-template initialization; do not run it in an initialized generated project.
 - Do not remove the Tauri-aware base URL logic in `interface/src/api/client.ts`
-  or the permissive CORS default in `src/api/mod.rs` without explicit approval;
+  or the permissive CORS default in `src/api.rs` without explicit approval;
   desktop sidecars depend on both.
 - Do not copy code from license-incompatible projects or add third-party product
   names. Prefer clean-room reimplementation of patterns over copying files.

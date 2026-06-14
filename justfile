@@ -23,10 +23,11 @@ fmt:
 check-typegen: typegen
     git diff --exit-code -- interface/src/api/schema.d.ts
 
-# Fast gate: fmt check + clippy -D warnings + frontend tsc. Run `just verify` for the full CI set.
+# Fast gate: fmt check + clippy -D warnings + frontend Biome + tsc. Run `just verify` for the full CI set.
 lint:
     cargo fmt --all -- --check
     SKIP_FRONTEND_BUILD=1 cargo clippy --all-targets -- -D warnings
+    cd interface && bunx biome check .
     cd interface && bunx tsc --noEmit
 
 # Everything CI runs, locally: lint + backend tests + typegen drift + frontend build/test + cargo-deny.

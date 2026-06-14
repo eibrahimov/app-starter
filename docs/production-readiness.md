@@ -9,7 +9,7 @@ Before exposing a generated app to real users, make deliberate decisions in the 
 
 ## Public exposure and CORS
 
-The template ships with `CorsLayer::permissive()` in `src/api/mod.rs` so the
+The template ships with `CorsLayer::permissive()` in `src/api.rs` so the
 optional Tauri desktop shell can call the sidecar API from `tauri://localhost`.
 
 Before exposing the API publicly:
@@ -38,7 +38,7 @@ Auth defaults are security-sensitive and should not be added to the template wit
 ## Request limits and timeouts
 
 The template ships a default request body-size limit and per-request timeout
-(`MAX_BODY_BYTES`, `REQUEST_TIMEOUT` in `src/api/mod.rs`). Tune those, and decide
+(`MAX_BODY_BYTES`, `REQUEST_TIMEOUT` in `src/api.rs`). Tune those, and decide
 the rest for your workload before public traffic:
 
 - request body size and per-request timeout (shipped — adjust the constants);

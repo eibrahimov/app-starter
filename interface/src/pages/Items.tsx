@@ -67,6 +67,7 @@ export function ItemsPage() {
           className="flex-1 rounded-md border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm outline-none focus:border-zinc-600"
         />
         <button
+          type="button"
           onClick={() => title.trim() && create.mutate(title)}
           disabled={create.isPending}
           className="rounded-md bg-zinc-100 px-4 py-2 text-sm font-medium text-zinc-900 hover:bg-white disabled:opacity-50"
@@ -98,6 +99,7 @@ export function ItemsPage() {
               {item.title}
             </span>
             <button
+              type="button"
               onClick={() => remove.mutate(item.id)}
               className="text-xs text-zinc-500 hover:text-red-400"
             >
@@ -106,7 +108,9 @@ export function ItemsPage() {
           </li>
         ))}
         {items.data?.length === 0 && (
-          <li className="text-sm text-zinc-500">No items yet. Add one above.</li>
+          <li className="text-sm text-zinc-500">
+            No items yet. Add one above.
+          </li>
         )}
       </ul>
     </div>

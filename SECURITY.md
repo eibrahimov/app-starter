@@ -16,7 +16,7 @@ See `UPGRADING.md` for the generated-project upgrade workflow.
 
 The template ships some production-minded defaults out of the box: a request
 body-size limit and per-request timeout (`MAX_BODY_BYTES`, `REQUEST_TIMEOUT` in
-`src/api/mod.rs`), an `x-request-id` layer, graceful shutdown on SIGTERM, a
+`src/api.rs`), an `x-request-id` layer, graceful shutdown on SIGTERM, a
 readiness probe at `/api/health` that checks the database, and a non-root Docker
 runtime user.
 
@@ -24,12 +24,12 @@ runtime user.
 
 Before exposing an instance publicly:
 
-- Tighten `CorsLayer` in `src/api/mod.rs`. It ships permissive so the Tauri
+- Tighten `CorsLayer` in `src/api.rs`. It ships permissive so the Tauri
   desktop shell can reach the sidecar; a public API without the embedded UI
   should restrict origins.
 - Add authentication and authorization. The template intentionally ships none.
 - Tune the body-size limit and request timeout (`MAX_BODY_BYTES`,
-  `REQUEST_TIMEOUT` in `src/api/mod.rs`) for your workload; add rate limiting at
+  `REQUEST_TIMEOUT` in `src/api.rs`) for your workload; add rate limiting at
   your reverse proxy.
 - Define a SQLite backup/restore plan before storing important data.
 - Keep dependencies current (Dependabot is preconfigured) and never commit
