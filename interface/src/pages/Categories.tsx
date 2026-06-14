@@ -37,7 +37,8 @@ export function CategoriesPage() {
       let budget: number | null = null;
       if (form.budget.trim()) {
         budget = parseAmount(form.budget);
-        if (budget == null) throw new Error("Budget must be a positive amount.");
+        if (budget == null)
+          throw new Error("Budget must be a positive amount.");
       }
       const body = { name, color: form.color, monthly_budget_cents: budget };
       if (editingId) {
@@ -74,7 +75,10 @@ export function CategoriesPage() {
     setForm({
       name: c.name,
       color: c.color,
-      budget: c.monthly_budget_cents != null ? (c.monthly_budget_cents / 100).toFixed(2) : "",
+      budget:
+        c.monthly_budget_cents != null
+          ? (c.monthly_budget_cents / 100).toFixed(2)
+          : "",
     });
   };
 
@@ -128,10 +132,14 @@ export function CategoriesPage() {
             Cancel
           </button>
         )}
-        {formError && <span className="w-full text-sm text-red-400">{formError}</span>}
+        {formError && (
+          <span className="w-full text-sm text-red-400">{formError}</span>
+        )}
       </form>
 
-      {categories.isLoading && <p className="text-sm text-zinc-500">Loading…</p>}
+      {categories.isLoading && (
+        <p className="text-sm text-zinc-500">Loading…</p>
+      )}
       {categories.isError && (
         <p className="text-sm text-red-400">Could not load categories.</p>
       )}
@@ -153,12 +161,14 @@ export function CategoriesPage() {
                 : "No budget"}
             </span>
             <button
+              type="button"
               onClick={() => startEdit(c)}
               className="text-xs text-zinc-500 hover:text-zinc-200"
             >
               Edit
             </button>
             <button
+              type="button"
               onClick={() => remove.mutate(c.id)}
               className="text-xs text-zinc-500 hover:text-red-400"
             >

@@ -16,6 +16,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
+      # Enforce the no-mod.rs convention: use <module>.rs + <module>/ instead.
+      - name: Forbid mod.rs files
+        run: |
+          matches=$(git ls-files '*/mod.rs' 'mod.rs')
+          if [ -n "$matches" ]; then
+            echo "mod.rs files are not allowed; use <module>.rs + <module>/ instead:" >&2
+            echo "$matches" >&2
+            exit 1
+          fi
+
       - uses: dtolnay/rust-toolchain@stable
         with:
           components: rustfmt, clippy
@@ -71,6 +81,9 @@ jobs:
 
       - name: Install dependencies
         run: bun install --frozen-lockfile
+
+      - name: Lint (Biome)
+        run: bunx biome ci .
 
       - name: Typecheck
         run: bun run typecheck

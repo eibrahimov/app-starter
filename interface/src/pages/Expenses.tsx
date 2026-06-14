@@ -184,7 +184,11 @@ export function ExpensesPage() {
               Cancel
             </button>
           )}
-          {formError && <span className="self-center text-sm text-red-400">{formError}</span>}
+          {formError && (
+            <span className="self-center text-sm text-red-400">
+              {formError}
+            </span>
+          )}
         </div>
       </form>
 
@@ -198,6 +202,7 @@ export function ExpensesPage() {
         />
         {month && (
           <button
+            type="button"
             onClick={() => setMonth("")}
             className="text-xs text-zinc-500 hover:text-zinc-300"
           >
@@ -217,7 +222,10 @@ export function ExpensesPage() {
           ))}
         </select>
         <button
-          onClick={() => expenses.data && downloadCsv(expenses.data, month || "all")}
+          type="button"
+          onClick={() =>
+            expenses.data && downloadCsv(expenses.data, month || "all")
+          }
           disabled={!expenses.data?.length}
           className="ml-auto rounded-md border border-zinc-700 px-3 py-2 text-sm text-zinc-300 hover:bg-zinc-800 disabled:opacity-50"
         >
@@ -240,17 +248,25 @@ export function ExpensesPage() {
               {formatCents(e.amount_cents, currency)}
             </span>
             <span className="flex-1 text-sm">
-              {e.description || <span className="text-zinc-500">No description</span>}
+              {e.description || (
+                <span className="text-zinc-500">No description</span>
+              )}
             </span>
-            <span className="text-xs text-zinc-500">{e.category_name ?? "—"}</span>
-            <span className="w-24 shrink-0 text-right text-xs text-zinc-500">{e.spent_on}</span>
+            <span className="text-xs text-zinc-500">
+              {e.category_name ?? "—"}
+            </span>
+            <span className="w-24 shrink-0 text-right text-xs text-zinc-500">
+              {e.spent_on}
+            </span>
             <button
+              type="button"
               onClick={() => startEdit(e)}
               className="text-xs text-zinc-500 hover:text-zinc-200"
             >
               Edit
             </button>
             <button
+              type="button"
               onClick={() => remove.mutate(e.id)}
               className="text-xs text-zinc-500 hover:text-red-400"
             >
@@ -259,7 +275,9 @@ export function ExpensesPage() {
           </li>
         ))}
         {expenses.data?.length === 0 && (
-          <li className="text-sm text-zinc-500">No expenses for this filter.</li>
+          <li className="text-sm text-zinc-500">
+            No expenses for this filter.
+          </li>
         )}
       </ul>
     </div>

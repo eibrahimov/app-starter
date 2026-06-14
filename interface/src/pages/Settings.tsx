@@ -53,6 +53,7 @@ export function SettingsPage() {
           converted.
         </p>
         <button
+          type="button"
           onClick={() => save.mutate()}
           disabled={save.isPending}
           className="rounded-md bg-zinc-100 px-4 py-2 text-sm font-medium text-zinc-900 hover:bg-white disabled:opacity-50"

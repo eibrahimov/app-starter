@@ -8,12 +8,16 @@ stay unversioned so probes and tooling have a stable path across versions.
 The repository's founding intent is recorded in [VISION.md](VISION.md) — human-maintained;
 reference it for intent, never edit it (see Hard rules).
 
+Language-level conventions live in [RUST_STYLE_GUIDE.md](RUST_STYLE_GUIDE.md) and
+[TS_STYLE_GUIDE.md](TS_STYLE_GUIDE.md); this guide covers the cross-cutting
+workflow, the resource recipe, and approval boundaries.
+
 ## Validation matrix
 
 Required before normal PR/commit handoff:
 
 ```
-just lint      # cargo fmt --check + clippy -D warnings + frontend tsc
+just lint      # cargo fmt --check + clippy -D warnings + frontend Biome + tsc
 just test      # backend black-box tests against in-memory SQLite
 just check-typegen  # fail if the committed types are stale (CI enforces this)
 just verify    # everything CI runs: lint + test + typegen drift + frontend build/test + cargo-deny
@@ -100,7 +104,7 @@ pagination, get-by-id, and an aggregate stats endpoint). Copy their shape exactl
    handler (`AppError::BadRequest`); map a `false`/`None` store result to
    `AppError::NotFound`; 201 + Json for create, `StatusCode::NO_CONTENT` for
    delete-like actions.
-5. Register in `src/api/mod.rs` in THREE places: (a) `pub mod <resource>;`, (b) the
+5. Register in `src/api.rs` in THREE places: (a) `pub mod <resource>;`, (b) the
    handler in the `#[openapi(paths(...))]` list AND every new ToSchema type in
    `components(schemas(...))`, (c) a `.route("/api/v1/...", ...)` entry placed before
    `.fallback(crate::frontend::spa)`, using axum 0.8 brace syntax (`{id}`).
@@ -141,7 +145,7 @@ Use `docs/contribution-prompts.md` for structured issue, change-request, backpor
 - Migrations are append-only; new files must sort last.
 - `interface/src/api/schema.d.ts` is generated only — regenerate, never edit.
 - Do not remove the Tauri-aware baseUrl logic in `interface/src/api/client.ts` or the
-  permissive `CorsLayer` in `src/api/mod.rs` (the desktop sidecar needs both).
+  permissive `CorsLayer` in `src/api.rs` (the desktop sidecar needs both).
 - Keep clippy clean: CI runs `-D warnings`; run `cargo fmt --all` before committing.
 - Tests refer to the crate as `app_starter`; scripts use the `app-starter` binary
   name. `scripts/setup.sh` renames both — do not hardcode other variants.
@@ -154,7 +158,7 @@ Use `docs/contribution-prompts.md` for structured issue, change-request, backpor
   client and any downstream consumer are pinned to the contract). A breaking change
   opens `/api/v2` alongside v1.
 - Shared HTTP concerns (body-size limit, request timeout, request-id, CORS, graceful
-  shutdown) live as layers in `src/api/mod.rs::router` and `src/main.rs`, not per
+  shutdown) live as layers in `src/api.rs::router` and `src/main.rs`, not per
   handler. `/api/health` is a readiness probe that pings the database — keep it cheap
   and side-effect free.
 - `VISION.md` is human-maintained: AI agents MUST NOT edit, rewrite, reformat, or

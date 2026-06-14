@@ -44,7 +44,7 @@ async fn health_returns_ok() {
 
 /// Guards the typegen loop's biggest footgun: a handler is registered in
 /// `paths(...)` but its request/response type is missing from
-/// `components(schemas(...))` in src/api/mod.rs. That produces a dangling
+/// `components(schemas(...))` in src/api.rs. That produces a dangling
 /// `$ref` in the served spec, which silently breaks the generated TypeScript.
 /// This fails CI before the broken types reach the frontend.
 #[tokio::test]
@@ -77,7 +77,7 @@ async fn openapi_spec_has_no_dangling_schema_refs() {
     assert!(
         dangling.is_empty(),
         "OpenAPI references schemas missing from components(schemas(...)) in \
-         src/api/mod.rs: {dangling:?}"
+         src/api.rs: {dangling:?}"
     );
 }
 

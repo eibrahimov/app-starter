@@ -16,7 +16,10 @@ describe("ExpensesPage", () => {
   it("renders expenses returned by the API", async () => {
     getMock.mockImplementation((path: string) => {
       if (path === "/api/v1/settings") {
-        return Promise.resolve({ data: { base_currency: "USD" }, error: undefined });
+        return Promise.resolve({
+          data: { base_currency: "USD" },
+          error: undefined,
+        });
       }
       if (path === "/api/v1/categories") {
         return Promise.resolve({ data: [], error: undefined });

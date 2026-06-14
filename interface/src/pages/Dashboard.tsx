@@ -20,8 +20,14 @@ export function DashboardPage() {
   });
 
   const data = summary.data;
-  const maxCategory = Math.max(1, ...(data?.categories.map((c) => c.spent_cents) ?? []));
-  const maxMonth = Math.max(1, ...(data?.recent_months.map((m) => m.total_cents) ?? []));
+  const maxCategory = Math.max(
+    1,
+    ...(data?.categories.map((c) => c.spent_cents) ?? []),
+  );
+  const maxMonth = Math.max(
+    1,
+    ...(data?.recent_months.map((m) => m.total_cents) ?? []),
+  );
 
   return (
     <div className="space-y-8">
@@ -63,7 +69,10 @@ export function DashboardPage() {
                 const overBudget =
                   c.budget_cents != null && c.spent_cents > c.budget_cents;
                 return (
-                  <li key={c.category_id ?? "uncategorized"} className="space-y-1">
+                  <li
+                    key={c.category_id ?? "uncategorized"}
+                    className="space-y-1"
+                  >
                     <div className="flex items-baseline justify-between text-sm">
                       <span className="flex items-center gap-2">
                         <span
@@ -75,7 +84,11 @@ export function DashboardPage() {
                       <span className="tabular-nums text-zinc-300">
                         {formatCents(c.spent_cents, currency)}
                         {c.budget_cents != null && (
-                          <span className={overBudget ? "text-red-400" : "text-zinc-500"}>
+                          <span
+                            className={
+                              overBudget ? "text-red-400" : "text-zinc-500"
+                            }
+                          >
                             {" "}
                             / {formatCents(c.budget_cents, currency)}
                           </span>
@@ -104,15 +117,22 @@ export function DashboardPage() {
             )}
             <ul className="flex items-end gap-3">
               {data.recent_months.map((m) => (
-                <li key={m.month} className="flex flex-1 flex-col items-center gap-1">
+                <li
+                  key={m.month}
+                  className="flex flex-1 flex-col items-center gap-1"
+                >
                   <span className="text-xs tabular-nums text-zinc-400">
                     {formatCents(m.total_cents, currency)}
                   </span>
                   <div
                     className="w-full rounded-t bg-indigo-500/70"
-                    style={{ height: `${Math.max(4, (m.total_cents / maxMonth) * 120)}px` }}
+                    style={{
+                      height: `${Math.max(4, (m.total_cents / maxMonth) * 120)}px`,
+                    }}
                   />
-                  <span className="text-xs text-zinc-500">{m.month.slice(5)}</span>
+                  <span className="text-xs text-zinc-500">
+                    {m.month.slice(5)}
+                  </span>
                 </li>
               ))}
             </ul>

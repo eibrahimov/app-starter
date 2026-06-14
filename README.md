@@ -78,7 +78,7 @@ Hot reload on the frontend, restart the backend on Rust changes.
 
 This is the core workflow. The backend is the single source of truth for API types:
 
-1. Add or change a handler in `src/api/`, annotate it with `#[utoipa::path]`, register it in `src/api/mod.rs` (`paths` and `schemas`)
+1. Add or change a handler in `src/api/`, annotate it with `#[utoipa::path]`, register it in `src/api.rs` (`paths` and `schemas`)
 2. Run `just typegen`
 3. The frontend client (`interface/src/api/client.ts`) is now fully typed for the new endpoint. Wrong paths, params, or body shapes fail `tsc`.
 
@@ -91,7 +91,7 @@ just dev            # run the backend
 just frontend-dev   # run Vite with API proxy
 just typegen        # regenerate TS types from the OpenAPI spec
 just check-typegen  # fail if committed TS types are stale, same as CI
-just lint           # fmt check + clippy -D warnings + tsc (fast gate)
+just lint           # fmt check + clippy -D warnings + Biome + tsc (fast gate)
 just verify         # everything CI runs: lint + test + typegen + frontend build/test + cargo-deny
 just test           # backend tests (in-memory SQLite)
 just build          # production build: frontend, then binary with UI embedded
@@ -100,7 +100,7 @@ just docker-build   # build the Docker image
 
 If you don't have `just`, run the commands directly — see the [`justfile`](justfile) for the exact recipe behind each task.
 
-For contribution gates and approval boundaries, see [`CONTRIBUTING.md`](CONTRIBUTING.md); for template direction and v1 priorities, see [`docs/template-direction.md`](docs/template-direction.md).
+For contribution gates and approval boundaries, see [`CONTRIBUTING.md`](CONTRIBUTING.md); for template direction and v1 priorities, see [`docs/template-direction.md`](docs/template-direction.md). Language-level conventions are in [`RUST_STYLE_GUIDE.md`](RUST_STYLE_GUIDE.md) and [`TS_STYLE_GUIDE.md`](TS_STYLE_GUIDE.md).
 
 ## Project layout
 
@@ -108,7 +108,8 @@ For contribution gates and approval boundaries, see [`CONTRIBUTING.md`](CONTRIBU
 src/
   main.rs          server entry (clap args, env via .env)
   lib.rs           AppState
-  api/             HTTP layer: routes + OpenAPI annotations
+  api.rs           HTTP layer: router + OpenAPI document
+  api/             per-resource HTTP handler modules
   items.rs         example domain module: types + queries
   posts.rs         second example: status lifecycle, filtered queries, stats
   db.rs            pool init + migrations
@@ -159,7 +160,7 @@ docker compose up --build
 
 Works as-is on Coolify or any Docker host: point it at the repo, the Dockerfile does the rest. Pushing a `v*` tag publishes a multi-arch image to GHCR and attaches prebuilt Linux/macOS/Windows binaries to the GitHub Release via `.github/workflows/release.yml`.
 
-Note: CORS is permissive so the Tauri shell can reach the sidecar. Tighten `CorsLayer` in `src/api/mod.rs` before exposing the API publicly without the embedded UI.
+Note: CORS is permissive so the Tauri shell can reach the sidecar. Tighten `CorsLayer` in `src/api.rs` before exposing the API publicly without the embedded UI.
 
 ## Roadmap
 
