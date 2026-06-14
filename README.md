@@ -129,12 +129,14 @@ The Tauri shell wraps the same UI and ships the server binary as a sidecar. The 
 
 ```bash
 just desktop-dev      # spawns the bundled backend automatically
+just desktop-dev-hot  # backend hot-reloads via cargo-watch (needs `cargo install cargo-watch`)
 just desktop-build    # bundles sidecar + frontend + installer
 ```
 
-To iterate on the backend with hot reload instead, run `cargo run` at the repo
-root first; the shell's sidecar then fails to bind the port and exits while your
-`cargo run` serves the window.
+`just desktop-dev-hot` runs a live-reloading backend (cargo-watch) alongside the
+shell, so both layers hot-reload: the UI via Vite and the backend on Rust
+changes. It holds port 8080 first, so the shell's auto-spawned sidecar yields to
+it. (Equivalently, run `cargo run` at the repo root before `just desktop-dev`.)
 
 Before shipping: replace the placeholder icon if needed with `cd desktop && bunx tauri icon src-tauri/icons/icon.png`, and change the bundle identifier in `desktop/src-tauri/tauri.conf.json` from `com.example.*` to your reverse domain.
 
