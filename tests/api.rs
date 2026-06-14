@@ -106,55 +106,285 @@ fn collect_schema_refs(value: &serde_json::Value, out: &mut Vec<String>) {
     }
 }
 
-#[tokio::test]
-async fn items_crud_roundtrip() {
-    let app = test_app().await;
-
-    // Create
+/// POSTs a category and returns its id.
+async fn create_category(app: &Router, body: &str) -> String {
     let response = app
         .clone()
         .oneshot(
-            Request::post("/api/v1/items")
+            Request::post("/api/v1/categories")
                 .header(header::CONTENT_TYPE, "application/json")
-                .body(Body::from(r#"{"title":"first item"}"#))
+                .body(Body::from(body.to_owned()))
                 .unwrap(),
         )
         .await
         .unwrap();
     assert_eq!(response.status(), StatusCode::CREATED);
-    let created = body_json(response).await;
-    let id = created["id"].as_str().unwrap().to_owned();
-    assert_eq!(created["done"], false);
+    body_json(response).await["id"].as_str().unwrap().to_owned()
+}
 
-    // List
-    let response = app
-        .clone()
-        .oneshot(Request::get("/api/v1/items").body(Body::empty()).unwrap())
-        .await
-        .unwrap();
-    assert_eq!(response.status(), StatusCode::OK);
-    let list = body_json(response).await;
-    assert_eq!(list.as_array().unwrap().len(), 1);
-
-    // Toggle
+/// POSTs an expense and returns its id.
+async fn create_expense(app: &Router, body: &str) -> String {
     let response = app
         .clone()
         .oneshot(
-            Request::post(format!("/api/v1/items/{id}/toggle"))
+            Request::post("/api/v1/expenses")
+                .header(header::CONTENT_TYPE, "application/json")
+                .body(Body::from(body.to_owned()))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::CREATED);
+    body_json(response).await["id"].as_str().unwrap().to_owned()
+}
+
+#[tokio::test]
+async fn categories_crud_roundtrip() {
+    let app = test_app().await;
+
+    let id = create_category(
+        &app,
+        r##"{"name":"Food","color":"#ef4444","monthly_budget_cents":50000}"##,
+    )
+    .await;
+
+    // List has the one category
+    let response = app
+        .clone()
+        .oneshot(
+            Request::get("/api/v1/categories")
                 .body(Body::empty())
                 .unwrap(),
         )
         .await
         .unwrap();
     assert_eq!(response.status(), StatusCode::OK);
-    let toggled = body_json(response).await;
-    assert_eq!(toggled["done"], true);
+    assert_eq!(body_json(response).await.as_array().unwrap().len(), 1);
 
-    // Delete
+    // Update renames and rebudgets
     let response = app
         .clone()
         .oneshot(
-            Request::delete(format!("/api/v1/items/{id}"))
+            Request::put(format!("/api/v1/categories/{id}"))
+                .header(header::CONTENT_TYPE, "application/json")
+                .body(Body::from(
+                    r##"{"name":"Groceries","color":"#10b981","monthly_budget_cents":60000}"##,
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+    let updated = body_json(response).await;
+    assert_eq!(updated["name"], "Groceries");
+    assert_eq!(updated["monthly_budget_cents"], 60000);
+
+    // A duplicate name is a 400, not a 500 from the UNIQUE constraint
+    let response = app
+        .clone()
+        .oneshot(
+            Request::post("/api/v1/categories")
+                .header(header::CONTENT_TYPE, "application/json")
+                .body(Body::from(r##"{"name":"Groceries","color":"#000"}"##))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
+    // Empty name and negative budget are 400s
+    for bad in [
+        r##"{"name":"   ","color":"#fff"}"##,
+        r##"{"name":"X","color":"#fff","monthly_budget_cents":-1}"##,
+    ] {
+        let response = app
+            .clone()
+            .oneshot(
+                Request::post("/api/v1/categories")
+                    .header(header::CONTENT_TYPE, "application/json")
+                    .body(Body::from(bad))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+    }
+
+    // Unknown id is a 404
+    let response = app
+        .clone()
+        .oneshot(
+            Request::get("/api/v1/categories/nope")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::NOT_FOUND);
+
+    // Delete succeeds
+    let response = app
+        .oneshot(
+            Request::delete(format!("/api/v1/categories/{id}"))
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::NO_CONTENT);
+}
+
+#[tokio::test]
+async fn expenses_crud_roundtrip_with_filters() {
+    let app = test_app().await;
+    let cat = create_category(&app, r##"{"name":"Food","color":"#ef4444"}"##).await;
+
+    // Create one categorized June expense and one uncategorized May expense
+    let id = create_expense(
+        &app,
+        &format!(
+            r#"{{"amount_cents":1299,"description":"Coffee","category_id":"{cat}","spent_on":"2026-06-01"}}"#
+        ),
+    )
+    .await;
+    create_expense(
+        &app,
+        r#"{"amount_cents":4200,"description":"Books","spent_on":"2026-05-15"}"#,
+    )
+    .await;
+
+    // The categorized expense carries the joined category name
+    let response = app
+        .clone()
+        .oneshot(
+            Request::get(format!("/api/v1/expenses/{id}"))
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+    let got = body_json(response).await;
+    assert_eq!(got["amount_cents"], 1299);
+    assert_eq!(got["category_name"], "Food");
+
+    // Full list, month filter, and category filter
+    for (query, expected) in [
+        ("", 2usize),
+        ("?month=2026-06", 1),
+        (&format!("?category_id={cat}"), 1),
+    ] {
+        let response = app
+            .clone()
+            .oneshot(
+                Request::get(format!("/api/v1/expenses{query}"))
+                    .body(Body::empty())
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::OK);
+        assert_eq!(
+            body_json(response).await.as_array().unwrap().len(),
+            expected,
+            "query {query}"
+        );
+    }
+
+    // Update changes the amount
+    let response = app
+        .clone()
+        .oneshot(
+            Request::put(format!("/api/v1/expenses/{id}"))
+                .header(header::CONTENT_TYPE, "application/json")
+                .body(Body::from(
+                    r#"{"amount_cents":1500,"description":"Coffee","spent_on":"2026-06-01"}"#,
+                ))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+    assert_eq!(body_json(response).await["amount_cents"], 1500);
+
+    // Invalid inputs: non-positive amount, bad date, bad month filter, unknown category
+    let bad_requests = [
+        (
+            "/api/v1/expenses",
+            r#"{"amount_cents":0,"spent_on":"2026-06-01"}"#,
+        ),
+        (
+            "/api/v1/expenses",
+            r#"{"amount_cents":100,"spent_on":"06-2026"}"#,
+        ),
+        (
+            "/api/v1/expenses",
+            r#"{"amount_cents":100,"spent_on":"2026-06-01","category_id":"ghost"}"#,
+        ),
+    ];
+    for (path, body) in bad_requests {
+        let response = app
+            .clone()
+            .oneshot(
+                Request::post(path)
+                    .header(header::CONTENT_TYPE, "application/json")
+                    .body(Body::from(body))
+                    .unwrap(),
+            )
+            .await
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::BAD_REQUEST, "body {body}");
+    }
+    let response = app
+        .clone()
+        .oneshot(
+            Request::get("/api/v1/expenses?month=bogus")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
+
+    // Unknown id 404, then delete
+    let response = app
+        .clone()
+        .oneshot(
+            Request::get("/api/v1/expenses/nope")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::NOT_FOUND);
+    let response = app
+        .oneshot(
+            Request::delete(format!("/api/v1/expenses/{id}"))
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::NO_CONTENT);
+}
+
+#[tokio::test]
+async fn deleting_a_category_uncategorizes_its_expenses() {
+    let app = test_app().await;
+    let cat = create_category(&app, r##"{"name":"Travel","color":"#3b82f6"}"##).await;
+    let expense = create_expense(
+        &app,
+        &format!(
+            r#"{{"amount_cents":9900,"description":"Train","category_id":"{cat}","spent_on":"2026-06-10"}}"#
+        ),
+    )
+    .await;
+
+    // Delete the category
+    let response = app
+        .clone()
+        .oneshot(
+            Request::delete(format!("/api/v1/categories/{cat}"))
                 .body(Body::empty())
                 .unwrap(),
         )
@@ -162,184 +392,116 @@ async fn items_crud_roundtrip() {
         .unwrap();
     assert_eq!(response.status(), StatusCode::NO_CONTENT);
 
-    // Empty title rejected
-    let response = app
-        .clone()
-        .oneshot(
-            Request::post("/api/v1/items")
-                .header(header::CONTENT_TYPE, "application/json")
-                .body(Body::from(r#"{"title":"   "}"#))
-                .unwrap(),
-        )
-        .await
-        .unwrap();
-    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
-
-    // Unknown id is a 404
+    // The expense survives but is now uncategorized
     let response = app
         .oneshot(
-            Request::delete("/api/v1/items/does-not-exist")
+            Request::get(format!("/api/v1/expenses/{expense}"))
                 .body(Body::empty())
                 .unwrap(),
         )
         .await
         .unwrap();
-    assert_eq!(response.status(), StatusCode::NOT_FOUND);
+    assert_eq!(response.status(), StatusCode::OK);
+    let got = body_json(response).await;
+    assert!(got["category_id"].is_null());
+    assert!(got["category_name"].is_null());
 }
 
 #[tokio::test]
-async fn posts_lifecycle_roundtrip() {
+async fn summary_aggregates_by_month_and_category() {
     let app = test_app().await;
+    let food = create_category(
+        &app,
+        r##"{"name":"Food","color":"#ef4444","monthly_budget_cents":10000}"##,
+    )
+    .await;
+    let fun = create_category(&app, r##"{"name":"Fun","color":"#a855f7"}"##).await;
 
-    // Create lands as a draft
-    let response = app
-        .clone()
-        .oneshot(
-            Request::post("/api/v1/posts")
-                .header(header::CONTENT_TYPE, "application/json")
-                .body(Body::from(r#"{"title":"hello world","body":"first post"}"#))
-                .unwrap(),
-        )
-        .await
-        .unwrap();
-    assert_eq!(response.status(), StatusCode::CREATED);
-    let created = body_json(response).await;
-    let id = created["id"].as_str().unwrap().to_owned();
-    assert_eq!(created["status"], "draft");
-    assert!(created["published_at"].is_null());
+    for body in [
+        format!(r#"{{"amount_cents":3000,"category_id":"{food}","spent_on":"2026-06-02"}}"#),
+        format!(r#"{{"amount_cents":2000,"category_id":"{food}","spent_on":"2026-06-09"}}"#),
+        format!(r#"{{"amount_cents":1000,"category_id":"{fun}","spent_on":"2026-06-20"}}"#),
+        r#"{"amount_cents":500,"spent_on":"2026-06-25"}"#.to_owned(),
+        format!(r#"{{"amount_cents":4000,"category_id":"{food}","spent_on":"2026-05-11"}}"#),
+    ] {
+        create_expense(&app, &body).await;
+    }
 
-    // Stats count the draft
     let response = app
-        .clone()
         .oneshot(
-            Request::get("/api/v1/posts/stats")
+            Request::get("/api/v1/summary?month=2026-06")
                 .body(Body::empty())
                 .unwrap(),
         )
         .await
         .unwrap();
     assert_eq!(response.status(), StatusCode::OK);
-    let stats = body_json(response).await;
-    assert_eq!(stats["draft"], 1);
-    assert_eq!(stats["published"], 0);
+    let summary = body_json(response).await;
 
-    // Get by id
-    let response = app
-        .clone()
-        .oneshot(
-            Request::get(format!("/api/v1/posts/{id}"))
-                .body(Body::empty())
-                .unwrap(),
-        )
-        .await
-        .unwrap();
-    assert_eq!(response.status(), StatusCode::OK);
+    // June total = 3000 + 2000 + 1000 + 500
+    assert_eq!(summary["total_cents"], 6500);
 
-    // Publish sets status and timestamp
-    let response = app
-        .clone()
-        .oneshot(
-            Request::post(format!("/api/v1/posts/{id}/publish"))
-                .body(Body::empty())
-                .unwrap(),
-        )
-        .await
-        .unwrap();
-    assert_eq!(response.status(), StatusCode::OK);
-    let published = body_json(response).await;
-    assert_eq!(published["status"], "published");
-    assert!(published["published_at"].is_string());
+    let cats = summary["categories"].as_array().unwrap();
+    let food_row = cats
+        .iter()
+        .find(|c| c["name"] == "Food")
+        .expect("food row present");
+    assert_eq!(food_row["spent_cents"], 5000);
+    assert_eq!(food_row["budget_cents"], 10000);
+    assert!(
+        cats.iter().any(|c| c["name"] == "Uncategorized"),
+        "uncategorized bucket present"
+    );
 
-    // Publishing twice is an invalid transition
-    let response = app
-        .clone()
-        .oneshot(
-            Request::post(format!("/api/v1/posts/{id}/publish"))
-                .body(Body::empty())
-                .unwrap(),
-        )
-        .await
-        .unwrap();
-    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
-
-    // Status filter narrows the list
-    let response = app
-        .clone()
-        .oneshot(
-            Request::get("/api/v1/posts?status=published")
-                .body(Body::empty())
-                .unwrap(),
-        )
-        .await
-        .unwrap();
-    let list = body_json(response).await;
-    assert_eq!(list.as_array().unwrap().len(), 1);
-    let response = app
-        .clone()
-        .oneshot(
-            Request::get("/api/v1/posts?status=draft")
-                .body(Body::empty())
-                .unwrap(),
-        )
-        .await
-        .unwrap();
-    let list = body_json(response).await;
-    assert_eq!(list.as_array().unwrap().len(), 0);
-
-    // Archive completes the lifecycle
-    let response = app
-        .clone()
-        .oneshot(
-            Request::post(format!("/api/v1/posts/{id}/archive"))
-                .body(Body::empty())
-                .unwrap(),
-        )
-        .await
-        .unwrap();
-    assert_eq!(response.status(), StatusCode::OK);
-    let archived = body_json(response).await;
-    assert_eq!(archived["status"], "archived");
+    // Trend spans May and June, oldest first
+    let months = summary["recent_months"].as_array().unwrap();
+    assert_eq!(months.len(), 2);
+    assert_eq!(months[0]["month"], "2026-05");
+    assert_eq!(months[0]["total_cents"], 4000);
+    assert_eq!(months[1]["month"], "2026-06");
+    assert_eq!(months[1]["total_cents"], 6500);
 }
 
 #[tokio::test]
-async fn post_invalid_input_rejected() {
+async fn settings_get_and_update() {
     let app = test_app().await;
 
-    // Empty title is a 400
+    // Seeded default
     let response = app
         .clone()
         .oneshot(
-            Request::post("/api/v1/posts")
+            Request::get("/api/v1/settings")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+    assert_eq!(body_json(response).await["base_currency"], "USD");
+
+    // Update normalizes case
+    let response = app
+        .clone()
+        .oneshot(
+            Request::put("/api/v1/settings")
                 .header(header::CONTENT_TYPE, "application/json")
-                .body(Body::from(r#"{"title":"   "}"#))
+                .body(Body::from(r#"{"base_currency":"eur"}"#))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+    assert_eq!(body_json(response).await["base_currency"], "EUR");
+
+    // Invalid code rejected
+    let response = app
+        .oneshot(
+            Request::put("/api/v1/settings")
+                .header(header::CONTENT_TYPE, "application/json")
+                .body(Body::from(r#"{"base_currency":"toolong"}"#))
                 .unwrap(),
         )
         .await
         .unwrap();
     assert_eq!(response.status(), StatusCode::BAD_REQUEST);
-
-    // Unknown status filter is a 400
-    let response = app
-        .oneshot(
-            Request::get("/api/v1/posts?status=bogus")
-                .body(Body::empty())
-                .unwrap(),
-        )
-        .await
-        .unwrap();
-    assert_eq!(response.status(), StatusCode::BAD_REQUEST);
-}
-
-#[tokio::test]
-async fn post_unknown_id_is_404() {
-    let app = test_app().await;
-    let response = app
-        .oneshot(
-            Request::post("/api/v1/posts/does-not-exist/publish")
-                .body(Body::empty())
-                .unwrap(),
-        )
-        .await
-        .unwrap();
-    assert_eq!(response.status(), StatusCode::NOT_FOUND);
 }
