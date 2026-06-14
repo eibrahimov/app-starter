@@ -26,95 +26,79 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/items": {
+    "/api/v1/categories": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["list_items"];
+        get: operations["list_categories"];
         put?: never;
-        post: operations["create_item"];
+        post: operations["create_category"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/v1/items/{id}": {
+    "/api/v1/categories/{id}": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get?: never;
-        put?: never;
+        get: operations["get_category"];
+        put: operations["update_category"];
         post?: never;
-        delete: operations["delete_item"];
+        delete: operations["delete_category"];
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/v1/items/{id}/toggle": {
+    "/api/v1/expenses": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        get: operations["list_expenses"];
         put?: never;
-        post: operations["toggle_item"];
+        post: operations["create_expense"];
         delete?: never;
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/v1/posts": {
+    "/api/v1/expenses/{id}": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["list_posts"];
-        put?: never;
-        post: operations["create_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/posts/stats": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["post_stats"];
-        put?: never;
+        get: operations["get_expense"];
+        put: operations["update_expense"];
         post?: never;
-        delete?: never;
+        delete: operations["delete_expense"];
         options?: never;
         head?: never;
         patch?: never;
         trace?: never;
     };
-    "/api/v1/posts/{id}": {
+    "/api/v1/settings": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get: operations["get_post"];
-        put?: never;
+        get: operations["get_settings"];
+        put: operations["update_settings"];
         post?: never;
         delete?: never;
         options?: never;
@@ -122,32 +106,16 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/posts/{id}/archive": {
+    "/api/v1/summary": {
         parameters: {
             query?: never;
             header?: never;
             path?: never;
             cookie?: never;
         };
-        get?: never;
+        get: operations["get_summary"];
         put?: never;
-        post: operations["archive_post"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/posts/{id}/publish": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["publish_post"];
+        post?: never;
         delete?: never;
         options?: never;
         head?: never;
@@ -158,12 +126,63 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
-        CreateItem: {
-            title: string;
+        Category: {
+            color: string;
+            /** Format: date-time */
+            created_at: string;
+            id: string;
+            /**
+             * Format: int64
+             * @description Optional monthly budget in integer minor units (cents). `None` = no budget.
+             */
+            monthly_budget_cents?: number | null;
+            name: string;
         };
-        CreatePost: {
-            body?: string;
-            title: string;
+        CategorySpend: {
+            /**
+             * Format: int64
+             * @description Monthly budget in cents, when the category sets one.
+             */
+            budget_cents?: number | null;
+            /** @description `None` for the synthetic "Uncategorized" bucket. */
+            category_id?: string | null;
+            color: string;
+            name: string;
+            /** Format: int64 */
+            spent_cents: number;
+        };
+        CreateCategory: {
+            /** @description Hex color like `#6366f1`. Defaults to a neutral indigo when omitted. */
+            color?: string;
+            /** Format: int64 */
+            monthly_budget_cents?: number | null;
+            name: string;
+        };
+        CreateExpense: {
+            /** Format: int64 */
+            amount_cents: number;
+            category_id?: string | null;
+            description?: string;
+            spent_on: string;
+        };
+        Expense: {
+            /**
+             * Format: int64
+             * @description Amount in integer minor units (cents). Always positive.
+             */
+            amount_cents: number;
+            category_id?: string | null;
+            /**
+             * @description Denormalized category name (via LEFT JOIN) for display; `None` when
+             *     uncategorized or the category was deleted.
+             */
+            category_name?: string | null;
+            /** Format: date-time */
+            created_at: string;
+            description: string;
+            id: string;
+            /** @description Calendar date the money was spent, `YYYY-MM-DD`. */
+            spent_on: string;
         };
         Health: {
             /** @description "ok" when a trivial query against the database succeeds, else "unreachable". */
@@ -172,31 +191,44 @@ export interface components {
             status: string;
             version: string;
         };
-        Item: {
-            /** Format: date-time */
-            created_at: string;
-            done: boolean;
-            id: string;
-            title: string;
+        MonthSummary: {
+            /**
+             * @description Per-category spend for the month: every category that was spent on or
+             *     that sets a budget, plus an "Uncategorized" bucket when relevant.
+             */
+            categories: components["schemas"]["CategorySpend"][];
+            /** @description The month this summary covers, `YYYY-MM`. */
+            month: string;
+            /** @description Totals for up to the last 6 months ending at `month`, oldest first. */
+            recent_months: components["schemas"]["MonthTotal"][];
+            /** Format: int64 */
+            total_cents: number;
         };
-        Post: {
-            body: string;
-            /** Format: date-time */
-            created_at: string;
-            id: string;
-            /** Format: date-time */
-            published_at?: string | null;
-            status: string;
-            title: string;
+        MonthTotal: {
+            /** @description `YYYY-MM`. */
+            month: string;
+            /** Format: int64 */
+            total_cents: number;
         };
-        /** @description Per-status counts for the stats endpoint. */
-        PostStats: {
+        Settings: {
+            /** @description ISO 4217-style 3-letter currency code, e.g. "USD", "EUR". */
+            base_currency: string;
+        };
+        UpdateCategory: {
+            color: string;
             /** Format: int64 */
-            archived: number;
+            monthly_budget_cents?: number | null;
+            name: string;
+        };
+        UpdateExpense: {
             /** Format: int64 */
-            draft: number;
-            /** Format: int64 */
-            published: number;
+            amount_cents: number;
+            category_id?: string | null;
+            description?: string;
+            spent_on: string;
+        };
+        UpdateSettings: {
+            base_currency: string;
         };
     };
     responses: never;
@@ -236,7 +268,7 @@ export interface operations {
             };
         };
     };
-    list_items: {
+    list_categories: {
         parameters: {
             query?: never;
             header?: never;
@@ -245,18 +277,18 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description All items, newest first */
+            /** @description All categories, A–Z */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Item"][];
+                    "application/json": components["schemas"]["Category"][];
                 };
             };
         };
     };
-    create_item: {
+    create_category: {
         parameters: {
             query?: never;
             header?: never;
@@ -265,20 +297,20 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["CreateItem"];
+                "application/json": components["schemas"]["CreateCategory"];
             };
         };
         responses: {
-            /** @description Item created */
+            /** @description Category created */
             201: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Item"];
+                    "application/json": components["schemas"]["Category"];
                 };
             };
-            /** @description Empty title */
+            /** @description Invalid name or budget */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -287,19 +319,90 @@ export interface operations {
             };
         };
     };
-    delete_item: {
+    get_category: {
         parameters: {
             query?: never;
             header?: never;
             path: {
-                /** @description Item id */
+                /** @description Category id */
                 id: string;
             };
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            /** @description Item deleted */
+            /** @description The category */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Category"];
+                };
+            };
+            /** @description Unknown id */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    update_category: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Category id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateCategory"];
+            };
+        };
+        responses: {
+            /** @description Updated category */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Category"];
+                };
+            };
+            /** @description Invalid name or budget */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unknown id */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    delete_category: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Category id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Category deleted; its expenses are uncategorized */
             204: {
                 headers: {
                     [name: string]: unknown;
@@ -315,45 +418,13 @@ export interface operations {
             };
         };
     };
-    toggle_item: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Item id */
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Toggled item */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Item"];
-                };
-            };
-            /** @description Unknown id */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    list_posts: {
+    list_expenses: {
         parameters: {
             query?: {
-                /** @description Filter by status: "draft", "published", or "archived". */
-                status?: string | null;
-                /** @description Page size, 1-100. Defaults to 50. */
-                limit?: number;
-                /** @description Rows to skip, for pagination. Defaults to 0. */
-                offset?: number;
+                /** @description Filter to a single month, `YYYY-MM`. */
+                month?: string | null;
+                /** @description Filter to a single category id. */
+                category_id?: string | null;
             };
             header?: never;
             path?: never;
@@ -361,16 +432,16 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Posts, newest first */
+            /** @description Expenses, newest first */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Post"][];
+                    "application/json": components["schemas"]["Expense"][];
                 };
             };
-            /** @description Unknown status value */
+            /** @description Malformed month filter */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -379,7 +450,7 @@ export interface operations {
             };
         };
     };
-    create_post: {
+    create_expense: {
         parameters: {
             query?: never;
             header?: never;
@@ -388,20 +459,20 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["CreatePost"];
+                "application/json": components["schemas"]["CreateExpense"];
             };
         };
         responses: {
-            /** @description Post created as a draft */
+            /** @description Expense created */
             201: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Post"];
+                    "application/json": components["schemas"]["Expense"];
                 };
             };
-            /** @description Empty title */
+            /** @description Invalid amount, date, or category */
             400: {
                 headers: {
                     [name: string]: unknown;
@@ -410,7 +481,106 @@ export interface operations {
             };
         };
     };
-    post_stats: {
+    get_expense: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Expense id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description The expense */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Expense"];
+                };
+            };
+            /** @description Unknown id */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    update_expense: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Expense id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateExpense"];
+            };
+        };
+        responses: {
+            /** @description Updated expense */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Expense"];
+                };
+            };
+            /** @description Invalid amount, date, or category */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unknown id */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    delete_expense: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description Expense id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Expense deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unknown id */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    get_settings: {
         parameters: {
             query?: never;
             header?: never;
@@ -419,114 +589,71 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Post counts per status */
+            /** @description Current settings */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PostStats"];
+                    "application/json": components["schemas"]["Settings"];
                 };
             };
         };
     };
-    get_post: {
+    update_settings: {
         parameters: {
             query?: never;
             header?: never;
-            path: {
-                /** @description Post id */
-                id: string;
-            };
+            path?: never;
             cookie?: never;
         };
-        requestBody?: never;
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UpdateSettings"];
+            };
+        };
         responses: {
-            /** @description The post */
+            /** @description Updated settings */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Post"];
+                    "application/json": components["schemas"]["Settings"];
                 };
             };
-            /** @description Unknown id */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    archive_post: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Post id */
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Archived post */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Post"];
-                };
-            };
-            /** @description Post is not published */
+            /** @description Invalid currency code */
             400: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content?: never;
             };
-            /** @description Unknown id */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
         };
     };
-    publish_post: {
+    get_summary: {
         parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Post id */
-                id: string;
+            query?: {
+                /** @description Month to summarize, `YYYY-MM`. Defaults to the current UTC month. */
+                month?: string | null;
             };
+            header?: never;
+            path?: never;
             cookie?: never;
         };
         requestBody?: never;
         responses: {
-            /** @description Published post */
+            /** @description Spending summary for the month */
             200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Post"];
+                    "application/json": components["schemas"]["MonthSummary"];
                 };
             };
-            /** @description Post is not a draft */
+            /** @description Malformed month */
             400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Unknown id */
-            404: {
                 headers: {
                     [name: string]: unknown;
                 };

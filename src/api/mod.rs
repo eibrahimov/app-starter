@@ -1,11 +1,13 @@
+pub mod categories;
+pub mod expenses;
 pub mod health;
-pub mod items;
-pub mod posts;
+pub mod settings;
+pub mod summary;
 
 use crate::AppState;
 use axum::extract::DefaultBodyLimit;
 use axum::http::StatusCode;
-use axum::routing::{delete, get, post};
+use axum::routing::get;
 use axum::{Json, Router};
 use std::time::Duration;
 use tower_http::cors::CorsLayer;
@@ -29,24 +31,33 @@ const REQUEST_TIMEOUT: Duration = Duration::from_secs(30);
     info(title = "App Starter API", description = "API for App Starter"),
     paths(
         health::health,
-        items::list_items,
-        items::create_item,
-        items::toggle_item,
-        items::delete_item,
-        posts::list_posts,
-        posts::create_post,
-        posts::post_stats,
-        posts::get_post,
-        posts::publish_post,
-        posts::archive_post,
+        categories::list_categories,
+        categories::create_category,
+        categories::get_category,
+        categories::update_category,
+        categories::delete_category,
+        expenses::list_expenses,
+        expenses::create_expense,
+        expenses::get_expense,
+        expenses::update_expense,
+        expenses::delete_expense,
+        summary::get_summary,
+        settings::get_settings,
+        settings::update_settings,
     ),
     components(schemas(
         health::Health,
-        crate::items::Item,
-        crate::items::CreateItem,
-        crate::posts::Post,
-        crate::posts::CreatePost,
-        crate::posts::PostStats,
+        crate::categories::Category,
+        crate::categories::CreateCategory,
+        crate::categories::UpdateCategory,
+        crate::expenses::Expense,
+        crate::expenses::CreateExpense,
+        crate::expenses::UpdateExpense,
+        crate::summary::MonthSummary,
+        crate::summary::CategorySpend,
+        crate::summary::MonthTotal,
+        crate::settings::Settings,
+        crate::settings::UpdateSettings,
     ))
 )]
 pub struct ApiDoc;
@@ -66,19 +77,30 @@ pub fn router(state: AppState) -> Router {
         // TypeScript client and any downstream consumers are pinned to it.
         // A breaking change graduates to /api/v2 alongside /api/v1.
         .route(
-            "/api/v1/items",
-            get(items::list_items).post(items::create_item),
+            "/api/v1/categories",
+            get(categories::list_categories).post(categories::create_category),
         )
-        .route("/api/v1/items/{id}", delete(items::delete_item))
-        .route("/api/v1/items/{id}/toggle", post(items::toggle_item))
         .route(
-            "/api/v1/posts",
-            get(posts::list_posts).post(posts::create_post),
+            "/api/v1/categories/{id}",
+            get(categories::get_category)
+                .put(categories::update_category)
+                .delete(categories::delete_category),
         )
-        .route("/api/v1/posts/stats", get(posts::post_stats))
-        .route("/api/v1/posts/{id}", get(posts::get_post))
-        .route("/api/v1/posts/{id}/publish", post(posts::publish_post))
-        .route("/api/v1/posts/{id}/archive", post(posts::archive_post))
+        .route(
+            "/api/v1/expenses",
+            get(expenses::list_expenses).post(expenses::create_expense),
+        )
+        .route(
+            "/api/v1/expenses/{id}",
+            get(expenses::get_expense)
+                .put(expenses::update_expense)
+                .delete(expenses::delete_expense),
+        )
+        .route("/api/v1/summary", get(summary::get_summary))
+        .route(
+            "/api/v1/settings",
+            get(settings::get_settings).put(settings::update_settings),
+        )
         .fallback(crate::frontend::spa)
         // Permissive CORS keeps the Tauri desktop shell (tauri://localhost)
         // able to call the sidecar API. Tighten before exposing publicly.
