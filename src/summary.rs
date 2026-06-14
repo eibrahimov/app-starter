@@ -90,7 +90,7 @@ pub async fn month_summary(pool: &SqlitePool, month: &str) -> Result<MonthSummar
             budget_cents: None,
         });
     }
-    categories.sort_by(|a, b| b.spent_cents.cmp(&a.spent_cents));
+    categories.sort_by_key(|c| std::cmp::Reverse(c.spent_cents));
 
     // Month-over-month totals up to and including `month`, newest first then
     // reversed to oldest-first for left-to-right charting.
