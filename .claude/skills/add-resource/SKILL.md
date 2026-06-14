@@ -100,6 +100,25 @@ Report the commands you ran and their results. If a gate is red, fix it — do n
 off a red resource. If a command cannot run, state why and the remaining risk
 (per `AGENTS.md`).
 
+## Sub-agent review (subjective gate)
+
+The validation script and `just verify` cover the **deterministic** gates; they cannot judge
+whether the new code matches the template's conventions. After the gates are green, spawn a
+fresh-context review sub-agent (Task tool, `general-purpose`) that did NOT see this skill, give
+it the diff (`git diff` plus the new files) and the two worked examples as references, and ask
+it to confirm:
+
+- every handler in `src/api/<resource>.rs` carries a complete `#[utoipa::path(...)]` (full
+  `/api/v1` path, `tag`, `params`, `request_body`, every response with `body =`);
+- every new `ToSchema` type appears in BOTH `paths(...)` and `components(schemas(...))` in
+  `src/api/mod.rs` (the silent footgun);
+- the domain module avoids repository structs/traits and mirrors `src/posts.rs`;
+- `interface/src/pages/<Name>.tsx` mirrors `Items.tsx` (typed `api` client only, array query
+  keys, `invalidateQueries` on mutate, explicit isLoading/isError, zinc Tailwind, no `@/` alias);
+- the migration is append-only with a last-sorting timestamp.
+
+Incorporate its findings before handoff. This catches convention drift the scripts can't.
+
 ## Stop and get human approval before
 
 These exceed the items/posts pattern and are gated by `AGENTS.md` "Approval
