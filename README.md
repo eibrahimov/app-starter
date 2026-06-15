@@ -1,23 +1,3 @@
-# Expense Tracker
-
-A local-first personal **expense tracker** built on the App Starter template. One
-Rust binary (axum + SQLite) serves the API and the embedded React UI, typed end to
-end via OpenAPI, and ships as an optional Tauri 2 desktop app that keeps all data in
-your own per-user app-data directory — no server, no account, no cloud.
-
-**Features:** record expenses (amounts stored as integer cents for exact money math),
-organize them into colored categories with optional monthly budgets, filter by month
-and category, export a month to CSV, set a base currency, and see a monthly dashboard
-with per-category spend, budget-vs-actual bars, and a month-over-month trend. Resources:
-`categories`, `expenses`, `summary`, and `settings`, each wired through migration →
-domain → API → generated TypeScript → UI, with backend and frontend tests.
-
-Run it locally with `cargo run` + `bun run dev` (see [Setup](#setup)), or build the
-desktop app with `just desktop-build`. The sections below document the underlying
-App Starter template the app is built on.
-
----
-
 # App Starter
 
 Full-stack Rust starter. One binary serves the API and the UI, typed end to end via OpenAPI.

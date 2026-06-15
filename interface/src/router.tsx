@@ -5,29 +5,29 @@ import {
   Link,
   Outlet,
 } from "@tanstack/react-router";
-import { CategoriesPage } from "./pages/Categories";
-import { DashboardPage } from "./pages/Dashboard";
-import { ExpensesPage } from "./pages/Expenses";
-import { SettingsPage } from "./pages/Settings";
-
-const navLink = "text-sm text-zinc-400 [&.active]:text-zinc-100";
+import { HomePage } from "./pages/Home";
+import { ItemsPage } from "./pages/Items";
+import { PostsPage } from "./pages/Posts";
 
 function Layout() {
   return (
     <div className="mx-auto max-w-2xl px-4 py-8">
       <nav className="mb-8 flex items-center gap-6 border-b border-zinc-800 pb-4">
-        <span className="font-semibold tracking-tight">Expense Tracker</span>
-        <Link to="/" className={navLink}>
-          Dashboard
+        <span className="font-semibold tracking-tight">App Starter</span>
+        <Link to="/" className="text-sm text-zinc-400 [&.active]:text-zinc-100">
+          Home
         </Link>
-        <Link to="/expenses" className={navLink}>
-          Expenses
+        <Link
+          to="/items"
+          className="text-sm text-zinc-400 [&.active]:text-zinc-100"
+        >
+          Items
         </Link>
-        <Link to="/categories" className={navLink}>
-          Categories
-        </Link>
-        <Link to="/settings" className={navLink}>
-          Settings
+        <Link
+          to="/posts"
+          className="text-sm text-zinc-400 [&.active]:text-zinc-100"
+        >
+          Posts
         </Link>
       </nav>
       <Outlet />
@@ -40,34 +40,23 @@ const rootRoute = createRootRoute({ component: Layout });
 const indexRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/",
-  component: DashboardPage,
+  component: HomePage,
 });
 
-const expensesRoute = createRoute({
+const itemsRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: "/expenses",
-  component: ExpensesPage,
+  path: "/items",
+  component: ItemsPage,
 });
 
-const categoriesRoute = createRoute({
+const postsRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: "/categories",
-  component: CategoriesPage,
-});
-
-const settingsRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: "/settings",
-  component: SettingsPage,
+  path: "/posts",
+  component: PostsPage,
 });
 
 export const router = createRouter({
-  routeTree: rootRoute.addChildren([
-    indexRoute,
-    expensesRoute,
-    categoriesRoute,
-    settingsRoute,
-  ]),
+  routeTree: rootRoute.addChildren([indexRoute, itemsRoute, postsRoute]),
 });
 
 declare module "@tanstack/react-router" {

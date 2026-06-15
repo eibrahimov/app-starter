@@ -1,11 +1,9 @@
 pub mod api;
-pub mod categories;
 pub mod db;
 pub mod error;
-pub mod expenses;
 pub mod frontend;
-pub mod settings;
-pub mod summary;
+pub mod items;
+pub mod posts;
 
 use sqlx::SqlitePool;
 
