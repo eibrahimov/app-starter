@@ -1,8 +1,8 @@
 {
   "$schema": "https://schema.tauri.app/config/2",
-  "productName": "Expense Tracker",
+  "productName": "App Starter",
   "version": "0.1.1",
-  "identifier": "com.example.expense-tracker",
+  "identifier": "com.example.app-starter",
   "build": {
     "beforeDevCommand": "cd ../interface && bun install && bun run dev",
     "devUrl": "http://localhost:5173",
@@ -13,7 +13,7 @@
     "windows": [
       {
         "label": "main",
-        "title": "Expense Tracker",
+        "title": "App Starter",
         "width": 1100,
         "height": 750,
         "minWidth": 800,
