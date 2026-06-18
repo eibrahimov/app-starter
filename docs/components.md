@@ -3,7 +3,7 @@
 Use this guide when building UI. The template ships a small, ready-to-use layer
 so pages are composed from reusable parts instead of hand-rolled markup. The
 pattern stays explicit and minimal: typed primitives, composite sections, and
-data hooks over the OpenAPI contract — all in the zinc palette, all
+data hooks over the OpenAPI contract — all in semantic design tokens, all
 relative-imported.
 
 The canonical worked example of the whole stack composed together is
@@ -65,7 +65,9 @@ These are enforced by Biome, tsc, and the `add-component` validation script.
   `className` reliably overrides a default already baked into a component (last
   class wins). Model variant/size props with `cva` — see `Button.tsx`,
   `Badge.tsx`, and `FilterBar.tsx` — rather than hand-rolled
-  `Record<variant, string>` maps.
+  `Record<variant, string>` maps. If you add custom Tailwind scales `twMerge`
+  can't infer, build a configured instance with `extendTailwindMerge(...)` (see
+  the note in `cn.ts`) so the new conflicting utilities still de-dupe.
 - **Co-located Vitest test** per file (`Name.test.tsx`).
 
 ## When to reach for Radix vs a plain element
@@ -194,9 +196,16 @@ const create = useApiMutation("post", "/api/v1/items", {
 - **Accessibility.** Every interactive element gets an accessible name, a visible
   `focus-visible:ring`, and the right ARIA — see `ErrorState` (`role="alert"`),
   `DataList` (`aria-busy`), and the `Field` composite (label +
-  `aria-describedby` / `aria-invalid`). Add an `axe` assertion to
-  `src/a11y.test.tsx` for new components; `just a11y` runs the Playwright
-  page-level smoke (contrast + landmarks).
+  `aria-describedby` / `aria-invalid`). Two gates run at different layers. The
+  **Vitest + jest-axe** unit checks (`src/a11y.test.tsx`) audit isolated component
+  fragments (the `region` landmark rule is disabled) and run on every
+  `bun run test` — so they are part of `just verify` and the blocking CI Frontend
+  job; add an `axe` assertion there for new components. The **Playwright + axe**
+  page smoke (`just a11y`, `e2e/a11y.spec.ts`) loads each route in a real browser
+  with the API mocked to **populated** fixtures, so it audits the real rendered
+  states — Items rows, Posts rows across all three Badge tones (draft/amber,
+  published/emerald, archived/zinc), and the resolved Home health line — for
+  contrast and landmarks.
 - **Responsive & touch.** Layout sections wrap (`flex-wrap`); interactive controls
   use the `coarse:` variant (`coarse:min-h-11`) for ≥44px touch targets — the
   same web tree the Tauri webview renders on desktop and mobile.
@@ -205,9 +214,14 @@ const create = useApiMutation("post", "/api/v1/items", {
 
 ```sh
 .claude/skills/add-component/scripts/validate-component.sh   # Biome + tsc + Vitest + guards
-just verify                                                  # full CI set
+just verify                                                  # full CI set (incl. Vitest + jest-axe unit a11y)
 just a11y                                                    # Playwright + axe page smoke (needs `bunx playwright install`)
 ```
+
+`just verify` is the blocking gate. `just a11y` is the opt-in page smoke: it
+needs a one-time `bunx playwright install chromium`, is **not** part of
+`just verify`, and in CI runs only as a separate non-blocking job — so a flaky
+browser run never red-bars a merge (matching the repo's report-don't-block stance).
 
 Adding components does not touch the OpenAPI contract, so `just check-typegen`
 is a no-op unless you also added a resource. If you add a new top-level source

@@ -94,6 +94,31 @@ jobs:
       - name: Test
         run: bun run test
 
+  a11y:
+    name: A11y smoke (non-blocking)
+    runs-on: ubuntu-24.04
+    # Advisory only: a real-browser axe run shouldn't red-bar a merge, matching
+    # the repo's report-don't-block stance (coverage is reported, never enforced).
+    # Playwright's webServer boots `bun run dev` itself, so no backend is needed —
+    # the spec mocks every /api call with populated fixtures.
+    continue-on-error: true
+    defaults:
+      run:
+        working-directory: interface
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Install Chromium
+        run: bunx playwright install --with-deps chromium
+
+      - name: A11y page smoke (axe)
+        run: bun run a11y
+
   deny:
     name: cargo-deny
     runs-on: ubuntu-24.04
