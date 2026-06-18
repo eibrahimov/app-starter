@@ -80,7 +80,7 @@ just docker-build   # build the Docker image
 
 If you don't have `just`, run the commands directly — see the [`justfile`](justfile) for the exact recipe behind each task.
 
-For contribution gates and approval boundaries, see [`CONTRIBUTING.md`](CONTRIBUTING.md); for template direction and v1 priorities, see [`docs/template-direction.md`](docs/template-direction.md). Language-level conventions are in [`RUST_STYLE_GUIDE.md`](RUST_STYLE_GUIDE.md) and [`TS_STYLE_GUIDE.md`](TS_STYLE_GUIDE.md).
+For contribution gates and approval boundaries, see [`CONTRIBUTING.md`](CONTRIBUTING.md); for template direction and v1 priorities, see [`docs/template-direction.md`](docs/template-direction.md). Language-level conventions are in [`RUST_STYLE_GUIDE.md`](RUST_STYLE_GUIDE.md) and [`TS_STYLE_GUIDE.md`](TS_STYLE_GUIDE.md); the frontend component, section, and data-hook layer is documented in [`docs/components.md`](docs/components.md).
 
 ## Project layout
 

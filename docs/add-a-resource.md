@@ -123,17 +123,24 @@ Commit the regenerated `interface/src/api/schema.d.ts`. Never hand-edit it.
 
 ### 8. Add the frontend page
 
-Create `interface/src/pages/<Name>.tsx` modeled on `Items.tsx` or `Posts.tsx`.
+Create `interface/src/pages/<Name>.tsx` modeled on `Items.tsx` or `Posts.tsx`,
+composing it from the reusable layer instead of hand-rolling markup.
 
 Frontend conventions:
 
-- Use the typed `api` client from `../api/client`; never raw `fetch`.
-- Use `useQuery` with array query keys.
-- Mutations should invalidate affected queries on success.
-- Include explicit loading and error states.
-- Keep styling inline with Tailwind classes in the zinc palette.
-- Use spaces, not tabs.
-- Do not introduce `@/` path aliases.
+- Compose from `interface/src/components/` (`PageHeader`, `Toolbar`, `DataList`,
+  `Card`, `Button`, `Input`, …); `DataList` owns the loading/error/empty/data triage,
+  so pages no longer hand-roll loading and error branches.
+- Fetch and mutate through the typed data hooks in `interface/src/hooks/`
+  (`useApiQuery` / `useApiMutation`, or the `useResource` convenience layer), which go
+  through the typed `api` client from `../api/client` — never raw `fetch`.
+- Use resource-scoped array query keys (`["items"]`, `["posts", filter]`); mutations
+  invalidate the broad `[key]` prefix so lists and stats refresh together.
+- Co-locate a Vitest test (`<Name>.test.tsx`), as `Items.tsx`/`Posts.tsx` do.
+- Zinc palette, spaces not tabs, no `@/` path aliases, no barrel/index files.
+
+See [components.md](components.md) and the `add-component` skill for the full catalog
+and the step-by-step component/section/hook procedure.
 
 ### 9. Add the frontend route and navigation
 
