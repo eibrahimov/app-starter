@@ -12,7 +12,7 @@ describe("Input", () => {
     render(<Input />);
     const input = screen.getByRole("textbox");
     expect(input.className).toContain("rounded-md");
-    expect(input.className).toContain("border-zinc-800");
+    expect(input.className).toContain("border-input");
   });
 
   it("merges a custom className with the base classes", () => {

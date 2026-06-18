@@ -84,7 +84,11 @@ These may become important, but adding them too early would likely weaken v1.
 - CRUD generators or a template-specific CLI.
 - Multiple frontend frameworks or JS package managers.
 - Kubernetes, Terraform, or a large cloud-provider matrix.
-- A heavy design system or admin shell that users must undo.
+- A heavy design system or admin shell that users must undo. (A semantic
+  design-token layer with light/dark theming, an accessibility gate, and
+  responsive/touch defaults — all owned, in-repo, and deletable — is *not* this;
+  it ships in the styled component layer and raises quality without adding
+  component surface.)
 - Desktop auto-update/codesigning workflows beyond clear optional guidance.
 - Native mobile release automation beyond the current Tauri starting point.
 

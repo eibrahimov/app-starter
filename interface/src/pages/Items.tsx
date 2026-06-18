@@ -43,6 +43,7 @@ export function ItemsPage() {
             if (e.key === "Enter") submit();
           }}
           placeholder="What needs doing?"
+          aria-label="New item title"
           className="flex-1"
         />
         <Button onClick={submit} disabled={create.isPending}>
@@ -64,7 +65,7 @@ export function ItemsPage() {
               aria-label={item.title}
             />
             <span
-              className={`flex-1 text-sm ${item.done ? "text-zinc-500 line-through" : ""}`}
+              className={`flex-1 text-sm ${item.done ? "text-muted-foreground line-through" : ""}`}
             >
               {item.title}
             </span>

@@ -5,30 +5,31 @@ import {
   Link,
   Outlet,
 } from "@tanstack/react-router";
+import { ThemeToggle } from "./components/theme/ThemeToggle";
 import { HomePage } from "./pages/Home";
 import { ItemsPage } from "./pages/Items";
 import { PostsPage } from "./pages/Posts";
 
+const navLinkClass =
+  "inline-flex items-center text-sm text-muted-foreground coarse:min-h-11 [&.active]:text-foreground";
+
 function Layout() {
   return (
-    <div className="mx-auto max-w-2xl px-4 py-8">
-      <nav className="mb-8 flex items-center gap-6 border-b border-zinc-800 pb-4">
+    <div className="mx-auto max-w-2xl px-4 py-6 sm:py-8">
+      <nav className="mb-8 flex flex-wrap items-center gap-4 border-b border-border pb-4 sm:gap-6">
         <span className="font-semibold tracking-tight">App Starter</span>
-        <Link to="/" className="text-sm text-zinc-400 [&.active]:text-zinc-100">
+        <Link to="/" className={navLinkClass}>
           Home
         </Link>
-        <Link
-          to="/items"
-          className="text-sm text-zinc-400 [&.active]:text-zinc-100"
-        >
+        <Link to="/items" className={navLinkClass}>
           Items
         </Link>
-        <Link
-          to="/posts"
-          className="text-sm text-zinc-400 [&.active]:text-zinc-100"
-        >
+        <Link to="/posts" className={navLinkClass}>
           Posts
         </Link>
+        <span className="ml-auto">
+          <ThemeToggle />
+        </span>
       </nav>
       <Outlet />
     </div>

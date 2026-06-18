@@ -6,8 +6,8 @@ description: >-
   hooks layers and the Items/Posts worked examples. Use when asked to add a
   component, button, input, badge, card, dialog, dropdown, tooltip, list/table
   section, page header, filter bar, or a data-fetching hook, or to style a piece
-  of UI with Radix + Tailwind. Encodes the frontend conventions (zinc palette,
-  relative imports, no barrels, typed API access) and ends with a validation
+  of UI with Radix + Tailwind. Encodes the frontend conventions (semantic design
+  tokens, relative imports, no barrels, typed API access) and ends with a validation
   script that runs the deterministic gates.
 ---
 
@@ -28,8 +28,9 @@ The layer has three tiers. Copy the shape of what already exists:
   `Checkbox`, `Dialog`, `DropdownMenu`, `Tooltip`, `VisuallyHidden`. Reference:
   `Button.tsx` (plain) and `Checkbox.tsx` (Radix).
 - **`interface/src/components/sections/`** — composite blocks that compose
-  primitives: `PageHeader`, `Toolbar`, `FilterBar`, `StatGroup`, `DataList`.
-  Reference: `DataList.tsx` (owns loading/error/empty/data triage).
+  primitives: `PageHeader`, `Toolbar`, `FilterBar`, `StatGroup`, `DataList`,
+  and the accessible-form `Field`. Reference: `DataList.tsx` (owns
+  loading/error/empty/data triage).
 - **`interface/src/hooks/`** — typed data hooks over openapi-fetch + React Query:
   `useApiQuery`, `useApiMutation`, and the `useResource` convenience layer.
 
@@ -38,10 +39,15 @@ The canonical worked example of all three composed together is the refactored
 
 ## Read these invariants first (this is where components drift)
 
-1. **Zinc palette only.** Reuse the tokens already in use: surfaces
-   `border-zinc-800` / `bg-zinc-900`, text `text-zinc-100/400/500`, focus
-   `focus:border-zinc-600`, accents `emerald` (positive), `amber` (pending),
-   `red` (destructive). No new color ramps without approval.
+1. **Semantic design tokens only — never a raw palette.** Style with the token
+   utilities backed by CSS variables in `interface/src/styles.css`: surfaces
+   `bg-background` / `bg-card` / `bg-popover`, borders `border-border` /
+   `border-input`, text `text-foreground` / `text-muted-foreground`, focus
+   `focus-visible:ring-2 focus-visible:ring-ring`, accents `text-primary`,
+   `text-success` (positive), `text-warning` (pending), `text-destructive`.
+   Never hard-code a `zinc-*`/`emerald-*`/hex color — it breaks light/dark
+   theming. New token names go in `styles.css` (`:root` + `.dark` + `@theme
+   inline`), not inline.
 2. **Relative imports, no `@/` aliases, no barrel/index files.** Import each
    component by its path (`../components/ui/Button`). Do not add an
    `index.ts` re-export — it pulls unused Radix into pages and the template
@@ -59,8 +65,15 @@ The canonical worked example of all three composed together is the refactored
 7. **Co-locate a Vitest test** (`Name.test.tsx`). Pure primitives/sections use
    `render`; hooks and anything reading the API use `renderWithClient` /
    `withClient` from `../test-utils` and mock `../api/client`.
-8. **Use the `cx` helper** (`components/ui/cx.ts`) to merge class names — no
-   `clsx`/`cva` dependency.
+8. **Merge classes with `cn`** (`components/ui/cn.ts`, `twMerge(clsx())`) so a
+   caller's `className` reliably overrides a default (last class wins). Model
+   variant/size props with `cva` (see `Button.tsx` / `Badge.tsx`), not
+   hand-rolled `Record<variant, string>` maps.
+9. **Accessible + touch-ready by default.** Every interactive element needs an
+   accessible name (text, `aria-label`, or a `VisuallyHidden` / `Field` label), a
+   visible `focus-visible:ring`, and a `coarse:min-h-11` (≥44px) touch target.
+   Add an `axe` assertion for non-trivial components (see `src/a11y.test.tsx`);
+   the Playwright smoke (`just a11y`) covers page-level landmarks + contrast.
 
 ## Procedure
 
@@ -108,7 +121,9 @@ convention fit. After gates are green, spawn a fresh-context review sub-agent
 `Button.tsx`, `DataList.tsx`, and the `Items.tsx` refactor as references, and ask
 it to confirm:
 
-- zinc palette only; no new color ramps;
+- semantic token utilities only; no hard-coded `zinc-*`/hex colors;
+- `cn` for class merging, `cva` for variants; accessible name + `focus-visible`
+  ring + `coarse:` touch target on interactive elements;
 - relative imports, no `@/` alias, no barrel/index file added;
 - named function export; props typed with an interface; `...props` forwarded;
 - Radix used only where it adds a11y, plain elements otherwise;
@@ -122,8 +137,10 @@ Incorporate its findings before handoff.
 These exceed the established pattern and are gated by `AGENTS.md` "Approval
 boundaries":
 
-- adding a UI dependency other than a single `@radix-ui/react-*` primitive
-  (e.g. a full component kit, an icon set, a CSS-in-JS lib, `cva`/`clsx`);
-- introducing a new styling system, theme tokens, or a non-zinc palette;
+- adding a UI dependency beyond the established set (`@radix-ui/react-*`,
+  `clsx` / `tailwind-merge` / `cva`, `jest-axe` / `@axe-core/playwright`) — e.g. a
+  full component kit, an icon set, or a CSS-in-JS lib;
+- adding or restructuring the design-token set / themes in `styles.css` beyond
+  reusing the existing tokens (new brand palettes, extra themes);
 - adding a barrel/index re-export or `@/` path alias convention;
 - a global state manager beyond React Query + local `useState`.

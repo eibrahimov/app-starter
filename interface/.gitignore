@@ -1,0 +1,4 @@
+# Playwright (a11y smoke) run artifacts
+/test-results/
+/playwright-report/
+/playwright/.cache/

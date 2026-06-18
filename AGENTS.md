@@ -126,7 +126,8 @@ pagination, get-by-id, and an aggregate stats endpoint). Copy their shape exactl
    from `../api/client` (never raw `fetch`); resource-scoped array query keys
    (`["items"]`, `["posts", filter]`); mutations invalidate the broad `[key]` prefix.
    `DataList` owns the loading/error/empty/data triage, so pages no longer hand-roll
-   isLoading/isError branches. Zinc palette, spaces not tabs, no `@/` path aliases.
+   isLoading/isError branches. Semantic design tokens (no hard-coded palette;
+   see `interface/src/styles.css`), spaces not tabs, no `@/` path aliases.
    Co-locate a Vitest test (`<Name>.test.tsx`) as `Items.tsx`/`Posts.tsx` do. See
    [docs/components.md](docs/components.md) and the `add-component` skill for the
    catalog and the step-by-step component/section/hook procedure.

@@ -1,10 +1,22 @@
-import { cx } from "../ui/cx";
+import { cva } from "class-variance-authority";
 
 interface FilterBarProps<T extends string> {
   options: readonly T[];
   value: T;
   onChange: (value: T) => void;
 }
+
+const filterButtonVariants = cva(
+  "rounded-md px-3 py-1 text-xs capitalize focus-ring coarse:min-h-11",
+  {
+    variants: {
+      selected: {
+        true: "bg-accent text-accent-foreground",
+        false: "text-muted-foreground hover:text-foreground",
+      },
+    },
+  },
+);
 
 export function FilterBar<T extends string>({
   options,
@@ -21,12 +33,7 @@ export function FilterBar<T extends string>({
             type="button"
             aria-pressed={selected}
             onClick={() => onChange(option)}
-            className={cx(
-              "rounded-md px-3 py-1 text-xs capitalize",
-              selected
-                ? "bg-zinc-800 text-zinc-100"
-                : "text-zinc-500 hover:text-zinc-300",
-            )}
+            className={filterButtonVariants({ selected })}
           >
             {option}
           </button>

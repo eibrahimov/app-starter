@@ -1,20 +1,26 @@
+import { cva, type VariantProps } from "class-variance-authority";
 import type { HTMLAttributes } from "react";
-import { cx } from "./cx";
+import { cn } from "./cn";
 
-export type BadgeTone = "neutral" | "emerald" | "amber" | "red" | "zinc";
+export const badgeVariants = cva("text-xs", {
+  variants: {
+    tone: {
+      neutral: "text-muted-foreground",
+      emerald: "text-success",
+      amber: "text-warning",
+      red: "text-destructive",
+      zinc: "text-muted-foreground",
+    },
+  },
+  defaultVariants: { tone: "neutral" },
+});
 
-interface BadgeProps extends HTMLAttributes<HTMLSpanElement> {
-  tone?: BadgeTone;
-}
+export type BadgeTone = NonNullable<VariantProps<typeof badgeVariants>["tone"]>;
 
-const tones: Record<BadgeTone, string> = {
-  neutral: "text-zinc-400",
-  emerald: "text-emerald-400",
-  amber: "text-amber-400",
-  red: "text-red-400",
-  zinc: "text-zinc-500",
-};
+interface BadgeProps
+  extends HTMLAttributes<HTMLSpanElement>,
+    VariantProps<typeof badgeVariants> {}
 
-export function Badge({ tone = "neutral", className, ...props }: BadgeProps) {
-  return <span className={cx("text-xs", tones[tone], className)} {...props} />;
+export function Badge({ tone, className, ...props }: BadgeProps) {
+  return <span className={cn(badgeVariants({ tone }), className)} {...props} />;
 }

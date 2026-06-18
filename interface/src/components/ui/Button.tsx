@@ -1,36 +1,42 @@
+import { cva, type VariantProps } from "class-variance-authority";
 import type { ButtonHTMLAttributes } from "react";
-import { cx } from "./cx";
+import { cn } from "./cn";
 
-type ButtonVariant = "primary" | "ghost" | "danger" | "success" | "warning";
+// The text variants share a muted base and differ only in their hover accent,
+// so a caller never has to patch the hover colour through className. Colours are
+// semantic tokens, so both light and dark themes resolve from one definition.
+export const buttonVariants = cva(
+  "inline-flex items-center justify-center focus-ring transition-colors disabled:opacity-50 coarse:min-h-11",
+  {
+    variants: {
+      variant: {
+        primary:
+          "rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground hover:opacity-90",
+        ghost: "text-xs text-muted-foreground hover:text-foreground",
+        danger: "text-xs text-muted-foreground hover:text-destructive",
+        success: "text-xs text-muted-foreground hover:text-success",
+        warning: "text-xs text-muted-foreground hover:text-warning",
+      },
+    },
+    defaultVariants: { variant: "primary" },
+  },
+);
 
-interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: ButtonVariant;
-}
+export type ButtonVariant = NonNullable<
+  VariantProps<typeof buttonVariants>["variant"]
+>;
 
-// The text variants share a muted base and differ only in hover accent, so a
-// caller never has to patch the hover color through className (which would
-// collide with the variant's own hover utility).
-const variants: Record<ButtonVariant, string> = {
-  primary:
-    "rounded-md bg-zinc-100 px-4 py-2 text-sm font-medium text-zinc-900 hover:bg-white",
-  ghost: "text-xs text-zinc-500 hover:text-zinc-300",
-  danger: "text-xs text-zinc-500 hover:text-red-400",
-  success: "text-xs text-zinc-500 hover:text-emerald-400",
-  warning: "text-xs text-zinc-500 hover:text-amber-400",
-};
+interface ButtonProps
+  extends ButtonHTMLAttributes<HTMLButtonElement>,
+    VariantProps<typeof buttonVariants> {}
 
 // Defaults to type="button" so callers satisfy the explicit-type rule for free;
 // pass type="submit" for form submissions.
-export function Button({
-  variant = "primary",
-  type,
-  className,
-  ...props
-}: ButtonProps) {
+export function Button({ variant, type, className, ...props }: ButtonProps) {
   return (
     <button
       type={type ?? "button"}
-      className={cx(variants[variant], "disabled:opacity-50", className)}
+      className={cn(buttonVariants({ variant }), className)}
       {...props}
     />
   );

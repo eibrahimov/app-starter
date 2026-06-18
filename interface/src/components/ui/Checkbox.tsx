@@ -1,5 +1,5 @@
 import * as RadixCheckbox from "@radix-ui/react-checkbox";
-import { cx } from "./cx";
+import { cn } from "./cn";
 
 interface CheckboxProps {
   checked: boolean;
@@ -19,12 +19,12 @@ export function Checkbox({
       checked={checked}
       onCheckedChange={(value) => onCheckedChange(value === true)}
       aria-label={ariaLabel}
-      className={cx(
-        "flex size-4 items-center justify-center rounded border border-zinc-700 bg-zinc-900 outline-none focus-visible:border-zinc-500 data-[state=checked]:border-emerald-500 data-[state=checked]:bg-emerald-500",
+      className={cn(
+        "flex size-4 coarse:size-6 items-center justify-center rounded border border-input bg-card focus-ring data-[state=checked]:border-success data-[state=checked]:bg-success",
         className,
       )}
     >
-      <RadixCheckbox.Indicator className="text-zinc-900">
+      <RadixCheckbox.Indicator className="text-success-foreground">
         <svg
           viewBox="0 0 12 12"
           className="size-3"

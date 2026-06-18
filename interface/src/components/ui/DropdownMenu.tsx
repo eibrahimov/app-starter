@@ -1,6 +1,6 @@
 import * as RadixDropdown from "@radix-ui/react-dropdown-menu";
 import type { ReactNode } from "react";
-import { cx } from "./cx";
+import { cn } from "./cn";
 
 interface DropdownMenuProps {
   trigger: ReactNode;
@@ -14,7 +14,7 @@ export function DropdownMenu({ trigger, children }: DropdownMenuProps) {
       <RadixDropdown.Portal>
         <RadixDropdown.Content
           sideOffset={4}
-          className="min-w-[8rem] rounded-md border border-zinc-800 bg-zinc-900 p-1 text-zinc-100 shadow-xl outline-none"
+          className="min-w-[8rem] rounded-md border border-border bg-popover p-1 text-popover-foreground shadow-xl outline-none"
         >
           {children}
         </RadixDropdown.Content>
@@ -37,8 +37,8 @@ export function DropdownMenuItem({
   return (
     <RadixDropdown.Item
       onSelect={onSelect}
-      className={cx(
-        "cursor-pointer rounded px-2 py-1 text-sm text-zinc-300 outline-none data-[highlighted]:bg-zinc-800 data-[highlighted]:text-zinc-100",
+      className={cn(
+        "cursor-pointer rounded px-2 py-1 text-sm text-muted-foreground outline-none data-[highlighted]:bg-accent data-[highlighted]:text-accent-foreground",
         className,
       )}
     >

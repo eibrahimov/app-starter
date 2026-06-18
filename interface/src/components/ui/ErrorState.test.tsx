@@ -17,7 +17,7 @@ describe("ErrorState", () => {
     render(<ErrorState message="Styled error" />);
     const node = screen.getByText("Styled error");
     expect(node.className).toContain("text-sm");
-    expect(node.className).toContain("text-red-400");
+    expect(node.className).toContain("text-destructive");
   });
 
   it("renders a distinct message when the prop changes", () => {

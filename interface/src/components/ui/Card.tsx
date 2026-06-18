@@ -1,5 +1,5 @@
 import type { HTMLAttributes } from "react";
-import { cx } from "./cx";
+import { cn } from "./cn";
 
 type CardProps = HTMLAttributes<HTMLElement> & {
   as?: "div" | "li";
@@ -11,8 +11,8 @@ export function Card({ as = "div", className, ...props }: CardProps) {
   const Tag = as;
   return (
     <Tag
-      className={cx(
-        "flex items-center gap-3 rounded-md border border-zinc-800 px-3 py-2",
+      className={cn(
+        "flex items-center gap-3 rounded-md border border-border px-3 py-2",
         className,
       )}
       {...props}

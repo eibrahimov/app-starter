@@ -2,8 +2,29 @@
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0, viewport-fit=cover"
+    />
     <title>App Starter</title>
+    <script>
+      // Set the theme class before first paint so there is no flash of the
+      // wrong theme. Mirrors src/components/theme/ThemeProvider.tsx.
+      (() => {
+        try {
+          let t = localStorage.getItem("app-starter-theme");
+          if (t !== "light" && t !== "dark") {
+            t = matchMedia("(prefers-color-scheme: dark)").matches
+              ? "dark"
+              : "light";
+          }
+          document.documentElement.classList.toggle("dark", t === "dark");
+          document.documentElement.dataset.theme = t;
+        } catch {
+          /* localStorage/matchMedia unavailable: fall back to CSS :root (light) */
+        }
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>
