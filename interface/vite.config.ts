@@ -18,7 +18,12 @@ export default defineConfig({
       // blocked on a percentage. Run `bun run test:coverage` to see it.
       provider: "v8",
       reporter: ["text", "html"],
-      include: ["src/pages/**", "src/api/client.ts"],
+      include: [
+        "src/pages/**",
+        "src/components/**",
+        "src/hooks/**",
+        "src/api/client.ts",
+      ],
     },
   },
 });

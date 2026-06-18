@@ -118,11 +118,18 @@ pagination, get-by-id, and an aggregate stats endpoint). Copy their shape exactl
    missing from `components(schemas(...))` — a safety net for the step 5 footgun.
 7. Run `just typegen` and COMMIT the regenerated `interface/src/api/schema.d.ts`.
    Never hand-edit that file. Skipping typegen makes `just lint` (tsc) fail.
-8. Frontend page: `interface/src/pages/<Name>.tsx` modeled on `Items.tsx` — data
-   access only through the typed `api` client from `../api/client` (never raw
-   `fetch`), `useQuery` with array keys, mutations that `invalidateQueries` on
-   success, explicit isLoading/isError branches, inline Tailwind classes in the zinc
-   palette, spaces not tabs, no `@/` path aliases.
+8. Frontend page: `interface/src/pages/<Name>.tsx` modeled on the refactored
+   `Items.tsx` — compose it from the reusable layer in `interface/src/components/`
+   (`PageHeader`, `Toolbar`, `DataList`, `Card`, `Button`, `Input`, …) plus the typed
+   data hooks in `interface/src/hooks/` (`useApiQuery` / `useApiMutation`, or the
+   `useResource` convenience layer). Data access only through the typed `api` client
+   from `../api/client` (never raw `fetch`); resource-scoped array query keys
+   (`["items"]`, `["posts", filter]`); mutations invalidate the broad `[key]` prefix.
+   `DataList` owns the loading/error/empty/data triage, so pages no longer hand-roll
+   isLoading/isError branches. Zinc palette, spaces not tabs, no `@/` path aliases.
+   Co-locate a Vitest test (`<Name>.test.tsx`) as `Items.tsx`/`Posts.tsx` do. See
+   [docs/components.md](docs/components.md) and the `add-component` skill for the
+   catalog and the step-by-step component/section/hook procedure.
 9. Route: in `interface/src/router.tsx` add a `createRoute({...})`, append it to
    `rootRoute.addChildren([...])`, and add a nav `<Link>` in `Layout`.
 
@@ -134,7 +141,7 @@ Each generated app can improve the template. When work reveals reusable friction
 
 - Update `AGENTS.md` if it changes how agents or contributors should work.
 - Update `README.md` if it changes setup, development, deployment, or release behavior.
-- Update `docs/add-a-resource.md`, `docs/production-readiness.md`, or `UPGRADING.md` when resource, hardening, or upgrade guidance changes.
+- Update `docs/add-a-resource.md`, `docs/components.md`, `docs/production-readiness.md`, or `UPGRADING.md` when resource, frontend-component, hardening, or upgrade guidance changes.
 - Open an issue before adding a reusable pattern or changing template defaults.
 - Keep generated-app/domain-specific details out of the template; port the pattern, not the feature.
 

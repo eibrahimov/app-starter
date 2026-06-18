@@ -6,6 +6,7 @@
 .env
 interface/node_modules
 interface/dist
+interface/coverage
 desktop/node_modules
 desktop/src-tauri/target
 desktop/src-tauri/binaries
