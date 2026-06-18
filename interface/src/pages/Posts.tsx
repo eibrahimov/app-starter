@@ -1,170 +1,120 @@
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
-import { api } from "../api/client";
+import { DataList } from "../components/sections/DataList";
+import { FilterBar } from "../components/sections/FilterBar";
+import { PageHeader } from "../components/sections/PageHeader";
+import { StatGroup } from "../components/sections/StatGroup";
+import { Toolbar } from "../components/sections/Toolbar";
+import { Badge } from "../components/ui/Badge";
+import { Button } from "../components/ui/Button";
+import { Card } from "../components/ui/Card";
+import { Input } from "../components/ui/Input";
+import { useApiMutation } from "../hooks/useApiMutation";
+import { useApiQuery } from "../hooks/useApiQuery";
 
 const FILTERS = ["all", "draft", "published", "archived"] as const;
 type Filter = (typeof FILTERS)[number];
 
+const statusTone = {
+  draft: "amber",
+  published: "emerald",
+  archived: "zinc",
+} as const;
+
 export function PostsPage() {
-  const queryClient = useQueryClient();
   const [title, setTitle] = useState("");
   const [filter, setFilter] = useState<Filter>("all");
 
-  const posts = useQuery({
-    queryKey: ["posts", filter],
-    queryFn: async () => {
-      const { data, error } = await api.GET("/api/v1/posts", {
-        params: {
-          query: filter === "all" ? {} : { status: filter },
-        },
-      });
-      if (error) throw error;
-      return data;
-    },
-  });
+  const posts = useApiQuery(
+    "/api/v1/posts",
+    { params: { query: filter === "all" ? {} : { status: filter } } },
+    { queryKey: ["posts", filter] },
+  );
 
-  const stats = useQuery({
+  const stats = useApiQuery("/api/v1/posts/stats", undefined, {
     queryKey: ["posts", "stats"],
-    queryFn: async () => {
-      const { data, error } = await api.GET("/api/v1/posts/stats");
-      if (error) throw error;
-      return data;
-    },
   });
 
-  const invalidate = () =>
-    queryClient.invalidateQueries({ queryKey: ["posts"] });
-
-  const create = useMutation({
-    mutationFn: async (newTitle: string) => {
-      const { data, error } = await api.POST("/api/v1/posts", {
-        body: { title: newTitle },
-      });
-      if (error) throw error;
-      return data;
-    },
-    onSuccess: () => {
-      setTitle("");
-      invalidate();
-    },
+  const create = useApiMutation("post", "/api/v1/posts", {
+    invalidateKeys: [["posts"]],
+    onSuccess: () => setTitle(""),
+  });
+  const publish = useApiMutation("post", "/api/v1/posts/{id}/publish", {
+    invalidateKeys: [["posts"]],
+  });
+  const archive = useApiMutation("post", "/api/v1/posts/{id}/archive", {
+    invalidateKeys: [["posts"]],
   });
 
-  const publish = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await api.POST("/api/v1/posts/{id}/publish", {
-        params: { path: { id } },
-      });
-      if (error) throw error;
-    },
-    onSuccess: invalidate,
-  });
-
-  const archive = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await api.POST("/api/v1/posts/{id}/archive", {
-        params: { path: { id } },
-      });
-      if (error) throw error;
-    },
-    onSuccess: invalidate,
-  });
-
-  const statusStyle: Record<string, string> = {
-    draft: "text-amber-400",
-    published: "text-emerald-400",
-    archived: "text-zinc-500",
+  const submit = () => {
+    if (title.trim()) create.mutate({ body: { title } });
   };
 
   return (
     <div className="space-y-6">
-      <div className="flex items-baseline justify-between">
-        <h1 className="text-2xl font-semibold tracking-tight">Posts</h1>
+      <PageHeader title="Posts">
         {stats.data && (
-          <p className="text-xs text-zinc-500">
-            {stats.data.draft} draft / {stats.data.published} published /{" "}
-            {stats.data.archived} archived
-          </p>
+          <StatGroup
+            stats={[
+              { label: "draft", value: stats.data.draft },
+              { label: "published", value: stats.data.published },
+              { label: "archived", value: stats.data.archived },
+            ]}
+          />
         )}
-      </div>
+      </PageHeader>
 
-      <div className="flex gap-2">
-        <input
+      <Toolbar>
+        <Input
           value={title}
           onChange={(e) => setTitle(e.target.value)}
           onKeyDown={(e) => {
-            if (e.key === "Enter" && title.trim()) create.mutate(title);
+            if (e.key === "Enter") submit();
           }}
           placeholder="Draft a new post"
-          className="flex-1 rounded-md border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm outline-none focus:border-zinc-600"
+          className="flex-1"
         />
-        <button
-          type="button"
-          onClick={() => title.trim() && create.mutate(title)}
-          disabled={create.isPending}
-          className="rounded-md bg-zinc-100 px-4 py-2 text-sm font-medium text-zinc-900 hover:bg-white disabled:opacity-50"
-        >
+        <Button onClick={submit} disabled={create.isPending}>
           Draft
-        </button>
-      </div>
+        </Button>
+      </Toolbar>
 
-      <div className="flex gap-1">
-        {FILTERS.map((f) => (
-          <button
-            key={f}
-            type="button"
-            onClick={() => setFilter(f)}
-            className={`rounded-md px-3 py-1 text-xs capitalize ${
-              filter === f
-                ? "bg-zinc-800 text-zinc-100"
-                : "text-zinc-500 hover:text-zinc-300"
-            }`}
-          >
-            {f}
-          </button>
-        ))}
-      </div>
+      <FilterBar options={FILTERS} value={filter} onChange={setFilter} />
 
-      {posts.isLoading && <p className="text-sm text-zinc-500">Loading…</p>}
-      {posts.isError && (
-        <p className="text-sm text-red-400">Could not load posts.</p>
-      )}
-
-      <ul className="space-y-2">
-        {posts.data?.map((post) => (
-          <li
-            key={post.id}
-            className="flex items-center gap-3 rounded-md border border-zinc-800 px-3 py-2"
-          >
-            <span className={`text-xs ${statusStyle[post.status] ?? ""}`}>
+      <DataList
+        query={posts}
+        emptyMessage="No posts here. Draft one above."
+        errorMessage="Could not load posts."
+        renderItem={(post) => (
+          <Card as="li" key={post.id}>
+            <Badge tone={statusTone[post.status as keyof typeof statusTone]}>
               {post.status}
-            </span>
+            </Badge>
             <span className="flex-1 text-sm">{post.title}</span>
             {post.status === "draft" && (
-              <button
-                type="button"
-                onClick={() => publish.mutate(post.id)}
-                className="text-xs text-zinc-500 hover:text-emerald-400"
+              <Button
+                variant="ghost"
+                className="hover:text-emerald-400"
+                onClick={() =>
+                  publish.mutate({ params: { path: { id: post.id } } })
+                }
               >
                 Publish
-              </button>
+              </Button>
             )}
             {post.status === "published" && (
-              <button
-                type="button"
-                onClick={() => archive.mutate(post.id)}
-                className="text-xs text-zinc-500 hover:text-amber-400"
+              <Button
+                variant="ghost"
+                className="hover:text-amber-400"
+                onClick={() =>
+                  archive.mutate({ params: { path: { id: post.id } } })
+                }
               >
                 Archive
-              </button>
+              </Button>
             )}
-          </li>
-        ))}
-        {posts.data?.length === 0 && (
-          <li className="text-sm text-zinc-500">
-            No posts here. Draft one above.
-          </li>
+          </Card>
         )}
-      </ul>
+      />
     </div>
   );
 }
