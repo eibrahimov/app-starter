@@ -24,8 +24,19 @@ export function Checkbox({
         className,
       )}
     >
-      <RadixCheckbox.Indicator className="text-xs leading-none text-zinc-900">
-        ✓
+      <RadixCheckbox.Indicator className="text-zinc-900">
+        <svg
+          viewBox="0 0 12 12"
+          className="size-3"
+          fill="none"
+          stroke="currentColor"
+          strokeWidth={2}
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          aria-hidden="true"
+        >
+          <path d="M2.5 6.5 5 9l4.5-5" />
+        </svg>
       </RadixCheckbox.Indicator>
     </RadixCheckbox.Root>
   );

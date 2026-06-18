@@ -36,9 +36,11 @@ export function useApiMutation<
   method: M,
   path: P,
   options?: MutationOptions,
-): UseMutationResult<unknown, Error, WriteInit<M, P>> {
+): UseMutationResult<unknown, unknown, WriteInit<M, P>> {
   const queryClient = useQueryClient();
-  return useMutation({
+  // openapi-fetch throws the typed error response body, which is not guaranteed
+  // to be an Error instance — so the error channel is `unknown`, not `Error`.
+  return useMutation<unknown, unknown, WriteInit<M, P>>({
     mutationFn: async (init: WriteInit<M, P>) => {
       // Casts bridge the generic path/init through openapi-fetch's overloads;
       // the public signature keeps callers fully type-checked.

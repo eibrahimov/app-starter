@@ -1,3 +1,4 @@
+import { keepPreviousData } from "@tanstack/react-query";
 import { useState } from "react";
 import { DataList } from "../components/sections/DataList";
 import { FilterBar } from "../components/sections/FilterBar";
@@ -27,7 +28,9 @@ export function PostsPage() {
   const posts = useApiQuery(
     "/api/v1/posts",
     { params: { query: filter === "all" ? {} : { status: filter } } },
-    { queryKey: ["posts", filter] },
+    // keepPreviousData: keep the current list visible while a filter switch
+    // refetches under a new query key, instead of flashing the loading state.
+    { queryKey: ["posts", filter], placeholderData: keepPreviousData },
   );
 
   const stats = useApiQuery("/api/v1/posts/stats", undefined, {
