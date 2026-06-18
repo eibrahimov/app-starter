@@ -5,14 +5,14 @@ import { DataList } from "./DataList";
 
 // Minimal stand-in for the fields DataList reads off a query result.
 function fakeQuery<T>(
-  state: Partial<UseQueryResult<T[] | undefined>>,
-): UseQueryResult<T[] | undefined> {
+  state: Partial<UseQueryResult<T[]>>,
+): UseQueryResult<T[]> {
   return {
     isLoading: false,
     isError: false,
     data: undefined,
     ...state,
-  } as UseQueryResult<T[] | undefined>;
+  } as UseQueryResult<T[]>;
 }
 
 const renderItem = (item: string) => <li key={item}>{item}</li>;

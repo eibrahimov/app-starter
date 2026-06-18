@@ -70,9 +70,6 @@ else
   ok "no '@/' path-alias imports"
 fi
 # Flag <button ...> elements that have no type= attribute (prefer the Button primitive).
-if grep -rnE '<button(\s|>)' src 2>/dev/null | grep -vqE 'type='; then
-  : # fall through to the detailed check below
-fi
 BUTTONS_NO_TYPE="$(grep -rnE '<button(\s|>)' src 2>/dev/null | grep -vE 'type=' || true)"
 if [ -n "$BUTTONS_NO_TYPE" ]; then
   bad "Found <button> without an explicit type= (use the Button primitive, invariant 4):"

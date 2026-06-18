@@ -5,7 +5,7 @@ import { EmptyState } from "../ui/EmptyState";
 import { ErrorState } from "../ui/ErrorState";
 
 interface DataListProps<T> {
-  query: UseQueryResult<T[] | undefined>;
+  query: UseQueryResult<T[]>;
   // Returns the list row (e.g. a <Card as="li">) and supplies its own key.
   renderItem: (item: T, index: number) => ReactNode;
   emptyMessage: string;

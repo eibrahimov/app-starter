@@ -11,12 +11,7 @@ interface StatGroupProps {
 export function StatGroup({ stats }: StatGroupProps) {
   return (
     <p className="text-xs text-zinc-500">
-      {stats.map((stat, index) => (
-        <span key={stat.label}>
-          {index > 0 && " / "}
-          {stat.value} {stat.label}
-        </span>
-      ))}
+      {stats.map((stat) => `${stat.value} ${stat.label}`).join(" / ")}
     </p>
   );
 }

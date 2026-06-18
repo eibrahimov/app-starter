@@ -4,7 +4,7 @@ import { FilterBar } from "../components/sections/FilterBar";
 import { PageHeader } from "../components/sections/PageHeader";
 import { StatGroup } from "../components/sections/StatGroup";
 import { Toolbar } from "../components/sections/Toolbar";
-import { Badge } from "../components/ui/Badge";
+import { Badge, type BadgeTone } from "../components/ui/Badge";
 import { Button } from "../components/ui/Button";
 import { Card } from "../components/ui/Card";
 import { Input } from "../components/ui/Input";
@@ -14,11 +14,11 @@ import { useApiQuery } from "../hooks/useApiQuery";
 const FILTERS = ["all", "draft", "published", "archived"] as const;
 type Filter = (typeof FILTERS)[number];
 
-const statusTone = {
+const statusTone: Record<string, BadgeTone> = {
   draft: "amber",
   published: "emerald",
   archived: "zinc",
-} as const;
+};
 
 export function PostsPage() {
   const [title, setTitle] = useState("");
@@ -86,14 +86,11 @@ export function PostsPage() {
         errorMessage="Could not load posts."
         renderItem={(post) => (
           <Card as="li" key={post.id}>
-            <Badge tone={statusTone[post.status as keyof typeof statusTone]}>
-              {post.status}
-            </Badge>
+            <Badge tone={statusTone[post.status]}>{post.status}</Badge>
             <span className="flex-1 text-sm">{post.title}</span>
             {post.status === "draft" && (
               <Button
-                variant="ghost"
-                className="hover:text-emerald-400"
+                variant="success"
                 onClick={() =>
                   publish.mutate({ params: { path: { id: post.id } } })
                 }
@@ -103,8 +100,7 @@ export function PostsPage() {
             )}
             {post.status === "published" && (
               <Button
-                variant="ghost"
-                className="hover:text-amber-400"
+                variant="warning"
                 onClick={() =>
                   archive.mutate({ params: { path: { id: post.id } } })
                 }
