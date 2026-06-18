@@ -56,4 +56,26 @@ describe("useResource", () => {
     await waitFor(() => expect(postMock).toHaveBeenCalledTimes(1));
     expect(getMock.mock.calls.length).toBeGreaterThan(1);
   });
+
+  it("runs the onSuccess callback after a create", async () => {
+    getMock.mockResolvedValue({ data: [], error: undefined });
+    postMock.mockResolvedValue({ data: { id: "3" }, error: undefined });
+    const onSuccess = vi.fn();
+
+    const { result } = renderHook(
+      () =>
+        useResource({
+          key: "items",
+          listPath: "/api/v1/items",
+          createPath: "/api/v1/items",
+          onSuccess,
+        }),
+      { wrapper: withClient() },
+    );
+
+    await waitFor(() => expect(result.current.list.isSuccess).toBe(true));
+    result.current.create?.mutate({ body: { title: "new" } });
+
+    await waitFor(() => expect(onSuccess).toHaveBeenCalledTimes(1));
+  });
 });

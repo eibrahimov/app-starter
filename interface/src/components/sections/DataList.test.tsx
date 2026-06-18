@@ -18,7 +18,7 @@ function fakeQuery<T>(
 const renderItem = (item: string) => <li key={item}>{item}</li>;
 
 describe("DataList", () => {
-  it("shows the loading message while loading", () => {
+  it("shows a spinner and the loading message while loading", () => {
     render(
       <DataList
         query={fakeQuery<string>({ isLoading: true })}
@@ -28,9 +28,10 @@ describe("DataList", () => {
       />,
     );
     expect(screen.getByText("loading now")).toBeTruthy();
+    expect(screen.getByRole("status")).toBeTruthy();
   });
 
-  it("shows the error message on error", () => {
+  it("shows the error message on error when there is no data", () => {
     render(
       <DataList
         query={fakeQuery<string>({ isError: true })}
@@ -40,6 +41,19 @@ describe("DataList", () => {
       />,
     );
     expect(screen.getByText("broke")).toBeTruthy();
+  });
+
+  it("keeps the previous list visible when a refetch errors", () => {
+    render(
+      <DataList
+        query={fakeQuery<string>({ isError: true, data: ["alpha"] })}
+        renderItem={renderItem}
+        emptyMessage="empty"
+        errorMessage="broke"
+      />,
+    );
+    expect(screen.getByText("alpha")).toBeTruthy();
+    expect(screen.queryByText("broke")).toBeNull();
   });
 
   it("shows the empty message for an empty list", () => {

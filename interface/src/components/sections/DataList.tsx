@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 import { cx } from "../ui/cx";
 import { EmptyState } from "../ui/EmptyState";
 import { ErrorState } from "../ui/ErrorState";
+import { Spinner } from "../ui/Spinner";
 
 interface DataListProps<T> {
   query: UseQueryResult<T[]>;
@@ -23,10 +24,22 @@ export function DataList<T>({
   errorMessage = "Something went wrong.",
   className,
 }: DataListProps<T>) {
-  if (query.isLoading) return <EmptyState message={loadingMessage} />;
-  if (query.isError) return <ErrorState message={errorMessage} />;
-
   const items = query.data ?? [];
+
+  if (query.isLoading) {
+    return (
+      <div className="flex items-center gap-2 text-sm text-zinc-500">
+        <Spinner />
+        <span>{loadingMessage}</span>
+      </div>
+    );
+  }
+  // Only show the error state when there is nothing else to render. With
+  // keepPreviousData a failed refetch keeps the prior list visible instead of
+  // wiping it out for an error line.
+  if (query.isError && items.length === 0) {
+    return <ErrorState message={errorMessage} />;
+  }
   if (items.length === 0) return <EmptyState message={emptyMessage} />;
 
   return (

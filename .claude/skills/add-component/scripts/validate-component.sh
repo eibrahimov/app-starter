@@ -70,6 +70,12 @@ else
   ok "no '@/' path-alias imports"
 fi
 # Flag <button ...> elements that have no type= attribute (prefer the Button primitive).
+# Heuristic only: this is a single-line grep. It reliably catches a one-line
+# `<button>` that is missing type=, but it cannot correlate a multi-line opening
+# tag — if `type=` sits on a later line, the bare `<button` line survives the
+# `type=` filter and is flagged as a FALSE POSITIVE. So treat a hit as a prompt
+# to look, not a hard failure. Biome's a11y lint and code review are the real
+# gates; this is a fast smoke check, not an authoritative one.
 BUTTONS_NO_TYPE="$(grep -rnE '<button(\s|>)' src 2>/dev/null | grep -vE 'type=' || true)"
 if [ -n "$BUTTONS_NO_TYPE" ]; then
   bad "Found <button> without an explicit type= (use the Button primitive, invariant 4):"

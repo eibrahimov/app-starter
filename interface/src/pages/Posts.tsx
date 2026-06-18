@@ -15,6 +15,9 @@ import { useApiQuery } from "../hooks/useApiQuery";
 const FILTERS = ["all", "draft", "published", "archived"] as const;
 type Filter = (typeof FILTERS)[number];
 
+// The OpenAPI schema types `status` as an open string, so an unknown value is
+// possible at runtime; fall back to the neutral tone explicitly rather than
+// leaning on Badge's default.
 const statusTone: Record<string, BadgeTone> = {
   draft: "amber",
   published: "emerald",
@@ -89,7 +92,9 @@ export function PostsPage() {
         errorMessage="Could not load posts."
         renderItem={(post) => (
           <Card as="li" key={post.id}>
-            <Badge tone={statusTone[post.status]}>{post.status}</Badge>
+            <Badge tone={statusTone[post.status] ?? "neutral"}>
+              {post.status}
+            </Badge>
             <span className="flex-1 text-sm">{post.title}</span>
             {post.status === "draft" && (
               <Button

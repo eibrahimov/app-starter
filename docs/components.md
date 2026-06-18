@@ -126,18 +126,21 @@ All three are typed against the generated `paths` from `schema.d.ts`, so
 from `../api/client`, so a page-level `vi.mock("../api/client")` still intercepts
 them in tests.
 
-- **`useApiQuery(path, init?, { queryKey?, enabled? })`** — typed GET. `data` is
-  inferred from the schema. The query key defaults to `[path, query]`; pass an
-  explicit `queryKey` (e.g. `["items"]`) to match a resource's invalidation
-  scope.
+- **`useApiQuery(path, init?, { queryKey?, enabled?, placeholderData? })`** —
+  typed GET. `data` is inferred from the schema. The query key defaults to
+  `[path, query]`; pass an explicit `queryKey` (e.g. `["items"]`) to match a
+  resource's invalidation scope. Pass `placeholderData: keepPreviousData` to keep
+  the current list visible while a new query key (e.g. a changed filter)
+  refetches, instead of flashing the loading state (see `Posts.tsx`).
 - **`useApiMutation(method, path, { invalidateKeys?, onSuccess? })`** — typed
   `"post"`/`"delete"`. The mutation variable is the openapi-fetch init
   (`{ body }` or `{ params: { path: { id } } }`). On success it invalidates each
   key in `invalidateKeys`, then runs `onSuccess`.
-- **`useResource({ key, listPath, createPath, listInit? })`** — convenience layer
-  for the common list + create case; returns `{ list, create }` and invalidates
-  the broad `[key]` prefix. Reach for the two wrappers directly when a page needs
-  filtered lists, stats, or lifecycle actions (see `Posts.tsx`).
+- **`useResource({ key, listPath, createPath, listInit?, onSuccess? })`** —
+  convenience layer for the common list + create case; returns `{ list, create }`
+  and invalidates the broad `[key]` prefix. Pass `onSuccess` to run after a
+  create (e.g. to clear the input). Reach for the two wrappers directly when a
+  page needs filtered lists, stats, or lifecycle actions (see `Posts.tsx`).
 
 ### Query-key & invalidation rules
 

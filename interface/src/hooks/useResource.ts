@@ -16,6 +16,9 @@ interface UseResourceOptions<
   listPath: ListPath;
   createPath: CreatePath;
   listInit?: MaybeOptionalInit<paths[ListPath], "get">;
+  // Runs after a successful create, e.g. to clear the input. Invalidation of
+  // the [key] prefix happens regardless.
+  onSuccess?: () => void;
 }
 
 // Convenience layer over useApiQuery + useApiMutation for the common
@@ -32,6 +35,7 @@ export function useResource<
   });
   const create = useApiMutation("post", options.createPath, {
     invalidateKeys: [[options.key]],
+    onSuccess: options.onSuccess,
   });
   return { list, create };
 }
