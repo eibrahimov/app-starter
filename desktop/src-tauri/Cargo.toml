@@ -1,6 +1,6 @@
 [package]
 name = "app-starter-desktop"
-version = "0.1.1"
+version = "0.2.0"
 edition = "2021"
 
 # Standalone crate: not part of the root package's build. It has its own
