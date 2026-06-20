@@ -12,7 +12,12 @@ plan assumes.
 - Decision: adopt Radix Themes (`@radix-ui/themes`) as the default styled UI layer,
   replacing the current shadcn-lite stack (Tailwind v4 + `cva` + `cn` + DTCG
   tokens on five `@radix-ui/react-*` primitives).
-- This pass: plan + reference docs only. No code, dependencies, or config changed.
+- Status (2026-06-20): IMPLEMENTED on branch `claude/clever-shamir-378f9e`. Phases
+  0-5 landed and verified green (`tsc`, 141 Vitest tests, Biome, build). Approval
+  recorded in issue #27. The bullets and phases below are the original plan; see the
+  commit history for the as-built result. Note: removing Tailwind did not shrink the
+  CSS bundle (Tailwind had already tree-shaken to ~nothing); the ~693 kB CSS is now
+  entirely Radix Themes' own stylesheet.
 - Approval gate: this is exactly the kind of change `AGENTS.md` "Approval
   boundaries" reserves for human sign-off -- "adding a UI dependency beyond the
   established set ... a full component kit", "restructuring the design-token set /

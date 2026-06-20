@@ -2,13 +2,18 @@
 
 Use this guide when building UI. The template ships a small, ready-to-use layer
 so pages are composed from reusable parts instead of hand-rolled markup. The
-pattern stays explicit and minimal: typed primitives, composite sections, and
-data hooks over the OpenAPI contract — all in semantic design tokens, all
+pattern stays explicit and minimal: Radix Themes primitives, composite sections,
+and data hooks over the OpenAPI contract — all configured by props, all
 relative-imported.
 
 The canonical worked example of the whole stack composed together is
 `interface/src/pages/Items.tsx`; `Posts.tsx` adds filtering, stats, and
 lifecycle actions.
+
+> For the full Radix vocabulary — the component catalog, the `<Theme>` prop
+> reference, the status-color mapping, and the four Radix products — read
+> [`radix-reference.md`](radix-reference.md). This guide is the day-to-day
+> how-to; that file is the authoritative map.
 
 > Adding a component, section, or hook? The
 > [`add-component`](../.claude/skills/add-component/SKILL.md) skill is the
@@ -20,89 +25,81 @@ lifecycle actions.
 interface/src/
   components/ui/        primitives (atoms)         -> Button, Input, Card, Badge,
                                                       Spinner, EmptyState,
-                                                      ErrorState, Checkbox*,
-                                                      Dialog*, DropdownMenu*,
-                                                      Tooltip*, VisuallyHidden*
+                                                      ErrorState, Checkbox,
+                                                      Dialog, DropdownMenu,
+                                                      Tooltip, VisuallyHidden
   components/sections/  composite blocks           -> PageHeader, Toolbar,
                                                       FilterBar, StatGroup,
-                                                      DataList
+                                                      DataList, Field
   hooks/                typed data hooks           -> useApiQuery,
                                                       useApiMutation, useResource
-                                                      (* = Radix-backed)
 ```
 
-A **page** wires a route to a layout of sections; a **section** composes
-primitives and (optionally) a data hook; a **primitive** is a single styled
-element. Data flows one way: hooks → page → sections → primitives.
+Every `ui/` primitive wraps a [Radix Themes](https://www.radix-ui.com/themes)
+component (`@radix-ui/themes`) — Themes is the styled primitive layer. A
+**page** wires a route to a layout of sections; a **section** composes
+primitives and (optionally) a data hook; a **primitive** is a thin wrapper that
+pins the template's prop conventions over a Themes component. Data flows one
+way: hooks → page → sections → primitives.
 
 ## Conventions
 
 These are enforced by Biome, tsc, and the `add-component` validation script.
 
-- **Semantic design tokens only.** Style with the token utilities backed by CSS
-  variables in `src/styles.css`: surfaces `bg-background` / `bg-card` /
-  `bg-popover`; borders `border-border` / `border-input`; text `text-foreground`
-  (primary), `text-muted-foreground` (secondary/muted); focus
-  `focus-visible:ring-2 focus-visible:ring-ring`. Accents: `text-primary`,
-  `text-success` (positive/done), `text-warning` (pending/draft),
-  `text-destructive`. Never hard-code a `zinc-*`/hex color — it breaks
-  light/dark theming. Light is `:root`; `.dark` overrides; add new tokens in
-  `styles.css` (`:root` + `.dark` + `@theme inline`), not inline.
+- **Style with Radix Themes props, not utility classes.** Themes components are
+  configured by props — `variant`, `size`, `color`, `radius` on components, and
+  `p`/`px`/`gap`/`direction`/`align`/`justify`/`width` on layout primitives
+  (`Box`, `Flex`, `Grid`, `Container`, `Section`) on the theme scale. Reach for
+  `style={{ ... }}` only for the rare one-off a prop cannot express (e.g.
+  `style={{ flexGrow: 1 }}` on an `Input`). Never hand-code a hex or a
+  `zinc-*`/`gray-*` literal for status — map it to a Radix hue (see the
+  status-color mapping below) so light/dark theming holds. There is no Tailwind,
+  no `cva`, no `cn` helper, and no token block in `styles.css`; the only base
+  rule that file keeps is the Tauri safe-area inset padding.
 - **Relative imports, no `@/` aliases, no barrels.** Import each component by
   path: `import { Button } from "../components/ui/Button"`. There is no
-  `index.ts` — that keeps pages from pulling in Radix they do not use and keeps
-  imports explicit.
+  `index.ts` — that keeps pages from pulling in primitives they do not use and
+  keeps imports explicit.
 - **Named function exports.** `export function Foo()`. No default exports.
 - **Every `<button>` has an explicit `type=`.** Use the `Button` primitive
   (defaults to `type="button"`); pass `type="submit"` only for real form submits.
-- **Radix only where it earns accessibility** (Dialog, DropdownMenu, Tooltip,
-  Checkbox, VisuallyHidden). Plain elements otherwise.
 - **Data access only through the hooks / the typed `api` client** from
   `../api/client`. Never raw `fetch`. Never hand-edit
   `interface/src/api/schema.d.ts` (it is generated by `just typegen`).
-- **`cn` helper** (`components/ui/cn.ts`) = `twMerge(clsx())`: it joins class
-  names **and** de-duplicates conflicting Tailwind utilities, so a caller's
-  `className` reliably overrides a default already baked into a component (last
-  class wins). Model variant/size props with `cva` — see `Button.tsx`,
-  `Badge.tsx`, and `FilterBar.tsx` — rather than hand-rolled
-  `Record<variant, string>` maps. If you add custom Tailwind scales `twMerge`
-  can't infer, build a configured instance with `extendTailwindMerge(...)` (see
-  the note in `cn.ts`) so the new conflicting utilities still de-dupe.
 - **Co-located Vitest test** per file (`Name.test.tsx`).
-
-## When to reach for Radix vs a plain element
-
-| Need                                   | Use                                  |
-| -------------------------------------- | ------------------------------------ |
-| Button, text input, card, badge, label | plain element + Tailwind            |
-| Checkbox / toggle with a11y state      | `Checkbox` (Radix)                  |
-| Modal / confirm                        | `Dialog` (Radix, focus trap + esc)  |
-| Contextual actions menu                | `DropdownMenu` (Radix)              |
-| Hover/focus hint                       | `Tooltip` (Radix)                   |
-| Screen-reader-only label               | `VisuallyHidden` (Radix)            |
 
 ## Primitive catalog (`components/ui/`)
 
+Each primitive is a thin wrapper over a Radix Themes component, keeping the
+template's public API stable. The full Themes catalog and per-component prop
+axes live in [`radix-reference.md`](radix-reference.md); reach for the bare
+Themes component when a primitive does not yet exist.
+
 - **`Button`** `{ variant?: "primary" | "ghost" | "danger" | "success" | "warning" } & button attrs`
-  — defaults to `type="button"`. `primary` is the filled action button; `ghost`,
-  `danger`, `success`, and `warning` are the muted inline text-button rows that
-  differ only in hover accent (zinc → zinc/red/emerald/amber). `success` and
-  `warning` back the Publish/Archive row actions in `Posts.tsx`.
-- **`Input`** — text input; pass `className="flex-1"` to fill a `Toolbar`.
-- **`Card`** `{ as?: "div" | "li" }` — the bordered row shell; use `as="li"`
-  inside a `DataList`.
+  — wraps Themes `Button`; defaults to `type="button"`. `primary` is the filled
+  accent action (`variant="solid"`); `ghost` is the muted inline text button; and
+  `danger`/`success`/`warning` stay ghost-styled but carry a semantic Radix hue
+  (`red`/`grass`/`amber`). `success` and `warning` back the Publish/Archive row
+  actions in `Posts.tsx`.
+- **`Input`** — wraps Themes `TextField.Root` (`size="2"`); pass
+  `style={{ flexGrow: 1 }}` to fill a `Toolbar`.
+- **`Card`** `{ as?: "div" | "li" }` — wraps Themes `Card`; use `as="li"` inside
+  a `DataList`.
 - **`Badge`** `{ tone?: "neutral" | "emerald" | "amber" | "red" | "zinc" }` —
-  status pill.
+  wraps Themes `Badge`; the tone names map to accessible Radix hues (see the
+  status-color mapping) and the e2e a11y test audits them for contrast.
 - **`Spinner`**, **`EmptyState`** `{ message }`, **`ErrorState`** `{ message }` —
   list/page states (used internally by `DataList`).
-- **`Checkbox`** `{ checked, onCheckedChange, aria-label? }` — Radix.
+- **`Checkbox`** `{ checked, onCheckedChange, aria-label? }` — wraps Themes
+  `Checkbox`.
 - **`Dialog`** `{ open?, onOpenChange?, trigger?, title, description?, children }`
-  — Radix; supplies overlay, focus trap, and an a11y title.
+  — wraps Themes `Dialog.*`; supplies overlay, focus trap, and an a11y title
+  (falls back to a `VisuallyHidden` description when none is given).
 - **`DropdownMenu`** / **`DropdownMenuItem`**, **`Tooltip`** `{ label }`,
-  **`VisuallyHidden`** — Radix.
+  **`VisuallyHidden`** — wrap the matching Themes components.
 
-> **Scaffolding vs. wired-in.** `Checkbox` is the only Radix primitive a page
-> currently renders (`Items.tsx`). `Dialog`, `DropdownMenu`, `Tooltip`, and
+> **Scaffolding vs. wired-in.** `Checkbox` is the only Radix-backed primitive a
+> page currently renders (`Items.tsx`). `Dialog`, `DropdownMenu`, `Tooltip`, and
 > `VisuallyHidden` ship ready-to-use but are **not yet consumed by a page** — they
 > are intentional scaffolding for the next resource, kept honest by their
 > co-located tests. They are tree-shaken out of the bundle until a page imports
@@ -111,18 +108,23 @@ These are enforced by Biome, tsc, and the `add-component` validation script.
 
 ## Section catalog (`components/sections/`)
 
-- **`PageHeader`** `{ title, children? }` — the `h1` plus an optional right slot
-  (e.g. a `StatGroup`).
-- **`Toolbar`** `{ children, className? }` — the `flex gap-2` input + button row.
+- **`PageHeader`** `{ title, children? }` — a `Heading` plus an optional right
+  slot (e.g. a `StatGroup`).
+- **`Toolbar`** `{ children, className? }` — the input + button row (a Themes
+  `Flex` with a gap).
 - **`FilterBar`** `<T extends string>{ options, value, onChange }` — pill filter
   row; generic over a `const` union like `FILTERS`.
 - **`StatGroup`** `{ stats: { label, value }[] }` — a compact `1 draft / 0
   published / …` summary line.
+- **`Field`** `{ label, hint?, error?, children }` — accessible form row;
+  render-prop that wires a `Text as="label"` to the control via
+  `id` / `aria-describedby` / `aria-invalid` (a placeholder is not a label).
 - **`DataList`** `<T>{ query, renderItem, emptyMessage, loadingMessage?,
   errorMessage?, className? }` — pass a React Query result; it renders the
   loading, error, empty, or list state and calls `renderItem(item)` (which
   returns a `Card as="li"` and supplies its own `key`). This removes the
-  copy-pasted `isLoading`/`isError`/empty branches from every page.
+  copy-pasted `isLoading`/`isError`/empty branches from every page; its internals
+  use Themes `Flex`/`Text`/`Spinner`.
 
 ## Data hooks (`hooks/`)
 
@@ -176,6 +178,78 @@ const create = useApiMutation("post", "/api/v1/items", {
 />;
 ```
 
+## Theming: the single config surface
+
+One file configures the whole app. `interface/src/theme/theme.config.ts` exports
+`themeConfig` (`accentColor`, `grayColor`, `panelBackground`, `radius`,
+`scaling`), which `main.tsx` spreads into the root `<Theme {...themeConfig}>`.
+Restyle the whole app here — or ask an agent in natural language ("accent teal,
+large radius, 105% scaling"). The full prop vocabulary and allowed values live in
+[`radix-reference.md`](radix-reference.md).
+
+- **Custom brand color.** The default `accentColor` is a built-in Radix hue
+  (`indigo`), which covers most brands with zero CSS and full light/dark
+  handling. When a brand needs a custom hex no built-in hue matches, generate a
+  12-step scale and drop the `--accent-*` overrides into
+  `interface/src/theme/accent.css` — that file is the escape hatch and ships
+  empty (a no-op) until you need it. Keep the override in that one file so a
+  brand change is a single edit; the file's header comment is the step-by-step
+  recipe, and the `configure-theme` skill automates it.
+- **Icons.** The handful of Radix Icons the template uses are re-exported from an
+  enumerable allow-list, `interface/src/theme/icons.ts`, so agents pick from a
+  closed, known set rather than guessing names. Add a glyph there before using
+  it; broadening past the Radix set is an approval-gated dependency swap.
+
+## Status-color mapping
+
+Status semantics map to Radix hues — this is the replacement for the old
+`text-success`/`text-warning`/`text-destructive` utilities. Use these hues
+(via the `color` prop, or the `Badge` tone / `Button` variant that wraps them)
+so contrast holds in both appearances:
+
+| Semantic                | Radix hue        |
+| ----------------------- | ---------------- |
+| success / done          | `grass`          |
+| pending / draft         | `amber`          |
+| destructive             | `red`            |
+| neutral / archived      | `gray`           |
+
+`Badge` exposes these as tones (`emerald` → `grass`, `amber` → `amber`,
+`red` → `red`, `neutral`/`zinc` → `gray`); `Button` exposes them as variants
+(`success` → `grass`, `warning` → `amber`, `danger` → `red`). The Playwright a11y
+smoke renders one `Posts` row per status so every tone's contrast is audited.
+
+## Dark mode
+
+Dark mode is driven by the `.dark` class on `<html>`, which Radix Themes reads
+natively — so **do not pass `appearance` to `<Theme>`**. `ThemeProvider`
+(`components/theme/ThemeProvider.tsx`) + `ThemeToggle` toggle that class
+(persisted to `localStorage`, honoring `prefers-color-scheme`), and a
+pre-hydration script in `index.html` sets the same class before React mounts to
+avoid a flash of the wrong theme. Adding `appearance` to `theme.config.ts` would
+fight that script and reintroduce the flash. Radix Colors selects its separate
+dark scales automatically off the class, so you never hand-tune dark values.
+
+## Accessibility
+
+- **Themes does the structural work.** Radix Themes components ship visible focus
+  rings and adequate (≥44px at `size="3"`+) touch targets, so primitives need no
+  hand-rolled focus or `coarse:` styling — the same web tree the Tauri webview
+  renders on desktop and mobile.
+- **You supply the accessible names and ARIA.** Every interactive element still
+  needs an accessible name and the right ARIA — see `ErrorState` (`role="alert"`),
+  `DataList` (`aria-busy`), and the `Field` section (label + `aria-describedby` /
+  `aria-invalid`). A placeholder is not a label.
+- **Two axe gates run at different layers.** The **Vitest + jest-axe** unit checks
+  (`src/a11y.test.tsx`) audit isolated component fragments (the `region` landmark
+  rule is disabled) and run on every `bun run test` — so they are part of
+  `just verify` and the blocking CI Frontend job; add an `axe` assertion there for
+  new components. The **Playwright + axe** page smoke (`just a11y`,
+  `e2e/a11y.spec.ts`) loads each route in a real browser with the API mocked to
+  **populated** fixtures, so it audits the real rendered states — Items rows,
+  Posts rows across every Badge tone (draft/amber, published/grass,
+  archived/gray), and the resolved Home health line — for contrast and landmarks.
+
 ## Testing components
 
 - **Pure primitives/sections** (no API): `render` from `@testing-library/react`,
@@ -185,30 +259,6 @@ const create = useApiMutation("post", "/api/v1/items", {
 - **Hooks / anything reading the API**: `renderWithClient` (components) or
   `withClient` (`renderHook`) from `../test-utils`, and
   `vi.mock("../api/client")`. See `hooks/useResource.test.ts`.
-
-## Theming, accessibility & touch
-
-- **Tokens & dark mode.** Colors are semantic CSS variables in `src/styles.css`
-  (`:root` = light, `.dark` = dark), exposed to Tailwind via `@theme inline`.
-  `ThemeProvider` + `ThemeToggle` flip the `.dark` class (persisted to
-  `localStorage`, honoring `prefers-color-scheme`); a pre-paint script in
-  `index.html` avoids a flash. Style with token utilities only.
-- **Accessibility.** Every interactive element gets an accessible name, a visible
-  `focus-visible:ring`, and the right ARIA — see `ErrorState` (`role="alert"`),
-  `DataList` (`aria-busy`), and the `Field` composite (label +
-  `aria-describedby` / `aria-invalid`). Two gates run at different layers. The
-  **Vitest + jest-axe** unit checks (`src/a11y.test.tsx`) audit isolated component
-  fragments (the `region` landmark rule is disabled) and run on every
-  `bun run test` — so they are part of `just verify` and the blocking CI Frontend
-  job; add an `axe` assertion there for new components. The **Playwright + axe**
-  page smoke (`just a11y`, `e2e/a11y.spec.ts`) loads each route in a real browser
-  with the API mocked to **populated** fixtures, so it audits the real rendered
-  states — Items rows, Posts rows across all three Badge tones (draft/amber,
-  published/emerald, archived/zinc), and the resolved Home health line — for
-  contrast and landmarks.
-- **Responsive & touch.** Layout sections wrap (`flex-wrap`); interactive controls
-  use the `coarse:` variant (`coarse:min-h-11`) for ≥44px touch targets — the
-  same web tree the Tauri webview renders on desktop and mobile.
 
 ## Gates
 
