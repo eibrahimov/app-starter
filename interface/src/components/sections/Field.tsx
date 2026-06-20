@@ -1,4 +1,5 @@
 import { type ReactNode, useId } from "react";
+import { Flex, Text } from "@radix-ui/themes";
 
 interface FieldRenderProps {
   id: string;
@@ -25,25 +26,25 @@ export function Field({ label, hint, error, children }: FieldProps) {
     [hint && hintId, error && errorId].filter(Boolean).join(" ") || undefined;
 
   return (
-    <div className="space-y-1">
-      <label htmlFor={id} className="font-medium text-sm">
+    <Flex direction="column" gap="1">
+      <Text as="label" htmlFor={id} size="2" weight="medium">
         {label}
-      </label>
+      </Text>
       {children({
         id,
         "aria-describedby": describedBy,
         "aria-invalid": !!error,
       })}
       {hint && (
-        <p id={hintId} className="text-muted-foreground text-xs">
+        <Text id={hintId} as="p" size="1" color="gray">
           {hint}
-        </p>
+        </Text>
       )}
       {error && (
-        <p id={errorId} role="alert" className="text-destructive text-xs">
+        <Text id={errorId} as="p" role="alert" size="1" color="red">
           {error}
-        </p>
+        </Text>
       )}
-    </div>
+    </Flex>
   );
 }

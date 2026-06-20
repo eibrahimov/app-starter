@@ -1,19 +1,20 @@
-import { render, screen } from "@testing-library/react";
+import { screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
+import { renderWithTheme } from "../../test-utils";
 import { Toolbar } from "./Toolbar";
 
 describe("Toolbar", () => {
   it("renders its children", () => {
-    render(
+    renderWithTheme(
       <Toolbar>
         <button type="button">Add</button>
       </Toolbar>,
     );
-    expect(screen.getByText("Add")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Add" })).toBeTruthy();
   });
 
   it("renders multiple children", () => {
-    render(
+    renderWithTheme(
       <Toolbar>
         <span>first</span>
         <span>second</span>
@@ -23,21 +24,10 @@ describe("Toolbar", () => {
     expect(screen.getByText("second")).toBeTruthy();
   });
 
-  it("applies the base classes when no className is given", () => {
-    render(<Toolbar>content</Toolbar>);
+  it("wraps its children in a single layout container", () => {
+    renderWithTheme(<Toolbar>content</Toolbar>);
     const toolbar = screen.getByText("content");
-    expect(toolbar.className).toBe("flex flex-wrap gap-2");
-  });
-
-  it("merges className with the base classes", () => {
-    render(<Toolbar className="justify-end">content</Toolbar>);
-    const toolbar = screen.getByText("content");
-    expect(toolbar.className).toBe("flex flex-wrap gap-2 justify-end");
-  });
-
-  it("keeps only the base classes for an empty className", () => {
-    render(<Toolbar className="">content</Toolbar>);
-    const toolbar = screen.getByText("content");
-    expect(toolbar.className).toBe("flex flex-wrap gap-2");
+    expect(toolbar.tagName.toLowerCase()).toBe("div");
+    expect(toolbar.textContent).toBe("content");
   });
 });

@@ -1,4 +1,4 @@
-import { cva } from "class-variance-authority";
+import { Button, Flex } from "@radix-ui/themes";
 
 interface FilterBarProps<T extends string> {
   options: readonly T[];
@@ -6,39 +6,34 @@ interface FilterBarProps<T extends string> {
   onChange: (value: T) => void;
 }
 
-const filterButtonVariants = cva(
-  "rounded-md px-3 py-1 text-xs capitalize focus-ring coarse:min-h-11",
-  {
-    variants: {
-      selected: {
-        true: "bg-accent text-accent-foreground",
-        false: "text-muted-foreground hover:text-foreground",
-      },
-    },
-  },
-);
-
+// Uses the raw Themes `Button` (not the wrapped `ui/Button`) on purpose: the
+// pill toggles need the `soft` variant and `highContrast` selected state, which
+// the wrapped Button deliberately does not expose (it only maps the app's
+// semantic variants). This is the one section that reaches past the primitive.
 export function FilterBar<T extends string>({
   options,
   value,
   onChange,
 }: FilterBarProps<T>) {
   return (
-    <div className="flex gap-1">
+    <Flex gap="1" align="center">
       {options.map((option) => {
         const selected = value === option;
         return (
-          <button
+          <Button
             key={option}
             type="button"
+            size="2"
+            variant={selected ? "soft" : "ghost"}
+            highContrast={selected}
             aria-pressed={selected}
             onClick={() => onChange(option)}
-            className={filterButtonVariants({ selected })}
+            style={{ textTransform: "capitalize" }}
           >
             {option}
-          </button>
+          </Button>
         );
       })}
-    </div>
+    </Flex>
   );
 }

@@ -36,10 +36,10 @@ function systemTheme(): Theme {
     : "light";
 }
 
-// Reflect the active theme onto <html> so the token CSS (.dark { ... } in
-// styles.css) and Tailwind's `dark:` variant both resolve. Kept in sync with
-// the pre-hydration script in index.html, which sets the same class to avoid a
-// flash of the wrong theme before React mounts.
+// Reflect the active theme onto <html> so Radix Themes resolves the matching
+// appearance from the `.dark` class. Kept in sync with the pre-hydration script
+// in index.html, which sets the same class to avoid a flash of the wrong theme
+// before React mounts.
 function applyTheme(theme: Theme) {
   const root = document.documentElement;
   root.classList.toggle("dark", theme === "dark");

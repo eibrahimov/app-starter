@@ -1,3 +1,4 @@
+import { Flex, Text } from "@radix-ui/themes";
 import { useState } from "react";
 import { DataList } from "../components/sections/DataList";
 import { PageHeader } from "../components/sections/PageHeader";
@@ -32,7 +33,7 @@ export function ItemsPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <Flex direction="column" gap="5">
       <PageHeader title="Items" />
 
       <Toolbar>
@@ -44,7 +45,7 @@ export function ItemsPage() {
           }}
           placeholder="What needs doing?"
           aria-label="New item title"
-          className="flex-1"
+          style={{ flex: 1 }}
         />
         <Button onClick={submit} disabled={create.isPending}>
           Add
@@ -64,11 +65,16 @@ export function ItemsPage() {
               }
               aria-label={item.title}
             />
-            <span
-              className={`flex-1 text-sm ${item.done ? "text-muted-foreground line-through" : ""}`}
+            <Text
+              size="2"
+              color={item.done ? "gray" : undefined}
+              style={{
+                flex: 1,
+                textDecoration: item.done ? "line-through" : undefined,
+              }}
             >
               {item.title}
-            </span>
+            </Text>
             <Button
               variant="danger"
               onClick={() =>
@@ -80,6 +86,6 @@ export function ItemsPage() {
           </Card>
         )}
       />
-    </div>
+    </Flex>
   );
 }

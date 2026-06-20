@@ -42,9 +42,10 @@ These are the gates a change must pass before it merges:
 3. **Vitest** -- `bun run test` must pass.
 
 Coverage is **reported, never gated**. `vite.config.ts` configures the v8
-provider with `text` and `html` reporters (scoped to `src/pages/**` and
-`src/api/client.ts`); run `bun run test:coverage` to see it. Do not add a
-coverage threshold that would block a fork or a contributor on a percentage.
+provider with `text` and `html` reporters (scoped to `src/pages/**`,
+`src/components/**`, `src/hooks/**`, and `src/api/client.ts`); run
+`bun run test:coverage` to see it. Do not add a coverage threshold that would
+block a fork or a contributor on a percentage.
 
 ## 3. The generated API client
 
@@ -106,17 +107,20 @@ The frontend lives under `interface/src/` with a flat, predictable layout:
   the `Register` module augmentation.
 - `main.tsx` -- the entry point that wires up the `QueryClient`, the providers,
   and `StrictMode`.
-- `test-utils.tsx` -- shared test helpers (the `renderWithClient` wrapper).
-- `styles.css` -- the Tailwind entry and body defaults.
+- `test-utils.tsx` -- shared test helpers (the `renderWithTheme` and
+  `renderWithClient` wrappers).
+- `styles.css` -- imports the Radix Themes stylesheet and the accent escape
+  hatch (`theme/accent.css`), plus the body safe-area insets.
 
 Keep to **one page per file**. New pages go in `pages/`; add a matching
 `Name.test.tsx` alongside each new page so the co-located test convention holds.
 
-Pages should import and compose shared UI rather than duplicate it. The template
-ships no shared-component directory yet; if a genuinely reusable UI element
-(a button, an input wrapper, a modal) emerges, create a `src/components/`
-directory for it rather than copying markup between pages. Test-only helpers
-(render wrappers and the like) belong in `test-utils.tsx`, not in `pages/`.
+Pages should import and compose shared UI rather than duplicate it. The reusable
+layer lives in `src/components/` -- `ui/` primitives (`Button`, `Input`, `Badge`,
+...) and `sections/` composites (`Toolbar`, `DataList`, `FilterBar`, ...), all
+built on Radix Themes. Reach for those (or extend them) rather than copying
+markup between pages. Test-only helpers (render wrappers and the like) belong in
+`test-utils.tsx`, not in `pages/`.
 
 ## 5. Data fetching with TanStack Query
 
@@ -224,9 +228,10 @@ export function ItemsPage() {
 To add a page: write the page in `pages/`, create its route with `createRoute`,
 add it to `rootRoute.addChildren([...])`, and add a nav `Link` in `Layout`.
 
-**Navigation uses the Router `Link` component** with a `to` prop. Active styling
-is applied with the `[&.active]:` Tailwind selector (for example
-`[&.active]:text-zinc-100`); do not roll your own active-state tracking.
+**Navigation uses the Router `Link` component** with a `to` prop. TanStack Router
+adds an `.active` class to the current route's link; the template surfaces it
+through TanStack's `activeProps` (the active style plus `aria-current="page"`) in
+`router.tsx`, not a CSS utility. Do not roll your own active-state tracking.
 
 **Imports are relative with explicit depth** (`../api/client`, `./pages/Home`).
 Do **not** introduce `@/` path aliases -- the repo does not use them and its
@@ -284,28 +289,38 @@ For the full list of active rules and their rationale, see the Biome linter
 documentation at <https://biomejs.dev/linter/>.
 
 Excluded from Biome (via the `files.includes` negations in `biome.json`):
-`src/api/schema.d.ts` (generated) and all `*.css` files (owned by Tailwind),
-plus `node_modules`, `dist`, and `coverage`. Do not work around these
-exclusions by reformatting generated or CSS files by hand.
+`src/api/schema.d.ts` (generated) and all `*.css` files (the Radix Themes
+stylesheet plus the generated accent scale in `theme/accent.css`), plus
+`node_modules`, `dist`, and `coverage`. Do not work around these exclusions by
+reformatting generated or CSS files by hand.
 
 ## 9. Styling and accessibility
 
-**Styling is Tailwind 4 utility classes composed inline** in `className`.
-Tailwind is wired in through the `@tailwindcss/vite` plugin in `vite.config.ts`;
-there is no separate Tailwind config file in the template, so the default theme
-(including the `zinc` palette this UI uses) is in effect. Do not override the
-default palette unless a real branding need calls for it.
+**Styling is Radix Themes (`@radix-ui/themes`).** Components are styled with
+Themes components and their props (`size`, `color`, `variant`, `radius`,
+`weight`) and laid out with the Themes primitives (`Flex`, `Box`, `Grid`,
+`Container`, `Section`) -- not utility classes. The full vocabulary (every prop
+and its allowed values) lives in `docs/radix-reference.md`.
 
-The template leans on a small, consistent vocabulary: `space-y-*` and
-`flex gap-*` for layout, `text-2xl` / `font-semibold` / `tracking-tight` for
-headings, `text-zinc-*` / `bg-zinc-*` / `border-zinc-*` for color, and
-`rounded-md` with `px-* py-*` for controls. Reach for these existing utilities
-before inventing new patterns.
+**Re-theme globally, not per component.** `interface/src/theme/theme.config.ts`
+is the single source of truth for the accent, gray, panel background, radius, and
+scaling; the whole app restyles from there (or via the `configure-theme` skill).
+A custom brand hue that no built-in scale matches goes in `theme/accent.css`.
+Light/dark is driven by the `.dark` class on `<html>` (`ThemeProvider` plus the
+pre-hydration script in `index.html`), which Themes reads natively -- do not set
+`appearance` on `<Theme>`.
 
-**CSS lives in `styles.css` and is owned by Tailwind.** It holds the Tailwind
-entry and body defaults (for example `@apply bg-zinc-950 text-zinc-100` on
-`body`). It is excluded from Biome; do not lint or hand-format it, and keep
-component styling in utility classes rather than growing bespoke CSS.
+**Colors come from the Radix scales,** addressed through the `color` prop or the
+CSS variables Themes exposes (`var(--accent-9)`, `var(--gray-11)`,
+`var(--gray-a6)`). Reach for a Themes prop first; drop to an inline `style` with a
+Radix variable only for the rare gap (the active nav link in `router.tsx` is the
+canonical example). Per-instance spacing uses the layout props (`m`, `mt`, `px`,
+`gap`), not bespoke CSS.
+
+**`styles.css` is minimal:** it imports the Themes stylesheet and `accent.css`,
+then keeps only the body safe-area insets for mobile / Tauri. It is excluded from
+Biome; do not lint or hand-format it, and prefer Themes props over growing
+bespoke CSS.
 
 Accessibility expectations:
 

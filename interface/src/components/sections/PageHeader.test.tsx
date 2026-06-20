@@ -1,21 +1,22 @@
-import { render, screen } from "@testing-library/react";
+import { screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
+import { renderWithTheme } from "../../test-utils";
 import { PageHeader } from "./PageHeader";
 
 describe("PageHeader", () => {
   it("renders the title as a level-1 heading", () => {
-    render(<PageHeader title="Items" />);
+    renderWithTheme(<PageHeader title="Items" />);
     const heading = screen.getByRole("heading", { level: 1 });
     expect(heading.textContent).toBe("Items");
   });
 
   it("renders without children", () => {
-    render(<PageHeader title="Posts" />);
+    renderWithTheme(<PageHeader title="Posts" />);
     expect(screen.getByRole("heading", { name: "Posts" })).toBeTruthy();
   });
 
   it("renders optional children alongside the title", () => {
-    render(
+    renderWithTheme(
       <PageHeader title="Items">
         <button type="button">New item</button>
       </PageHeader>,
@@ -25,7 +26,7 @@ describe("PageHeader", () => {
   });
 
   it("renders multiple children in the right slot", () => {
-    render(
+    renderWithTheme(
       <PageHeader title="Items">
         <span>first</span>
         <span>second</span>

@@ -12,6 +12,11 @@ Language-level conventions live in [RUST_STYLE_GUIDE.md](RUST_STYLE_GUIDE.md) an
 [TS_STYLE_GUIDE.md](TS_STYLE_GUIDE.md); this guide covers the cross-cutting
 workflow, the resource recipe, and approval boundaries.
 
+The UI layer is Radix Themes (`@radix-ui/themes`); the single global config surface
+is `interface/src/theme/theme.config.ts` (fed into `<Theme>`). See
+[docs/radix-reference.md](docs/radix-reference.md) for the component catalog and
+Theme props.
+
 ## Validation matrix
 
 Required before normal PR/commit handoff:
@@ -120,18 +125,20 @@ pagination, get-by-id, and an aggregate stats endpoint). Copy their shape exactl
 7. Run `just typegen` and COMMIT the regenerated `interface/src/api/schema.d.ts`.
    Never hand-edit that file. Skipping typegen makes `just lint` (tsc) fail.
 8. Frontend page: `interface/src/pages/<Name>.tsx` modeled on the refactored
-   `Items.tsx` — compose it from the reusable layer in `interface/src/components/`
-   (`PageHeader`, `Toolbar`, `DataList`, `Card`, `Button`, `Input`, …) plus the typed
-   data hooks in `interface/src/hooks/` (`useApiQuery` / `useApiMutation`, or the
-   `useResource` convenience layer). Data access only through the typed `api` client
-   from `../api/client` (never raw `fetch`); resource-scoped array query keys
-   (`["items"]`, `["posts", filter]`); mutations invalidate the broad `[key]` prefix.
-   `DataList` owns the loading/error/empty/data triage, so pages no longer hand-roll
-   isLoading/isError branches. Semantic design tokens (no hard-coded palette;
-   see `interface/src/styles.css`), spaces not tabs, no `@/` path aliases.
-   Co-locate a Vitest test (`<Name>.test.tsx`) as `Items.tsx`/`Posts.tsx` do. See
-   [docs/components.md](docs/components.md) and the `add-component` skill for the
-   catalog and the step-by-step component/section/hook procedure.
+   `Items.tsx` — compose it from Radix Themes components (`Card`, `Button`, `Flex`,
+   `Table`, …), the `interface/src/components/sections/` layer (`PageHeader`,
+   `Toolbar`, `DataList`, …), and the typed data hooks in `interface/src/hooks/`
+   (`useApiQuery` / `useApiMutation`, or the `useResource` convenience layer). Data
+   access only through the typed `api` client from `../api/client` (never raw
+   `fetch`); resource-scoped array query keys (`["items"]`, `["posts", filter]`);
+   mutations invalidate the broad `[key]` prefix. `DataList` owns the
+   loading/error/empty/data triage, so pages no longer hand-roll isLoading/isError
+   branches. Style via Themes props (`color`, `variant`, `size`, layout props on
+   `Flex`/`Box`/`Grid`) — no Tailwind utilities and no DTCG/semantic tokens in
+   `styles.css`. Spaces not tabs, no `@/` path aliases. Co-locate a Vitest test
+   (`<Name>.test.tsx`) as `Items.tsx`/`Posts.tsx` do. See
+   [docs/radix-reference.md](docs/radix-reference.md) and the `add-component` skill
+   for the component catalog and the step-by-step component/section/hook procedure.
 9. Route: in `interface/src/router.tsx` add a `createRoute({...})`, append it to
    `rootRoute.addChildren([...])`, and add a nav `<Link>` in `Layout`.
 

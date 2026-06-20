@@ -1,0 +1,62 @@
+/* Brand-accent escape hatch -- empty (a no-op) by default.
+ *
+ * By default this app uses a BUILT-IN Radix hue, selected with `accentColor`
+ * in `theme.config.ts` (default: indigo). That covers most brands with zero
+ * CSS and full light/dark handling -- so this file stays empty until you need
+ * a custom hex that no built-in hue matches.
+ *
+ * To wire up a CUSTOM brand hex:
+ *
+ *   1. Generate a 12-step scale at https://www.radix-ui.com/colors/custom
+ *      (paste your hex; it produces `--custom-1..12` + `--custom-a1..a12`,
+ *      plus wide-gamut `color(display-p3 ...)` values inside @supports blocks).
+ *   2. Rename every generated `--custom-*` variable to the hue named in
+ *      `theme.config.ts`. With the default `accentColor="indigo"` that means
+ *      `--custom-1` -> `--indigo-1` ... `--custom-12` -> `--indigo-12`, and
+ *      `--custom-a1` -> `--indigo-a1` ... `--custom-a12` -> `--indigo-a12`.
+ *      (If you change the accent hue, rename to THAT hue instead.)
+ *   3. Scope the LIGHT scale to `.radix-themes` and the DARK scale to `.dark`
+ *      -- `.dark` is the class the ThemeProvider toggles on <html>, so the two
+ *      override blocks line up with the appearance the app is showing.
+ *   4. KEEP the `@supports (color: color(display-p3 1 1 1))` wide-gamut blocks
+ *      from the generator so P3 displays get the richer scale.
+ *
+ * The `configure-theme` skill automates all of the above (generate -> rename ->
+ * scope -> drop in here) and then runs the gates, so prefer it over editing by
+ * hand.
+ *
+ * Commented skeleton of the override blocks (uncomment + fill from step 1):
+ *
+ *   .radix-themes {
+ *     --indigo-1: <light step 1>;
+ *     --indigo-2: <light step 2>;
+ *     ... through --indigo-12 ...
+ *     --indigo-a1: <light alpha 1>;
+ *     ... through --indigo-a12 ...
+ *   }
+ *
+ *   @supports (color: color(display-p3 1 1 1)) {
+ *     @media (color-gamut: p3) {
+ *       .radix-themes {
+ *         --indigo-1: color(display-p3 ...);
+ *         ... light P3 steps ...
+ *       }
+ *     }
+ *   }
+ *
+ *   .dark, .dark .radix-themes {
+ *     --indigo-1: <dark step 1>;
+ *     ... through --indigo-12 ...
+ *     --indigo-a1: <dark alpha 1>;
+ *     ... through --indigo-a12 ...
+ *   }
+ *
+ *   @supports (color: color(display-p3 1 1 1)) {
+ *     @media (color-gamut: p3) {
+ *       .dark, .dark .radix-themes {
+ *         --indigo-1: color(display-p3 ...);
+ *         ... dark P3 steps ...
+ *       }
+ *     }
+ *   }
+ */

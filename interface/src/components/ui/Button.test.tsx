@@ -1,26 +1,54 @@
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
+import { renderWithTheme } from "../../test-utils";
 import { Button } from "./Button";
 
 describe("Button", () => {
   it("renders its children", () => {
-    render(<Button>Save</Button>);
-    expect(screen.getByText("Save")).toBeTruthy();
+    renderWithTheme(<Button>Save</Button>);
+    expect(screen.getByRole("button", { name: "Save" })).toBeTruthy();
   });
 
   it("defaults to type=button", () => {
-    render(<Button>Save</Button>);
-    expect(screen.getByText("Save").getAttribute("type")).toBe("button");
+    renderWithTheme(<Button>Save</Button>);
+    expect(
+      screen.getByRole("button", { name: "Save" }).getAttribute("type"),
+    ).toBe("button");
+  });
+
+  it("honors an explicit type", () => {
+    renderWithTheme(<Button type="submit">Save</Button>);
+    expect(
+      screen.getByRole("button", { name: "Save" }).getAttribute("type"),
+    ).toBe("submit");
   });
 
   it("forwards onClick and respects disabled", () => {
     const onClick = vi.fn();
-    render(
+    renderWithTheme(
       <Button onClick={onClick} disabled>
         Save
       </Button>,
     );
-    fireEvent.click(screen.getByText("Save"));
+    const button = screen.getByRole("button", { name: "Save" });
+    expect(button.hasAttribute("disabled")).toBe(true);
+    fireEvent.click(button);
     expect(onClick).not.toHaveBeenCalled();
+  });
+
+  it("renders each variant as an accessible button", () => {
+    for (const variant of [
+      "primary",
+      "ghost",
+      "danger",
+      "success",
+      "warning",
+    ] as const) {
+      const { unmount } = renderWithTheme(
+        <Button variant={variant}>{variant}</Button>,
+      );
+      expect(screen.getByRole("button", { name: variant })).toBeTruthy();
+      unmount();
+    }
   });
 });

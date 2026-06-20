@@ -45,8 +45,8 @@ Copy the shape of the two worked examples exactly: `items` (minimal CRUD) and
    or repurpose them. A breaking change opens `/api/v2` alongside v1.
 6. **Frontend rules:** data access only through the typed `api` client from
    `../api/client` (never raw `fetch`); `useQuery` array keys; mutations
-   `invalidateQueries` on success; explicit isLoading/isError branches; inline
-   Tailwind in the zinc palette; spaces not tabs; no `@/` path aliases.
+   `invalidateQueries` on success; explicit isLoading/isError branches; styling
+   via Radix Themes component props (no Tailwind); spaces not tabs; no `@/` path aliases.
 
 ## Procedure
 
@@ -114,7 +114,7 @@ it to confirm:
   `src/api/mod.rs` (the silent footgun);
 - the domain module avoids repository structs/traits and mirrors `src/posts.rs`;
 - `interface/src/pages/<Name>.tsx` mirrors `Items.tsx` (typed `api` client only, array query
-  keys, `invalidateQueries` on mutate, explicit isLoading/isError, zinc Tailwind, no `@/` alias);
+  keys, `invalidateQueries` on mutate, explicit isLoading/isError, Radix Themes styling, no `@/` alias);
 - the migration is append-only with a last-sorting timestamp.
 
 Incorporate its findings before handoff. This catches convention drift the scripts can't.

@@ -1,16 +1,12 @@
-import type { InputHTMLAttributes } from "react";
-import { cn } from "./cn";
+import { TextField } from "@radix-ui/themes";
+import type { ComponentProps } from "react";
 
-type InputProps = InputHTMLAttributes<HTMLInputElement>;
+// Base the props on TextField.Root itself so the full prop set stays type-safe.
+// Raw InputHTMLAttributes are wider than a text field (type="color", numeric
+// size, readonly-string[] value) and collide with the Themes props; TextField
+// still accepts the standard input attributes callers actually use.
+type InputProps = ComponentProps<typeof TextField.Root>;
 
-export function Input({ className, ...props }: InputProps) {
-  return (
-    <input
-      className={cn(
-        "rounded-md border border-input bg-card px-3 py-2 text-sm focus-ring",
-        className,
-      )}
-      {...props}
-    />
-  );
+export function Input(props: InputProps) {
+  return <TextField.Root size="2" {...props} />;
 }

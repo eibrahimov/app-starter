@@ -1,10 +1,11 @@
-import { render, screen } from "@testing-library/react";
+import { screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
+import { renderWithTheme } from "../../test-utils";
 import { Tooltip } from "./Tooltip";
 
 describe("Tooltip", () => {
   it("renders the trigger children", () => {
-    render(
+    renderWithTheme(
       <Tooltip label="More info">
         <button type="button">Help</button>
       </Tooltip>,
@@ -12,8 +13,8 @@ describe("Tooltip", () => {
     expect(screen.getByText("Help")).toBeTruthy();
   });
 
-  it("renders the trigger as a real button via asChild", () => {
-    render(
+  it("renders the trigger as a real button via the Themes trigger", () => {
+    renderWithTheme(
       <Tooltip label="More info">
         <button type="button">Help</button>
       </Tooltip>,
@@ -23,7 +24,7 @@ describe("Tooltip", () => {
   });
 
   it("does not show the tooltip label before interaction", () => {
-    render(
+    renderWithTheme(
       <Tooltip label="hidden until hover">
         <button type="button">Help</button>
       </Tooltip>,
@@ -32,7 +33,7 @@ describe("Tooltip", () => {
   });
 
   it("renders non-button trigger children", () => {
-    render(
+    renderWithTheme(
       <Tooltip label="info">
         <span>just text</span>
       </Tooltip>,

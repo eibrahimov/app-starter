@@ -1,3 +1,4 @@
+import { Theme } from "@radix-ui/themes";
 import { screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { renderWithClient } from "../test-utils";
@@ -21,7 +22,12 @@ describe("HomePage", () => {
       error: undefined,
     });
 
-    renderWithClient(<HomePage />);
+    // Themes components need Theme context to resolve their tokens in jsdom.
+    renderWithClient(
+      <Theme>
+        <HomePage />
+      </Theme>,
+    );
 
     await waitFor(() => expect(screen.getByText(/Backend ok/i)).toBeTruthy());
     expect(screen.getByText(/v9\.9\.9/)).toBeTruthy();

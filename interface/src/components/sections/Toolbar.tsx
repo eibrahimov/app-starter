@@ -1,13 +1,14 @@
+import { Flex } from "@radix-ui/themes";
 import type { ReactNode } from "react";
-import { cn } from "../ui/cn";
 
 interface ToolbarProps {
   children: ReactNode;
-  className?: string;
 }
 
-export function Toolbar({ children, className }: ToolbarProps) {
+export function Toolbar({ children }: ToolbarProps) {
   return (
-    <div className={cn("flex flex-wrap gap-2", className)}>{children}</div>
+    <Flex wrap="wrap" gap="2">
+      {children}
+    </Flex>
   );
 }

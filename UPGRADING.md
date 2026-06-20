@@ -53,11 +53,12 @@ Review every change, but these categories are often portable:
 - Example resources: your app may have deleted or replaced `items` and `posts`.
 - CORS, auth, request limits, and release publishing defaults.
 - Anything that changes database paths, volume names, or persistent data behavior.
-- Frontend styling conventions: the component layer moved from a `cx` joiner +
-  hard-coded zinc to `cn` (`twMerge`) + semantic design tokens in
-  `interface/src/styles.css` with light/dark theming. Adopt the token layer
-  wholesale (`styles.css` + `ThemeProvider`); don't mix hard-coded `zinc-*` with
-  tokens, and re-point tokens rather than editing components to re-theme.
+- Frontend styling conventions: the UI layer is **Radix Themes**
+  (`@radix-ui/themes`) -- there is no Tailwind, `cn` / `twMerge`, or design-token
+  CSS. Re-theme from `interface/src/theme/theme.config.ts` (accent, gray, radius,
+  scaling), or the `configure-theme` skill, rather than editing components, and
+  keep light/dark on the `.dark` class that `ThemeProvider` toggles. The full
+  vocabulary is in `docs/radix-reference.md`.
 
 ## Cherry-pick workflow
 

@@ -1,26 +1,29 @@
-import { cva, type VariantProps } from "class-variance-authority";
-import type { HTMLAttributes } from "react";
-import { cn } from "./cn";
+import { Badge as ThemesBadge } from "@radix-ui/themes";
+import type { ComponentPropsWithoutRef } from "react";
 
-export const badgeVariants = cva("text-xs", {
-  variants: {
-    tone: {
-      neutral: "text-muted-foreground",
-      emerald: "text-success",
-      amber: "text-warning",
-      red: "text-destructive",
-      zinc: "text-muted-foreground",
-    },
-  },
-  defaultVariants: { tone: "neutral" },
-});
+// The tones the app speaks, kept identical to the previous cva API so callers
+// (e.g. pages/Posts) do not change. Each maps to an accessible Radix Themes
+// color; the e2e a11y test audits these for contrast.
+export type BadgeTone = "neutral" | "emerald" | "amber" | "red" | "zinc";
 
-export type BadgeTone = NonNullable<VariantProps<typeof badgeVariants>["tone"]>;
+const toneColor: Record<
+  BadgeTone,
+  ComponentPropsWithoutRef<typeof ThemesBadge>["color"]
+> = {
+  neutral: "gray",
+  emerald: "grass",
+  amber: "amber",
+  red: "red",
+  zinc: "gray",
+};
 
-interface BadgeProps
-  extends HTMLAttributes<HTMLSpanElement>,
-    VariantProps<typeof badgeVariants> {}
+type BadgeProps = Omit<
+  ComponentPropsWithoutRef<typeof ThemesBadge>,
+  "color"
+> & {
+  tone?: BadgeTone;
+};
 
-export function Badge({ tone, className, ...props }: BadgeProps) {
-  return <span className={cn(badgeVariants({ tone }), className)} {...props} />;
+export function Badge({ tone = "neutral", ...props }: BadgeProps) {
+  return <ThemesBadge color={toneColor[tone]} {...props} />;
 }

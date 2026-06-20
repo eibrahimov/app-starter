@@ -1,6 +1,6 @@
+import { Flex, Text } from "@radix-ui/themes";
 import type { UseQueryResult } from "@tanstack/react-query";
 import type { ReactNode } from "react";
-import { cn } from "../ui/cn";
 import { EmptyState } from "../ui/EmptyState";
 import { ErrorState } from "../ui/ErrorState";
 import { Spinner } from "../ui/Spinner";
@@ -12,7 +12,6 @@ interface DataListProps<T> {
   emptyMessage: string;
   loadingMessage?: string;
   errorMessage?: string;
-  className?: string;
 }
 
 // Owns the loading/error/empty/data triage that pages otherwise copy-paste.
@@ -22,19 +21,17 @@ export function DataList<T>({
   emptyMessage,
   loadingMessage = "Loading…",
   errorMessage = "Something went wrong.",
-  className,
 }: DataListProps<T>) {
   const items = query.data ?? [];
 
   if (query.isLoading) {
     return (
-      <div
-        aria-busy="true"
-        className="flex items-center gap-2 text-sm text-muted-foreground"
-      >
+      <Flex aria-busy="true" align="center" gap="2">
         <Spinner />
-        <span>{loadingMessage}</span>
-      </div>
+        <Text size="2" color="gray">
+          {loadingMessage}
+        </Text>
+      </Flex>
     );
   }
   // Only show the error state when there is nothing else to render. With
@@ -46,6 +43,8 @@ export function DataList<T>({
   if (items.length === 0) return <EmptyState message={emptyMessage} />;
 
   return (
-    <ul className={cn("space-y-2", className)}>{items.map(renderItem)}</ul>
+    <Flex asChild direction="column" gap="2">
+      <ul>{items.map(renderItem)}</ul>
+    </Flex>
   );
 }

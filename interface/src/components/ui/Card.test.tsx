@@ -1,60 +1,46 @@
-import { render, screen } from "@testing-library/react";
+import { screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
+import { renderWithTheme } from "../../test-utils";
 import { Card } from "./Card";
 
 describe("Card", () => {
   it("renders a <div> by default", () => {
-    const { container } = render(<Card />);
+    const { container } = renderWithTheme(<Card />);
     expect(container.querySelector("div")).toBeTruthy();
     expect(container.querySelector("li")).toBeNull();
   });
 
   it('renders an <li> when as="li"', () => {
-    const { container } = render(<Card as="li" />);
-    expect(container.querySelector("li")).toBeTruthy();
-    expect(container.querySelector("div")).toBeNull();
-  });
-
-  it("applies the base classes", () => {
-    const { container } = render(<Card />);
-    const el = container.querySelector("div");
-    expect(el?.className).toContain("flex");
-    expect(el?.className).toContain("items-center");
-    expect(el?.className).toContain("gap-3");
-    expect(el?.className).toContain("rounded-md");
-    expect(el?.className).toContain("border");
-    expect(el?.className).toContain("border-border");
-    expect(el?.className).toContain("px-3");
-    expect(el?.className).toContain("py-2");
-  });
-
-  it("merges className with the base classes", () => {
-    const { container } = render(<Card className="custom-class" />);
-    const el = container.querySelector("div");
-    expect(el?.className).toContain("custom-class");
-    expect(el?.className).toContain("flex");
-  });
-
-  it("keeps only the base classes when no className is given", () => {
-    const { container } = render(<Card />);
-    const el = container.querySelector("div");
-    expect(el?.className).toBe(
-      "flex items-center gap-3 rounded-md border border-border px-3 py-2",
+    const { container } = renderWithTheme(
+      <ul>
+        <Card as="li" />
+      </ul>,
     );
+    expect(container.querySelector("li")).toBeTruthy();
   });
 
   it("forwards arbitrary props to the underlying element", () => {
-    const { container } = render(
+    renderWithTheme(
       <Card data-testid="card-el" aria-label="a card" role="group" />,
     );
-    const el = container.querySelector("div");
-    expect(el?.getAttribute("data-testid")).toBe("card-el");
-    expect(el?.getAttribute("aria-label")).toBe("a card");
-    expect(el?.getAttribute("role")).toBe("group");
+    const el = screen.getByTestId("card-el");
+    expect(el.getAttribute("aria-label")).toBe("a card");
+    expect(el.getAttribute("role")).toBe("group");
+  });
+
+  it("forwards props onto the <li> shell", () => {
+    renderWithTheme(
+      <ul>
+        <Card as="li" data-testid="li-card" aria-label="a row" />
+      </ul>,
+    );
+    const el = screen.getByTestId("li-card");
+    expect(el.tagName.toLowerCase()).toBe("li");
+    expect(el.getAttribute("aria-label")).toBe("a row");
   });
 
   it("renders children", () => {
-    render(
+    renderWithTheme(
       <Card>
         <span>inside the card</span>
       </Card>,
@@ -63,10 +49,12 @@ describe("Card", () => {
   });
 
   it("renders children inside an <li> shell", () => {
-    const { container } = render(
-      <Card as="li">
-        <span>row content</span>
-      </Card>,
+    const { container } = renderWithTheme(
+      <ul>
+        <Card as="li">
+          <span>row content</span>
+        </Card>
+      </ul>,
     );
     const li = container.querySelector("li");
     expect(li).toBeTruthy();
