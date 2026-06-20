@@ -6,7 +6,7 @@ Full-stack Rust starter. One binary serves the API and the UI, typed end to end 
 
 **Vision:** the long-horizon intent behind this template is in [VISION.md](VISION.md) — human-maintained; agents reference it but never edit it.
 
-**Stack:** axum + SQLite (sqlx) on the backend. React 19 + Vite + Tailwind 4 + TanStack Router/Query on the frontend, embedded into the binary with rust-embed. Optional Tauri 2 desktop shell that bundles the server as a sidecar. Bun for JS tooling, just for tasks.
+**Stack:** axum + SQLite (sqlx) on the backend. React 19 + Vite + Radix Themes + TanStack Router/Query on the frontend, embedded into the binary with rust-embed. Optional Tauri 2 desktop shell that bundles the server as a sidecar. Bun for JS tooling, just for tasks.
 
 Two example resources are wired through every layer (migration, queries, API handlers, generated TypeScript types, UI page, tests): `items`, a minimal todo CRUD, and `posts`, which adds a status lifecycle (draft -> published -> archived), filtered queries with pagination, and an aggregate stats endpoint. Replace them with your real domain. The wiring pattern stays.
 
@@ -97,7 +97,7 @@ src/
   frontend.rs      embedded SPA serving with index.html fallback
   bin/openapi_spec.rs  prints the spec for typegen
 migrations/        sqlx migrations, ordered by timestamp prefix
-interface/         React app (Vite, Tailwind 4, TanStack)
+interface/         React app (Vite, Radix Themes, TanStack)
   src/api/         generated schema.d.ts + typed fetch client
 desktop/           Tauri 2 shell, server bundled as sidecar
 tests/             black-box API tests via tower::oneshot
