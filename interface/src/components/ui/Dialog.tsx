@@ -24,12 +24,12 @@ export function Dialog({
       {trigger && <RadixDialog.Trigger asChild>{trigger}</RadixDialog.Trigger>}
       <RadixDialog.Portal>
         <RadixDialog.Overlay className="fixed inset-0 bg-black/60" />
-        <RadixDialog.Content className="-translate-x-1/2 -translate-y-1/2 fixed top-1/2 left-1/2 w-full max-w-md space-y-3 rounded-md border border-zinc-800 bg-zinc-900 p-4 text-zinc-100 shadow-xl outline-none">
+        <RadixDialog.Content className="-translate-x-1/2 -translate-y-1/2 fixed top-1/2 left-1/2 w-full max-w-md space-y-3 rounded-md border border-border bg-popover p-4 text-popover-foreground shadow-xl outline-none">
           <RadixDialog.Title className="text-sm font-semibold tracking-tight">
             {title}
           </RadixDialog.Title>
           {description ? (
-            <RadixDialog.Description className="text-sm text-zinc-400">
+            <RadixDialog.Description className="text-sm text-muted-foreground">
               {description}
             </RadixDialog.Description>
           ) : (

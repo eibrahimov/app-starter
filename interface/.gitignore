@@ -1,0 +1,8 @@
+# Playwright (a11y smoke) run artifacts.
+# playwright.config.ts sets outputDir to node_modules/.playwright (already
+# ignored) and uses the "list" reporter (no report dir), so the entries below
+# are a safety net for Playwright's defaults if that config is ever removed,
+# plus the browser-install cache.
+/test-results/
+/playwright-report/
+/playwright/.cache/

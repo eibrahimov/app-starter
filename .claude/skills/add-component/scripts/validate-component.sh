@@ -84,6 +84,17 @@ else
   ok "every <button> has an explicit type="
 fi
 
+# --- guard: hard-coded palette (prefer semantic tokens) ---------------------
+note "Guard: hard-coded palette colours in src/"
+PALETTE="$(grep -rnE '(zinc|slate|gray|neutral|stone|emerald|amber)-[0-9]{2,3}' src/components src/pages 2>/dev/null || true)"
+if [ -n "$PALETTE" ]; then
+  echo "note: hard-coded palette colours found — prefer semantic token utilities"
+  echo "      (bg-card, text-muted-foreground, text-destructive, …) so light/dark theming works:"
+  printf '%s\n' "$PALETTE"
+else
+  ok "no hard-coded palette colours (semantic tokens only)"
+fi
+
 # --- summary ----------------------------------------------------------------
 note "Summary"
 if [ "$FAILED" -eq 0 ]; then

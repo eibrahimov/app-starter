@@ -7,7 +7,7 @@ interface PageHeaderProps {
 
 export function PageHeader({ title, children }: PageHeaderProps) {
   return (
-    <div className="flex items-baseline justify-between">
+    <div className="flex flex-wrap items-baseline justify-between gap-2">
       <h1 className="text-2xl font-semibold tracking-tight">{title}</h1>
       {children}
     </div>

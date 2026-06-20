@@ -1,6 +1,6 @@
 import type { UseQueryResult } from "@tanstack/react-query";
 import type { ReactNode } from "react";
-import { cx } from "../ui/cx";
+import { cn } from "../ui/cn";
 import { EmptyState } from "../ui/EmptyState";
 import { ErrorState } from "../ui/ErrorState";
 import { Spinner } from "../ui/Spinner";
@@ -28,7 +28,10 @@ export function DataList<T>({
 
   if (query.isLoading) {
     return (
-      <div className="flex items-center gap-2 text-sm text-zinc-500">
+      <div
+        aria-busy="true"
+        className="flex items-center gap-2 text-sm text-muted-foreground"
+      >
         <Spinner />
         <span>{loadingMessage}</span>
       </div>
@@ -43,6 +46,6 @@ export function DataList<T>({
   if (items.length === 0) return <EmptyState message={emptyMessage} />;
 
   return (
-    <ul className={cx("space-y-2", className)}>{items.map(renderItem)}</ul>
+    <ul className={cn("space-y-2", className)}>{items.map(renderItem)}</ul>
   );
 }

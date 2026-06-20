@@ -26,18 +26,18 @@ describe("Toolbar", () => {
   it("applies the base classes when no className is given", () => {
     render(<Toolbar>content</Toolbar>);
     const toolbar = screen.getByText("content");
-    expect(toolbar.className).toBe("flex gap-2");
+    expect(toolbar.className).toBe("flex flex-wrap gap-2");
   });
 
   it("merges className with the base classes", () => {
     render(<Toolbar className="justify-end">content</Toolbar>);
     const toolbar = screen.getByText("content");
-    expect(toolbar.className).toBe("flex gap-2 justify-end");
+    expect(toolbar.className).toBe("flex flex-wrap gap-2 justify-end");
   });
 
   it("keeps only the base classes for an empty className", () => {
     render(<Toolbar className="">content</Toolbar>);
     const toolbar = screen.getByText("content");
-    expect(toolbar.className).toBe("flex gap-2");
+    expect(toolbar.className).toBe("flex flex-wrap gap-2");
   });
 });

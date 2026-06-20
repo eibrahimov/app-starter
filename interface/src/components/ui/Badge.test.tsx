@@ -15,27 +15,31 @@ describe("Badge", () => {
 
   it("defaults to the neutral tone", () => {
     render(<Badge>Draft</Badge>);
-    expect(screen.getByText("Draft").className).toContain("text-zinc-400");
+    expect(screen.getByText("Draft").className).toContain(
+      "text-muted-foreground",
+    );
   });
 
   it("applies the emerald tone class", () => {
     render(<Badge tone="emerald">Active</Badge>);
-    expect(screen.getByText("Active").className).toContain("text-emerald-400");
+    expect(screen.getByText("Active").className).toContain("text-success");
   });
 
   it("applies the amber tone class", () => {
     render(<Badge tone="amber">Pending</Badge>);
-    expect(screen.getByText("Pending").className).toContain("text-amber-400");
+    expect(screen.getByText("Pending").className).toContain("text-warning");
   });
 
   it("applies the red tone class", () => {
     render(<Badge tone="red">Error</Badge>);
-    expect(screen.getByText("Error").className).toContain("text-red-400");
+    expect(screen.getByText("Error").className).toContain("text-destructive");
   });
 
   it("applies the zinc tone class", () => {
     render(<Badge tone="zinc">Muted</Badge>);
-    expect(screen.getByText("Muted").className).toContain("text-zinc-500");
+    expect(screen.getByText("Muted").className).toContain(
+      "text-muted-foreground",
+    );
   });
 
   it("appends a passed className alongside the tone classes", () => {
@@ -46,7 +50,7 @@ describe("Badge", () => {
     );
     const el = screen.getByText("Active");
     expect(el.className).toContain("extra-class");
-    expect(el.className).toContain("text-emerald-400");
+    expect(el.className).toContain("text-success");
     expect(el.className).toContain("text-xs");
   });
 

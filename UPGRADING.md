@@ -53,6 +53,11 @@ Review every change, but these categories are often portable:
 - Example resources: your app may have deleted or replaced `items` and `posts`.
 - CORS, auth, request limits, and release publishing defaults.
 - Anything that changes database paths, volume names, or persistent data behavior.
+- Frontend styling conventions: the component layer moved from a `cx` joiner +
+  hard-coded zinc to `cn` (`twMerge`) + semantic design tokens in
+  `interface/src/styles.css` with light/dark theming. Adopt the token layer
+  wholesale (`styles.css` + `ThemeProvider`); don't mix hard-coded `zinc-*` with
+  tokens, and re-point tokens rather than editing components to re-theme.
 
 ## Cherry-pick workflow
 

@@ -14,10 +14,10 @@ export function Tooltip({ label, children }: TooltipProps) {
         <RadixTooltip.Portal>
           <RadixTooltip.Content
             sideOffset={4}
-            className="rounded bg-zinc-800 px-2 py-1 text-xs text-zinc-100 shadow-md"
+            className="rounded border border-border bg-popover px-2 py-1 text-xs text-popover-foreground shadow-md"
           >
             {label}
-            <RadixTooltip.Arrow className="fill-zinc-800" />
+            <RadixTooltip.Arrow className="fill-popover" />
           </RadixTooltip.Content>
         </RadixTooltip.Portal>
       </RadixTooltip.Root>

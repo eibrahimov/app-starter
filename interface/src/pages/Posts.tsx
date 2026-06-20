@@ -77,6 +77,7 @@ export function PostsPage() {
             if (e.key === "Enter") submit();
           }}
           placeholder="Draft a new post"
+          aria-label="New post title"
           className="flex-1"
         />
         <Button onClick={submit} disabled={create.isPending}>

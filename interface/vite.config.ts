@@ -13,6 +13,9 @@ export default defineConfig({
   test: {
     environment: "jsdom",
     globals: true,
+    setupFiles: ["./src/test-setup.ts"],
+    // Scope to src so Vitest never tries to run the Playwright e2e/*.spec.ts.
+    include: ["src/**/*.test.{ts,tsx}"],
     coverage: {
       // Coverage is reported, never enforced as a gate -- forks should not be
       // blocked on a percentage. Run `bun run test:coverage` to see it.

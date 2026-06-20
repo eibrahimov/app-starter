@@ -15,7 +15,9 @@ describe("EmptyState", () => {
 
   it("applies the muted text styling", () => {
     render(<EmptyState message="Empty" />);
-    expect(screen.getByText("Empty").className).toBe("text-sm text-zinc-500");
+    expect(screen.getByText("Empty").className).toBe(
+      "text-sm text-muted-foreground",
+    );
   });
 
   it("renders an empty message without throwing", () => {

@@ -23,7 +23,7 @@ describe("Card", () => {
     expect(el?.className).toContain("gap-3");
     expect(el?.className).toContain("rounded-md");
     expect(el?.className).toContain("border");
-    expect(el?.className).toContain("border-zinc-800");
+    expect(el?.className).toContain("border-border");
     expect(el?.className).toContain("px-3");
     expect(el?.className).toContain("py-2");
   });
@@ -39,7 +39,7 @@ describe("Card", () => {
     const { container } = render(<Card />);
     const el = container.querySelector("div");
     expect(el?.className).toBe(
-      "flex items-center gap-3 rounded-md border border-zinc-800 px-3 py-2",
+      "flex items-center gap-3 rounded-md border border-border px-3 py-2",
     );
   });
 
