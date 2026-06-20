@@ -6,6 +6,10 @@ interface FilterBarProps<T extends string> {
   onChange: (value: T) => void;
 }
 
+// Uses the raw Themes `Button` (not the wrapped `ui/Button`) on purpose: the
+// pill toggles need the `soft` variant and `highContrast` selected state, which
+// the wrapped Button deliberately does not expose (it only maps the app's
+// semantic variants). This is the one section that reaches past the primitive.
 export function FilterBar<T extends string>({
   options,
   value,

@@ -80,20 +80,6 @@ describe("Checkbox", () => {
     expect(typeof onCheckedChange.mock.calls[0][0]).toBe("boolean");
   });
 
-  it("forwards a custom className to the rendered control", () => {
-    renderWithTheme(
-      <Checkbox
-        checked={false}
-        onCheckedChange={vi.fn()}
-        aria-label="Styled"
-        className="custom-class"
-      />,
-    );
-    const checkbox = screen.getByRole("checkbox", { name: "Styled" });
-    const styled = checkbox.closest(".custom-class");
-    expect(styled).not.toBeNull();
-  });
-
   it("renders without an aria-label when none is provided", () => {
     renderWithTheme(<Checkbox checked={false} onCheckedChange={vi.fn()} />);
     const checkbox = screen.getByRole("checkbox");

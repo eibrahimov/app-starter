@@ -65,7 +65,7 @@ describe("DropdownMenu", () => {
   it("renders multiple items when opened", async () => {
     renderWithTheme(
       <DropdownMenu trigger={<button type="button">Open</button>}>
-        <DropdownMenuItem className="destructive">Delete</DropdownMenuItem>
+        <DropdownMenuItem>Delete</DropdownMenuItem>
         <DropdownMenuItem>Rename</DropdownMenuItem>
       </DropdownMenu>,
     );

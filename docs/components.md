@@ -110,7 +110,7 @@ Themes component when a primitive does not yet exist.
 
 - **`PageHeader`** `{ title, children? }` — a `Heading` plus an optional right
   slot (e.g. a `StatGroup`).
-- **`Toolbar`** `{ children, className? }` — the input + button row (a Themes
+- **`Toolbar`** `{ children }` — the input + button row (a Themes
   `Flex` with a gap).
 - **`FilterBar`** `<T extends string>{ options, value, onChange }` — pill filter
   row; generic over a `const` union like `FILTERS`.
@@ -120,7 +120,7 @@ Themes component when a primitive does not yet exist.
   render-prop that wires a `Text as="label"` to the control via
   `id` / `aria-describedby` / `aria-invalid` (a placeholder is not a label).
 - **`DataList`** `<T>{ query, renderItem, emptyMessage, loadingMessage?,
-  errorMessage?, className? }` — pass a React Query result; it renders the
+  errorMessage? }` — pass a React Query result; it renders the
   loading, error, empty, or list state and calls `renderItem(item)` (which
   returns a `Card as="li"` and supplies its own `key`). This removes the
   copy-pasted `isLoading`/`isError`/empty branches from every page; its internals

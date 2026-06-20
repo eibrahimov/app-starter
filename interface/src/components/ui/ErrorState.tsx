@@ -1,5 +1,5 @@
 import { Callout, Text } from "@radix-ui/themes";
-import { ExclamationTriangleIcon } from "@radix-ui/react-icons";
+import { ExclamationTriangleIcon } from "../../theme/icons";
 
 export function ErrorState({ message }: { message: string }) {
   // role="alert" gives the message an assertive live region so screen readers

@@ -12,7 +12,6 @@ interface DataListProps<T> {
   emptyMessage: string;
   loadingMessage?: string;
   errorMessage?: string;
-  className?: string;
 }
 
 // Owns the loading/error/empty/data triage that pages otherwise copy-paste.
@@ -22,7 +21,6 @@ export function DataList<T>({
   emptyMessage,
   loadingMessage = "Loading…",
   errorMessage = "Something went wrong.",
-  className,
 }: DataListProps<T>) {
   const items = query.data ?? [];
 
@@ -45,7 +43,7 @@ export function DataList<T>({
   if (items.length === 0) return <EmptyState message={emptyMessage} />;
 
   return (
-    <Flex asChild direction="column" gap="2" className={className}>
+    <Flex asChild direction="column" gap="2">
       <ul>{items.map(renderItem)}</ul>
     </Flex>
   );

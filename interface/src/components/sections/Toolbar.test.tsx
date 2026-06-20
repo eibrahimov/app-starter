@@ -30,15 +30,4 @@ describe("Toolbar", () => {
     expect(toolbar.tagName.toLowerCase()).toBe("div");
     expect(toolbar.textContent).toBe("content");
   });
-
-  it("forwards a className onto the layout container", () => {
-    renderWithTheme(<Toolbar className="justify-end">content</Toolbar>);
-    const toolbar = screen.getByText("content");
-    expect(toolbar.classList.contains("justify-end")).toBe(true);
-  });
-
-  it("renders without a className", () => {
-    renderWithTheme(<Toolbar className="">content</Toolbar>);
-    expect(screen.getByText("content")).toBeTruthy();
-  });
 });

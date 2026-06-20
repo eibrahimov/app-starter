@@ -3,12 +3,11 @@ import type { ReactNode } from "react";
 
 interface ToolbarProps {
   children: ReactNode;
-  className?: string;
 }
 
-export function Toolbar({ children, className }: ToolbarProps) {
+export function Toolbar({ children }: ToolbarProps) {
   return (
-    <Flex wrap="wrap" gap="2" className={className}>
+    <Flex wrap="wrap" gap="2">
       {children}
     </Flex>
   );
