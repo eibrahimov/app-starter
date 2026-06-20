@@ -131,6 +131,7 @@ SQLite via sqlx — a single file on disk (or `:memory:` in tests). It is a **si
 - **`frontend not built` page:** run `cd interface && bun install && bun run build`, then `cargo run`.
 - **`tsc` errors after changing an endpoint:** run `just typegen` and commit `interface/src/api/schema.d.ts` — it is generated, never hand-edited.
 - **`database is locked`:** another process holds the SQLite file; stop it, or point `DATABASE_URL` at a different path.
+- **`migration … was previously applied but is missing in the resolved migrations`:** your local SQLite file recorded a migration that no longer exists in `migrations/` (e.g. you ran a branch that was later reverted). The local DB is gitignored scratch data: delete it (`rm data/app.db`) and restart — the app recreates it from the current migrations. Back it up first if it holds data you need.
 
 ## Deploy
 
