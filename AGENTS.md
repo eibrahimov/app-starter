@@ -30,6 +30,7 @@ just typegen   # when API/OpenAPI annotations changed; commit interface/src/api/
 just build     # release, embedded UI, Docker, frontend build, or packaging changes
 just docker-build    # Dockerfile/compose/deployment changes
 just desktop-build   # desktop/Tauri sidecar changes
+just a11y      # opt-in accessibility page smoke (Playwright + axe); one-time `bunx playwright install chromium`. Non-blocking in CI.
 ```
 
 Rust-only commands must set `SKIP_FRONTEND_BUILD=1` (build.rs otherwise shells out to
