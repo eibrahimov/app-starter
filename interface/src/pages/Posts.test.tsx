@@ -1,3 +1,4 @@
+import { Theme } from "@radix-ui/themes";
 import { screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { renderWithClient } from "../test-utils";
@@ -29,11 +30,20 @@ function mockPostsApi() {
   });
 }
 
+// Radix Themes components read their config from a <Theme> context.
+function renderPage() {
+  return renderWithClient(
+    <Theme>
+      <PostsPage />
+    </Theme>,
+  );
+}
+
 describe("PostsPage", () => {
   it("renders posts returned by the API", async () => {
     mockPostsApi();
 
-    renderWithClient(<PostsPage />);
+    renderPage();
 
     await waitFor(() => expect(screen.getByText("hello world")).toBeTruthy());
   });
@@ -41,7 +51,7 @@ describe("PostsPage", () => {
   it("renders the aggregate stats summary", async () => {
     mockPostsApi();
 
-    renderWithClient(<PostsPage />);
+    renderPage();
 
     await waitFor(() => expect(screen.getByText(/1 draft/)).toBeTruthy());
   });

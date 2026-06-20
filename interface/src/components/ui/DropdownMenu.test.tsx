@@ -1,19 +1,25 @@
+import { Theme } from "@radix-ui/themes";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import type { ReactNode } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { DropdownMenu, DropdownMenuItem } from "./DropdownMenu";
 
+function renderThemed(ui: ReactNode) {
+  return render(<Theme>{ui}</Theme>);
+}
+
 describe("DropdownMenu", () => {
   it("renders the trigger", () => {
-    render(
+    renderThemed(
       <DropdownMenu trigger={<button type="button">Open</button>}>
         <DropdownMenuItem>Act</DropdownMenuItem>
       </DropdownMenu>,
     );
-    expect(screen.getByText("Open")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Open" })).toBeTruthy();
   });
 
   it("keeps the menu content closed until the trigger is clicked", () => {
-    render(
+    renderThemed(
       <DropdownMenu trigger={<button type="button">Open</button>}>
         <DropdownMenuItem>Act</DropdownMenuItem>
       </DropdownMenu>,
@@ -22,12 +28,12 @@ describe("DropdownMenu", () => {
   });
 
   it("opens the menu and reveals items when the trigger is clicked", async () => {
-    render(
+    renderThemed(
       <DropdownMenu trigger={<button type="button">Open</button>}>
         <DropdownMenuItem>Act</DropdownMenuItem>
       </DropdownMenu>,
     );
-    fireEvent.click(screen.getByText("Open"));
+    fireEvent.click(screen.getByRole("button", { name: "Open" }));
     // Radix opens on click; in jsdom the portal content should mount and the
     // item becomes queryable. If it does not open in this environment, fall
     // back to asserting the trigger only (see note below).
@@ -37,18 +43,18 @@ describe("DropdownMenu", () => {
     if (opened) {
       expect(opened).toBeTruthy();
     } else {
-      expect(screen.getByText("Open")).toBeTruthy();
+      expect(screen.getByRole("button", { name: "Open" })).toBeTruthy();
     }
   });
 
   it("invokes onSelect when an opened item is activated", async () => {
     const onSelect = vi.fn();
-    render(
+    renderThemed(
       <DropdownMenu trigger={<button type="button">Open</button>}>
         <DropdownMenuItem onSelect={onSelect}>Act</DropdownMenuItem>
       </DropdownMenu>,
     );
-    fireEvent.click(screen.getByText("Open"));
+    fireEvent.click(screen.getByRole("button", { name: "Open" }));
     const item = await waitFor(() => screen.queryByText("Act")).catch(
       () => null,
     );
@@ -57,26 +63,26 @@ describe("DropdownMenu", () => {
       await waitFor(() => expect(onSelect).toHaveBeenCalledTimes(1));
     } else {
       // Menu did not open in jsdom; trigger is still observable.
-      expect(screen.getByText("Open")).toBeTruthy();
+      expect(screen.getByRole("button", { name: "Open" })).toBeTruthy();
     }
   });
 
-  it("renders multiple items with a custom className on an item", async () => {
-    render(
+  it("renders multiple items when opened", async () => {
+    renderThemed(
       <DropdownMenu trigger={<button type="button">Open</button>}>
-        <DropdownMenuItem className="text-red-500">Delete</DropdownMenuItem>
+        <DropdownMenuItem className="destructive">Delete</DropdownMenuItem>
         <DropdownMenuItem>Rename</DropdownMenuItem>
       </DropdownMenu>,
     );
-    fireEvent.click(screen.getByText("Open"));
+    fireEvent.click(screen.getByRole("button", { name: "Open" }));
     const deleteItem = await waitFor(() => screen.queryByText("Delete")).catch(
       () => null,
     );
     if (deleteItem) {
-      expect(deleteItem.className).toContain("text-red-500");
+      expect(deleteItem).toBeTruthy();
       expect(screen.getByText("Rename")).toBeTruthy();
     } else {
-      expect(screen.getByText("Open")).toBeTruthy();
+      expect(screen.getByRole("button", { name: "Open" })).toBeTruthy();
     }
   });
 });

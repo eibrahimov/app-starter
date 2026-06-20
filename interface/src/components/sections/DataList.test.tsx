@@ -1,5 +1,7 @@
+import { Theme } from "@radix-ui/themes";
 import type { UseQueryResult } from "@tanstack/react-query";
 import { render, screen } from "@testing-library/react";
+import type { ReactNode } from "react";
 import { describe, expect, it } from "vitest";
 import { DataList } from "./DataList";
 
@@ -15,11 +17,16 @@ function fakeQuery<T>(
   } as UseQueryResult<T[]>;
 }
 
+// Themes components (Spinner, Callout, Text) need Theme context in jsdom.
+function renderWithTheme(ui: ReactNode) {
+  return render(<Theme>{ui}</Theme>);
+}
+
 const renderItem = (item: string) => <li key={item}>{item}</li>;
 
 describe("DataList", () => {
   it("shows a spinner and the loading message while loading", () => {
-    render(
+    renderWithTheme(
       <DataList
         query={fakeQuery<string>({ isLoading: true })}
         renderItem={renderItem}
@@ -32,7 +39,7 @@ describe("DataList", () => {
   });
 
   it("shows the error message on error when there is no data", () => {
-    render(
+    renderWithTheme(
       <DataList
         query={fakeQuery<string>({ isError: true })}
         renderItem={renderItem}
@@ -44,7 +51,7 @@ describe("DataList", () => {
   });
 
   it("keeps the previous list visible when a refetch errors", () => {
-    render(
+    renderWithTheme(
       <DataList
         query={fakeQuery<string>({ isError: true, data: ["alpha"] })}
         renderItem={renderItem}
@@ -57,7 +64,7 @@ describe("DataList", () => {
   });
 
   it("shows the empty message for an empty list", () => {
-    render(
+    renderWithTheme(
       <DataList
         query={fakeQuery<string>({ data: [] })}
         renderItem={renderItem}
@@ -68,7 +75,7 @@ describe("DataList", () => {
   });
 
   it("renders items via renderItem", () => {
-    render(
+    renderWithTheme(
       <DataList
         query={fakeQuery<string>({ data: ["alpha", "beta"] })}
         renderItem={renderItem}

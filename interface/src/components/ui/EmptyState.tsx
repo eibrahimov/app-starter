@@ -1,3 +1,9 @@
+import { Text } from "@radix-ui/themes";
+
 export function EmptyState({ message }: { message: string }) {
-  return <p className="text-sm text-muted-foreground">{message}</p>;
+  return (
+    <Text as="p" size="2" color="gray">
+      {message}
+    </Text>
+  );
 }

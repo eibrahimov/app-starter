@@ -1,42 +1,47 @@
+import { Theme } from "@radix-ui/themes";
 import { render, screen } from "@testing-library/react";
+import type { ReactNode } from "react";
 import { describe, expect, it } from "vitest";
 import { ErrorState } from "./ErrorState";
 
+function renderWithTheme(ui: ReactNode) {
+  return render(<Theme>{ui}</Theme>);
+}
+
 describe("ErrorState", () => {
   it("renders the message prop text", () => {
-    render(<ErrorState message="Something went wrong" />);
+    renderWithTheme(<ErrorState message="Something went wrong" />);
     expect(screen.getByText("Something went wrong")).toBeTruthy();
   });
 
-  it("renders the message inside a paragraph element", () => {
-    render(<ErrorState message="Boom" />);
-    expect(screen.getByText("Boom").tagName).toBe("P");
-  });
-
-  it("applies the error styling classes", () => {
-    render(<ErrorState message="Styled error" />);
-    const node = screen.getByText("Styled error");
-    expect(node.className).toContain("text-sm");
-    expect(node.className).toContain("text-destructive");
+  it("exposes the message through an assertive alert region", () => {
+    renderWithTheme(<ErrorState message="Boom" />);
+    const alert = screen.getByRole("alert");
+    expect(alert).toBeTruthy();
+    expect(alert.textContent).toBe("Boom");
   });
 
   it("renders a distinct message when the prop changes", () => {
-    const { rerender } = render(<ErrorState message="First" />);
+    const { rerender } = renderWithTheme(<ErrorState message="First" />);
     expect(screen.getByText("First")).toBeTruthy();
-    rerender(<ErrorState message="Second" />);
+    rerender(
+      <Theme>
+        <ErrorState message="Second" />
+      </Theme>,
+    );
     expect(screen.getByText("Second")).toBeTruthy();
     expect(screen.queryByText("First")).toBeNull();
   });
 
-  it("renders an empty paragraph for an empty message", () => {
-    const { container } = render(<ErrorState message="" />);
-    const paragraph = container.querySelector("p");
-    expect(paragraph).toBeTruthy();
-    expect(paragraph?.textContent).toBe("");
+  it("renders an alert with no text for an empty message", () => {
+    renderWithTheme(<ErrorState message="" />);
+    const alert = screen.getByRole("alert");
+    expect(alert).toBeTruthy();
+    expect(alert.textContent).toBe("");
   });
 
   it("renders messages containing special characters verbatim", () => {
-    render(<ErrorState message="Error: <code> & 'quotes' failed" />);
+    renderWithTheme(<ErrorState message="Error: <code> & 'quotes' failed" />);
     expect(screen.getByText("Error: <code> & 'quotes' failed")).toBeTruthy();
   });
 });

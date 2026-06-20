@@ -1,10 +1,16 @@
+import { Theme } from "@radix-ui/themes";
 import { fireEvent, render, screen } from "@testing-library/react";
+import type { ReactNode } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { Checkbox } from "./Checkbox";
 
+function renderWithTheme(ui: ReactNode) {
+  return render(<Theme>{ui}</Theme>);
+}
+
 describe("Checkbox", () => {
   it("renders a checkbox exposed by its aria-label", () => {
-    render(
+    renderWithTheme(
       <Checkbox
         checked={false}
         onCheckedChange={vi.fn()}
@@ -15,7 +21,7 @@ describe("Checkbox", () => {
   });
 
   it("reflects an unchecked state via aria-checked", () => {
-    render(
+    renderWithTheme(
       <Checkbox
         checked={false}
         onCheckedChange={vi.fn()}
@@ -27,7 +33,7 @@ describe("Checkbox", () => {
   });
 
   it("reflects a checked state via aria-checked", () => {
-    render(
+    renderWithTheme(
       <Checkbox
         checked={true}
         onCheckedChange={vi.fn()}
@@ -40,7 +46,7 @@ describe("Checkbox", () => {
 
   it("calls onCheckedChange with true when toggling an unchecked box", () => {
     const onCheckedChange = vi.fn();
-    render(
+    renderWithTheme(
       <Checkbox
         checked={false}
         onCheckedChange={onCheckedChange}
@@ -54,7 +60,7 @@ describe("Checkbox", () => {
 
   it("calls onCheckedChange with false when toggling a checked box", () => {
     const onCheckedChange = vi.fn();
-    render(
+    renderWithTheme(
       <Checkbox
         checked={true}
         onCheckedChange={onCheckedChange}
@@ -68,7 +74,7 @@ describe("Checkbox", () => {
 
   it("always reports a boolean to onCheckedChange", () => {
     const onCheckedChange = vi.fn();
-    render(
+    renderWithTheme(
       <Checkbox
         checked={false}
         onCheckedChange={onCheckedChange}
@@ -79,8 +85,8 @@ describe("Checkbox", () => {
     expect(typeof onCheckedChange.mock.calls[0][0]).toBe("boolean");
   });
 
-  it("applies a custom className alongside the base classes", () => {
-    render(
+  it("forwards a custom className to the rendered control", () => {
+    renderWithTheme(
       <Checkbox
         checked={false}
         onCheckedChange={vi.fn()}
@@ -89,12 +95,12 @@ describe("Checkbox", () => {
       />,
     );
     const checkbox = screen.getByRole("checkbox", { name: "Styled" });
-    expect(checkbox.className).toContain("custom-class");
-    expect(checkbox.className).toContain("rounded");
+    const styled = checkbox.closest(".custom-class");
+    expect(styled).not.toBeNull();
   });
 
   it("renders without an aria-label when none is provided", () => {
-    render(<Checkbox checked={false} onCheckedChange={vi.fn()} />);
+    renderWithTheme(<Checkbox checked={false} onCheckedChange={vi.fn()} />);
     const checkbox = screen.getByRole("checkbox");
     expect(checkbox.getAttribute("aria-label")).toBeNull();
   });

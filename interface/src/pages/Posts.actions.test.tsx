@@ -1,3 +1,4 @@
+import { Theme } from "@radix-ui/themes";
 import { fireEvent, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { renderWithClient } from "../test-utils";
@@ -37,6 +38,15 @@ function mockPostsApi() {
   postMock.mockResolvedValue({ data: {}, error: undefined });
 }
 
+// Radix Themes components read their config from a <Theme> context.
+function renderPage() {
+  return renderWithClient(
+    <Theme>
+      <PostsPage />
+    </Theme>,
+  );
+}
+
 describe("PostsPage actions", () => {
   // Shared vi.fn() mocks accumulate calls across tests; reset counts each time.
   beforeEach(() => {
@@ -46,7 +56,7 @@ describe("PostsPage actions", () => {
   it("publishes a draft row via POST /api/v1/posts/{id}/publish", async () => {
     mockPostsApi();
 
-    renderWithClient(<PostsPage />);
+    renderPage();
 
     const publishButton = await screen.findByRole("button", {
       name: "Publish",
@@ -63,7 +73,7 @@ describe("PostsPage actions", () => {
   it("archives a published row via POST /api/v1/posts/{id}/archive", async () => {
     mockPostsApi();
 
-    renderWithClient(<PostsPage />);
+    renderPage();
 
     const archiveButton = await screen.findByRole("button", {
       name: "Archive",
@@ -80,7 +90,7 @@ describe("PostsPage actions", () => {
   it("only shows the action matching each row's status", async () => {
     mockPostsApi();
 
-    renderWithClient(<PostsPage />);
+    renderPage();
 
     // The draft row exposes Publish and the published row exposes Archive --
     // exactly one of each, never both on the same row.
@@ -92,7 +102,7 @@ describe("PostsPage actions", () => {
   it("creates a post via POST /api/v1/posts after typing a title", async () => {
     mockPostsApi();
 
-    renderWithClient(<PostsPage />);
+    renderPage();
 
     await screen.findByRole("button", { name: "Publish" });
 
@@ -110,7 +120,7 @@ describe("PostsPage actions", () => {
   it("submits a new post when Enter is pressed in the title input", async () => {
     mockPostsApi();
 
-    renderWithClient(<PostsPage />);
+    renderPage();
 
     await screen.findByRole("button", { name: "Publish" });
 
@@ -128,7 +138,7 @@ describe("PostsPage actions", () => {
   it("does not create a post when the title is blank or whitespace", async () => {
     mockPostsApi();
 
-    renderWithClient(<PostsPage />);
+    renderPage();
 
     await screen.findByRole("button", { name: "Publish" });
 
@@ -143,7 +153,7 @@ describe("PostsPage actions", () => {
   it("clears the title input after a successful create", async () => {
     mockPostsApi();
 
-    renderWithClient(<PostsPage />);
+    renderPage();
 
     await screen.findByRole("button", { name: "Publish" });
 
@@ -159,7 +169,7 @@ describe("PostsPage actions", () => {
   it("refetches the list with a status filter when a FilterBar option is chosen", async () => {
     mockPostsApi();
 
-    renderWithClient(<PostsPage />);
+    renderPage();
 
     await screen.findByRole("button", { name: "Publish" });
     getMock.mockClear();
@@ -178,7 +188,7 @@ describe("PostsPage actions", () => {
   it("requests the unfiltered list on the initial 'all' filter", async () => {
     mockPostsApi();
 
-    renderWithClient(<PostsPage />);
+    renderPage();
 
     // The default "all" filter sends an empty query object, not a status param.
     await waitFor(() =>
@@ -191,7 +201,7 @@ describe("PostsPage actions", () => {
   it("renders the per-status badge for each post", async () => {
     mockPostsApi();
 
-    renderWithClient(<PostsPage />);
+    renderPage();
 
     // Badge text echoes each row's status; the published row's badge proves the
     // statusTone lookup renders for non-draft statuses too.

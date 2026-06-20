@@ -1,3 +1,5 @@
+import { Text } from "@radix-ui/themes";
+
 interface Stat {
   label: string;
   value: number | string;
@@ -10,8 +12,8 @@ interface StatGroupProps {
 // Renders a compact summary line, e.g. "1 draft / 0 published / 2 archived".
 export function StatGroup({ stats }: StatGroupProps) {
   return (
-    <p className="text-xs text-muted-foreground">
+    <Text as="p" size="1" color="gray">
       {stats.map((stat) => `${stat.value} ${stat.label}`).join(" / ")}
-    </p>
+    </Text>
   );
 }

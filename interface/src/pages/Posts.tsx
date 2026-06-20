@@ -1,3 +1,4 @@
+import { Flex, Text } from "@radix-ui/themes";
 import { keepPreviousData } from "@tanstack/react-query";
 import { useState } from "react";
 import { DataList } from "../components/sections/DataList";
@@ -56,7 +57,7 @@ export function PostsPage() {
   };
 
   return (
-    <div className="space-y-6">
+    <Flex direction="column" gap="6">
       <PageHeader title="Posts">
         {stats.data && (
           <StatGroup
@@ -78,7 +79,7 @@ export function PostsPage() {
           }}
           placeholder="Draft a new post"
           aria-label="New post title"
-          className="flex-1"
+          style={{ flexGrow: 1 }}
         />
         <Button onClick={submit} disabled={create.isPending}>
           Draft
@@ -96,7 +97,9 @@ export function PostsPage() {
             <Badge tone={statusTone[post.status] ?? "neutral"}>
               {post.status}
             </Badge>
-            <span className="flex-1 text-sm">{post.title}</span>
+            <Text size="2" style={{ flexGrow: 1 }}>
+              {post.title}
+            </Text>
             {post.status === "draft" && (
               <Button
                 variant="success"
@@ -120,6 +123,6 @@ export function PostsPage() {
           </Card>
         )}
       />
-    </div>
+    </Flex>
   );
 }

@@ -1,4 +1,4 @@
-import * as RadixTooltip from "@radix-ui/react-tooltip";
+import { Tooltip as ThemesTooltip } from "@radix-ui/themes";
 import type { ReactNode } from "react";
 
 interface TooltipProps {
@@ -7,20 +7,5 @@ interface TooltipProps {
 }
 
 export function Tooltip({ label, children }: TooltipProps) {
-  return (
-    <RadixTooltip.Provider delayDuration={200}>
-      <RadixTooltip.Root>
-        <RadixTooltip.Trigger asChild>{children}</RadixTooltip.Trigger>
-        <RadixTooltip.Portal>
-          <RadixTooltip.Content
-            sideOffset={4}
-            className="rounded border border-border bg-popover px-2 py-1 text-xs text-popover-foreground shadow-md"
-          >
-            {label}
-            <RadixTooltip.Arrow className="fill-popover" />
-          </RadixTooltip.Content>
-        </RadixTooltip.Portal>
-      </RadixTooltip.Root>
-    </RadixTooltip.Provider>
-  );
+  return <ThemesTooltip content={label}>{children}</ThemesTooltip>;
 }

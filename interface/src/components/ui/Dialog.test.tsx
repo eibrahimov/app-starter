@@ -1,10 +1,16 @@
+import { Theme } from "@radix-ui/themes";
 import { fireEvent, render, screen } from "@testing-library/react";
+import type { ReactNode } from "react";
 import { describe, expect, it, vi } from "vitest";
 import { Dialog } from "./Dialog";
 
+function renderWithTheme(ui: ReactNode) {
+  return render(<Theme>{ui}</Theme>);
+}
+
 describe("Dialog", () => {
   it("renders the title when open", () => {
-    render(
+    renderWithTheme(
       <Dialog open title="Edit item">
         <p>Body content</p>
       </Dialog>,
@@ -13,7 +19,7 @@ describe("Dialog", () => {
   });
 
   it("renders children when open", () => {
-    render(
+    renderWithTheme(
       <Dialog open title="Edit item">
         <p>Body content</p>
       </Dialog>,
@@ -22,7 +28,7 @@ describe("Dialog", () => {
   });
 
   it("renders the description when provided", () => {
-    render(
+    renderWithTheme(
       <Dialog open title="Edit item" description="Change the item details">
         <p>Body content</p>
       </Dialog>,
@@ -31,7 +37,7 @@ describe("Dialog", () => {
   });
 
   it("still shows the title when no description is given", () => {
-    render(
+    renderWithTheme(
       <Dialog open title="Edit item">
         <p>Body content</p>
       </Dialog>,
@@ -41,7 +47,7 @@ describe("Dialog", () => {
   });
 
   it("does not render content while closed", () => {
-    render(
+    renderWithTheme(
       <Dialog open={false} title="Hidden title">
         <p>Hidden body</p>
       </Dialog>,
@@ -51,7 +57,7 @@ describe("Dialog", () => {
   });
 
   it("renders the trigger for a closed dialog", () => {
-    render(
+    renderWithTheme(
       <Dialog
         open={false}
         title="Edit item"
@@ -65,7 +71,7 @@ describe("Dialog", () => {
 
   it("opens via the trigger and calls onOpenChange", () => {
     const onOpenChange = vi.fn();
-    render(
+    renderWithTheme(
       <Dialog
         onOpenChange={onOpenChange}
         title="Edit item"

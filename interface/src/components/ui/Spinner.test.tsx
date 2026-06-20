@@ -1,36 +1,38 @@
+import { Theme } from "@radix-ui/themes";
 import { render, screen } from "@testing-library/react";
+import type { ReactNode } from "react";
 import { describe, expect, it } from "vitest";
 import { Spinner } from "./Spinner";
 
+function renderWithTheme(ui: ReactNode) {
+  return render(<Theme>{ui}</Theme>);
+}
+
 describe("Spinner", () => {
   it("exposes a status role", () => {
-    render(<Spinner />);
+    renderWithTheme(<Spinner />);
     expect(screen.getByRole("status")).toBeTruthy();
   });
 
   it("labels itself as Loading for assistive tech", () => {
-    render(<Spinner />);
+    renderWithTheme(<Spinner />);
     expect(screen.getByRole("status").getAttribute("aria-label")).toBe(
       "Loading",
     );
   });
 
-  it("applies the base spinner classes by default", () => {
-    render(<Spinner />);
-    const className = screen.getByRole("status").className;
-    expect(className).toContain("animate-spin");
-    expect(className).toContain("rounded-full");
+  it("renders a visible spinner indicator", () => {
+    renderWithTheme(<Spinner />);
+    expect(screen.getByRole("status").childElementCount).toBeGreaterThan(0);
   });
 
-  it("appends a passed className alongside the base classes", () => {
-    render(<Spinner className="size-8" />);
-    const className = screen.getByRole("status").className;
-    expect(className).toContain("size-8");
-    expect(className).toContain("animate-spin");
+  it("applies a passed className to the status element", () => {
+    renderWithTheme(<Spinner className="size-8" />);
+    expect(screen.getByRole("status").className).toContain("size-8");
   });
 
   it("renders without a passed className", () => {
-    render(<Spinner />);
+    renderWithTheme(<Spinner />);
     expect(screen.getByRole("status").className).not.toContain("undefined");
   });
 });

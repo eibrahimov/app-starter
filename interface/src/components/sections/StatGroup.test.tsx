@@ -1,10 +1,16 @@
+import { Theme } from "@radix-ui/themes";
 import { render, screen } from "@testing-library/react";
+import type { ReactNode } from "react";
 import { describe, expect, it } from "vitest";
 import { StatGroup } from "./StatGroup";
 
+function renderWithTheme(ui: ReactNode) {
+  return render(<Theme>{ui}</Theme>);
+}
+
 describe("StatGroup", () => {
   it("joins multiple stats with a slash separator", () => {
-    render(
+    renderWithTheme(
       <StatGroup
         stats={[
           { label: "draft", value: 1 },
@@ -16,12 +22,12 @@ describe("StatGroup", () => {
   });
 
   it("renders a single stat without a separator", () => {
-    render(<StatGroup stats={[{ label: "archived", value: 2 }]} />);
+    renderWithTheme(<StatGroup stats={[{ label: "archived", value: 2 }]} />);
     expect(screen.getByText("2 archived")).toBeTruthy();
   });
 
   it("joins three stats in order", () => {
-    render(
+    renderWithTheme(
       <StatGroup
         stats={[
           { label: "draft", value: 1 },
@@ -34,12 +40,12 @@ describe("StatGroup", () => {
   });
 
   it("renders string values as-is", () => {
-    render(<StatGroup stats={[{ label: "total", value: "many" }]} />);
+    renderWithTheme(<StatGroup stats={[{ label: "total", value: "many" }]} />);
     expect(screen.getByText("many total")).toBeTruthy();
   });
 
   it("renders an empty paragraph when given no stats", () => {
-    const { container } = render(<StatGroup stats={[]} />);
+    const { container } = renderWithTheme(<StatGroup stats={[]} />);
     const paragraph = container.querySelector("p");
     expect(paragraph).toBeTruthy();
     expect(paragraph?.textContent).toBe("");

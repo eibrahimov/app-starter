@@ -1,3 +1,4 @@
+import { Theme } from "@radix-ui/themes";
 import { fireEvent, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { renderWithClient } from "../test-utils";
@@ -25,6 +26,15 @@ function seedOneItem() {
   deleteMock.mockResolvedValue({ data: {}, error: undefined });
 }
 
+// The page composes Radix Themes components, which need Theme context to render.
+function renderPage() {
+  return renderWithClient(
+    <Theme>
+      <ItemsPage />
+    </Theme>,
+  );
+}
+
 describe("ItemsPage actions", () => {
   // Shared vi.fn() mocks accumulate calls across tests; reset counts each time.
   beforeEach(() => {
@@ -34,7 +44,7 @@ describe("ItemsPage actions", () => {
   it("creates an item via POST when typing a title and clicking Add", async () => {
     seedOneItem();
 
-    renderWithClient(<ItemsPage />);
+    renderPage();
     await waitFor(() => expect(screen.getByText("write tests")).toBeTruthy());
 
     const input = screen.getByPlaceholderText("What needs doing?");
@@ -51,7 +61,7 @@ describe("ItemsPage actions", () => {
   it("creates an item when pressing Enter in the input", async () => {
     seedOneItem();
 
-    renderWithClient(<ItemsPage />);
+    renderPage();
     await waitFor(() => expect(screen.getByText("write tests")).toBeTruthy());
 
     const input = screen.getByPlaceholderText("What needs doing?");
@@ -68,7 +78,7 @@ describe("ItemsPage actions", () => {
   it("does not submit when the title is blank or whitespace", async () => {
     seedOneItem();
 
-    renderWithClient(<ItemsPage />);
+    renderPage();
     await waitFor(() => expect(screen.getByText("write tests")).toBeTruthy());
 
     const input = screen.getByPlaceholderText("What needs doing?");
@@ -81,7 +91,7 @@ describe("ItemsPage actions", () => {
   it("does not submit on a non-Enter keypress", async () => {
     seedOneItem();
 
-    renderWithClient(<ItemsPage />);
+    renderPage();
     await waitFor(() => expect(screen.getByText("write tests")).toBeTruthy());
 
     const input = screen.getByPlaceholderText("What needs doing?");
@@ -94,7 +104,7 @@ describe("ItemsPage actions", () => {
   it("clears the input after a successful create", async () => {
     seedOneItem();
 
-    renderWithClient(<ItemsPage />);
+    renderPage();
     await waitFor(() => expect(screen.getByText("write tests")).toBeTruthy());
 
     const input = screen.getByPlaceholderText(
@@ -109,7 +119,7 @@ describe("ItemsPage actions", () => {
   it("toggles an item via POST to the toggle path when the checkbox is clicked", async () => {
     seedOneItem();
 
-    renderWithClient(<ItemsPage />);
+    renderPage();
     await waitFor(() => expect(screen.getByText("write tests")).toBeTruthy());
 
     fireEvent.click(screen.getByLabelText("write tests"));
@@ -125,7 +135,7 @@ describe("ItemsPage actions", () => {
   it("deletes an item via DELETE when Delete is clicked", async () => {
     seedOneItem();
 
-    renderWithClient(<ItemsPage />);
+    renderPage();
     await waitFor(() => expect(screen.getByText("write tests")).toBeTruthy());
 
     fireEvent.click(screen.getByText("Delete"));
@@ -141,7 +151,7 @@ describe("ItemsPage actions", () => {
   it("renders the page header and the add control", async () => {
     seedOneItem();
 
-    renderWithClient(<ItemsPage />);
+    renderPage();
     await waitFor(() => expect(screen.getByText("write tests")).toBeTruthy());
 
     expect(screen.getByText("Items")).toBeTruthy();

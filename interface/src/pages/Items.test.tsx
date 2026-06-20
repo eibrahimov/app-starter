@@ -1,3 +1,4 @@
+import { Theme } from "@radix-ui/themes";
 import { screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
 import { renderWithClient } from "../test-utils";
@@ -19,7 +20,11 @@ describe("ItemsPage", () => {
       error: undefined,
     });
 
-    renderWithClient(<ItemsPage />);
+    renderWithClient(
+      <Theme>
+        <ItemsPage />
+      </Theme>,
+    );
 
     await waitFor(() => expect(screen.getByText("write tests")).toBeTruthy());
   });
