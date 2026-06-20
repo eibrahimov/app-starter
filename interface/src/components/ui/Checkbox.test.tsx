@@ -1,12 +1,7 @@
-import { Theme } from "@radix-ui/themes";
-import { fireEvent, render, screen } from "@testing-library/react";
-import type { ReactNode } from "react";
+import { fireEvent, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
+import { renderWithTheme } from "../../test-utils";
 import { Checkbox } from "./Checkbox";
-
-function renderWithTheme(ui: ReactNode) {
-  return render(<Theme>{ui}</Theme>);
-}
 
 describe("Checkbox", () => {
   it("renders a checkbox exposed by its aria-label", () => {

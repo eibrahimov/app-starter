@@ -1,22 +1,17 @@
-import { Theme } from "@radix-ui/themes";
-import { render, screen } from "@testing-library/react";
-import type { ReactElement } from "react";
+import { screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
+import { renderWithTheme } from "../../test-utils";
 import { Card } from "./Card";
-
-function renderThemed(ui: ReactElement) {
-  return render(<Theme>{ui}</Theme>);
-}
 
 describe("Card", () => {
   it("renders a <div> by default", () => {
-    const { container } = renderThemed(<Card />);
+    const { container } = renderWithTheme(<Card />);
     expect(container.querySelector("div")).toBeTruthy();
     expect(container.querySelector("li")).toBeNull();
   });
 
   it('renders an <li> when as="li"', () => {
-    const { container } = renderThemed(
+    const { container } = renderWithTheme(
       <ul>
         <Card as="li" />
       </ul>,
@@ -25,7 +20,7 @@ describe("Card", () => {
   });
 
   it("forwards arbitrary props to the underlying element", () => {
-    renderThemed(
+    renderWithTheme(
       <Card data-testid="card-el" aria-label="a card" role="group" />,
     );
     const el = screen.getByTestId("card-el");
@@ -34,7 +29,7 @@ describe("Card", () => {
   });
 
   it("forwards props onto the <li> shell", () => {
-    renderThemed(
+    renderWithTheme(
       <ul>
         <Card as="li" data-testid="li-card" aria-label="a row" />
       </ul>,
@@ -45,7 +40,7 @@ describe("Card", () => {
   });
 
   it("renders children", () => {
-    renderThemed(
+    renderWithTheme(
       <Card>
         <span>inside the card</span>
       </Card>,
@@ -54,7 +49,7 @@ describe("Card", () => {
   });
 
   it("renders children inside an <li> shell", () => {
-    const { container } = renderThemed(
+    const { container } = renderWithTheme(
       <ul>
         <Card as="li">
           <span>row content</span>

@@ -1,12 +1,7 @@
-import { Theme } from "@radix-ui/themes";
-import { render, screen } from "@testing-library/react";
-import type { ReactNode } from "react";
+import { screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
+import { renderWithTheme } from "../../test-utils";
 import { PageHeader } from "./PageHeader";
-
-function renderWithTheme(ui: ReactNode) {
-  return render(<Theme>{ui}</Theme>);
-}
 
 describe("PageHeader", () => {
   it("renders the title as a level-1 heading", () => {

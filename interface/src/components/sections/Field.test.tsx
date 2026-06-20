@@ -1,15 +1,8 @@
-import { Theme } from "@radix-ui/themes";
-import { render, screen } from "@testing-library/react";
-import type { ReactNode } from "react";
+import { screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
+import { renderWithTheme } from "../../test-utils";
 import { Input } from "../ui/Input";
 import { Field } from "./Field";
-
-// Themes components (TextField via Input, Text labels) need Theme context to
-// render in jsdom.
-function renderWithTheme(ui: ReactNode) {
-  return render(<Theme>{ui}</Theme>);
-}
 
 describe("Field", () => {
   it("associates the label with the control", () => {

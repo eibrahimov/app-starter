@@ -1,8 +1,7 @@
-import { Theme } from "@radix-ui/themes";
 import type { UseQueryResult } from "@tanstack/react-query";
-import { render, screen } from "@testing-library/react";
-import type { ReactNode } from "react";
+import { screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
+import { renderWithTheme } from "../../test-utils";
 import { DataList } from "./DataList";
 
 // Minimal stand-in for the fields DataList reads off a query result.
@@ -15,11 +14,6 @@ function fakeQuery<T>(
     data: undefined,
     ...state,
   } as UseQueryResult<T[]>;
-}
-
-// Themes components (Spinner, Callout, Text) need Theme context in jsdom.
-function renderWithTheme(ui: ReactNode) {
-  return render(<Theme>{ui}</Theme>);
 }
 
 const renderItem = (item: string) => <li key={item}>{item}</li>;

@@ -1,16 +1,11 @@
-import { Theme } from "@radix-ui/themes";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
-import type { ReactNode } from "react";
+import { fireEvent, screen, waitFor } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
+import { renderWithTheme } from "../../test-utils";
 import { DropdownMenu, DropdownMenuItem } from "./DropdownMenu";
-
-function renderThemed(ui: ReactNode) {
-  return render(<Theme>{ui}</Theme>);
-}
 
 describe("DropdownMenu", () => {
   it("renders the trigger", () => {
-    renderThemed(
+    renderWithTheme(
       <DropdownMenu trigger={<button type="button">Open</button>}>
         <DropdownMenuItem>Act</DropdownMenuItem>
       </DropdownMenu>,
@@ -19,7 +14,7 @@ describe("DropdownMenu", () => {
   });
 
   it("keeps the menu content closed until the trigger is clicked", () => {
-    renderThemed(
+    renderWithTheme(
       <DropdownMenu trigger={<button type="button">Open</button>}>
         <DropdownMenuItem>Act</DropdownMenuItem>
       </DropdownMenu>,
@@ -28,7 +23,7 @@ describe("DropdownMenu", () => {
   });
 
   it("opens the menu and reveals items when the trigger is clicked", async () => {
-    renderThemed(
+    renderWithTheme(
       <DropdownMenu trigger={<button type="button">Open</button>}>
         <DropdownMenuItem>Act</DropdownMenuItem>
       </DropdownMenu>,
@@ -49,7 +44,7 @@ describe("DropdownMenu", () => {
 
   it("invokes onSelect when an opened item is activated", async () => {
     const onSelect = vi.fn();
-    renderThemed(
+    renderWithTheme(
       <DropdownMenu trigger={<button type="button">Open</button>}>
         <DropdownMenuItem onSelect={onSelect}>Act</DropdownMenuItem>
       </DropdownMenu>,
@@ -68,7 +63,7 @@ describe("DropdownMenu", () => {
   });
 
   it("renders multiple items when opened", async () => {
-    renderThemed(
+    renderWithTheme(
       <DropdownMenu trigger={<button type="button">Open</button>}>
         <DropdownMenuItem className="destructive">Delete</DropdownMenuItem>
         <DropdownMenuItem>Rename</DropdownMenuItem>

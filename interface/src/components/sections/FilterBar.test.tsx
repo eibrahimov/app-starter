@@ -1,25 +1,13 @@
-import { Theme } from "@radix-ui/themes";
-import {
-  type RenderResult,
-  fireEvent,
-  render,
-  screen,
-} from "@testing-library/react";
-import type { ReactElement } from "react";
+import { fireEvent, screen } from "@testing-library/react";
 import { describe, expect, it, vi } from "vitest";
+import { renderWithTheme } from "../../test-utils";
 import { FilterBar } from "./FilterBar";
 
 const options = ["all", "draft"] as const;
 
-// Themes Button reads <Theme> context to resolve its variant/color styles, so
-// render every fragment inside a Theme provider for jsdom.
-function renderInTheme(ui: ReactElement): RenderResult {
-  return render(<Theme>{ui}</Theme>);
-}
-
 describe("FilterBar", () => {
   it("renders a button per option", () => {
-    renderInTheme(
+    renderWithTheme(
       <FilterBar options={options} value="all" onChange={vi.fn()} />,
     );
     expect(screen.getByRole("button", { name: "all" })).toBeTruthy();
@@ -28,7 +16,7 @@ describe("FilterBar", () => {
   });
 
   it("marks the selected option with aria-pressed=true", () => {
-    renderInTheme(
+    renderWithTheme(
       <FilterBar options={options} value="all" onChange={vi.fn()} />,
     );
     expect(
@@ -37,7 +25,7 @@ describe("FilterBar", () => {
   });
 
   it("marks the unselected options with aria-pressed=false", () => {
-    renderInTheme(
+    renderWithTheme(
       <FilterBar options={options} value="all" onChange={vi.fn()} />,
     );
     expect(
@@ -46,7 +34,7 @@ describe("FilterBar", () => {
   });
 
   it("tracks the selected option when value changes", () => {
-    renderInTheme(
+    renderWithTheme(
       <FilterBar options={options} value="draft" onChange={vi.fn()} />,
     );
     expect(
@@ -59,7 +47,7 @@ describe("FilterBar", () => {
 
   it("calls onChange with the clicked option", () => {
     const onChange = vi.fn();
-    renderInTheme(
+    renderWithTheme(
       <FilterBar options={options} value="all" onChange={onChange} />,
     );
     fireEvent.click(screen.getByRole("button", { name: "draft" }));
@@ -69,7 +57,7 @@ describe("FilterBar", () => {
 
   it("calls onChange even when clicking the already-selected option", () => {
     const onChange = vi.fn();
-    renderInTheme(
+    renderWithTheme(
       <FilterBar options={options} value="all" onChange={onChange} />,
     );
     fireEvent.click(screen.getByRole("button", { name: "all" }));
@@ -77,12 +65,12 @@ describe("FilterBar", () => {
   });
 
   it("renders nothing when options is empty", () => {
-    renderInTheme(<FilterBar options={[]} value="" onChange={vi.fn()} />);
+    renderWithTheme(<FilterBar options={[]} value="" onChange={vi.fn()} />);
     expect(screen.queryByRole("button")).toBeNull();
   });
 
   it("gives every button type=button", () => {
-    renderInTheme(
+    renderWithTheme(
       <FilterBar options={options} value="all" onChange={vi.fn()} />,
     );
     for (const button of screen.getAllByRole("button")) {

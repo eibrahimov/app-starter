@@ -1,12 +1,8 @@
 import { Theme } from "@radix-ui/themes";
-import { render, screen } from "@testing-library/react";
-import type { ReactNode } from "react";
+import { screen } from "@testing-library/react";
 import { describe, expect, it } from "vitest";
+import { renderWithTheme } from "../../test-utils";
 import { ErrorState } from "./ErrorState";
-
-function renderWithTheme(ui: ReactNode) {
-  return render(<Theme>{ui}</Theme>);
-}
 
 describe("ErrorState", () => {
   it("renders the message prop text", () => {
