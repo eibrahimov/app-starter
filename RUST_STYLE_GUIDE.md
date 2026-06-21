@@ -212,11 +212,19 @@ Field conventions:
 ## Enums and Validated State
 
 Model closed sets of values as enums, not bare strings. `PostStatus` is the
-worked example: it carries `as_str` for binding into queries and a `parse` that
-returns `None` for unknown input so handlers can reject it as a 400.
+worked example. Deriving `serde` + `utoipa::ToSchema` + `sqlx::Type` (all with a
+matching lowercase rename) expresses the vocabulary once: the same strings are
+the stored TEXT value, the wire JSON, and the OpenAPI/TypeScript enum. It still
+carries `as_str` for binding into queries and a `parse` that returns `None` for
+unknown input so the list handler can reject `?status=bogus` as a clean 400
+rather than a generic deserialization rejection.
 
 ```rust
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(
+    Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, ToSchema, sqlx::Type,
+)]
+#[serde(rename_all = "lowercase")]
+#[sqlx(rename_all = "lowercase")]
 pub enum PostStatus {
     Draft,
     Published,
@@ -244,10 +252,13 @@ impl PostStatus {
 }
 ```
 
-The persisted `Post.status` is a `String` (the stored column); `PostStatus` is
-the validated in-memory form. **State transitions** are enforced where the data
-lives: the SQL update is conditional on the current state, and the handler checks
-the precondition first (see HTTP Handlers).
+`Post.status` is typed as `PostStatus`, and `sqlx` round-trips it to/from the
+TEXT column, so the contract describes the closed set the backend already
+enforces (the generated TypeScript narrows `status` from `string` to
+`"draft" | "published" | "archived"`). Because the wire strings are unchanged,
+this is an additive refinement within `/api/v1`. **State transitions** are
+enforced where the data lives: the SQL update is conditional on the current
+state, and the handler checks the precondition first (see HTTP Handlers).
 
 ## Error Handling
 
@@ -428,7 +439,7 @@ failure), run the conditional update, and confirm it matched (`NotFound` if not)
 
 ```rust
 let post = posts::get(&state.pool, &id).await?.ok_or(AppError::NotFound)?;
-if post.status != PostStatus::Draft.as_str() {
+if post.status != PostStatus::Draft {
     return Err(AppError::BadRequest("only draft posts can be published".into()));
 }
 if !posts::publish(&state.pool, &id).await? {
@@ -640,17 +651,22 @@ sync.
 
 - **Match exhaustively.** List every variant so adding one is a compile error,
   not a silent fallthrough; `AppError`'s `IntoResponse` and `PostStatus::parse`
-  match every case. Use a `_ =>` arm only when indifference is deliberate, as in
-  the stats fold that ignores unexpected status strings from the database:
+  match every case. The stats fold decodes the grouped column straight into
+  `PostStatus` precisely so its match needs no `_` arm -- a new lifecycle state
+  then fails to compile here instead of being silently dropped from the counts:
 
   ```rust
-  match status.as_str() {
-      "draft" => stats.draft = count,
-      "published" => stats.published = count,
-      "archived" => stats.archived = count,
-      _ => {}
+  let rows: Vec<(PostStatus, i64)> = /* SELECT status, COUNT(*) ... GROUP BY status */;
+  for (status, count) in rows {
+      match status {
+          PostStatus::Draft => stats.draft = count,
+          PostStatus::Published => stats.published = count,
+          PostStatus::Archived => stats.archived = count,
+      }
   }
   ```
+
+  Reserve a `_ =>` arm for genuine indifference, not for a closed set you own.
 
 - **Destructure in the arm** to pull out just the fields you need.
 

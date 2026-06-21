@@ -125,7 +125,7 @@ pub async fn publish_post(
     let post = posts::get(&state.pool, &id)
         .await?
         .ok_or(AppError::NotFound)?;
-    if post.status != PostStatus::Draft.as_str() {
+    if post.status != PostStatus::Draft {
         return Err(AppError::BadRequest(
             "only draft posts can be published".into(),
         ));
@@ -157,7 +157,7 @@ pub async fn archive_post(
     let post = posts::get(&state.pool, &id)
         .await?
         .ok_or(AppError::NotFound)?;
-    if post.status != PostStatus::Published.as_str() {
+    if post.status != PostStatus::Published {
         return Err(AppError::BadRequest(
             "only published posts can be archived".into(),
         ));

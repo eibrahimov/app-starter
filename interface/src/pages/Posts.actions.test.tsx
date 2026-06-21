@@ -211,4 +211,28 @@ describe("PostsPage actions", () => {
     // "published" also appears as a FilterBar pill, so scope to the Badge span.
     expect(screen.getByText("published", { selector: "span" })).toBeTruthy();
   });
+
+  it("resolves each status to its Badge tone via the typed statusTone map", async () => {
+    mockPostsApi();
+
+    renderPage();
+
+    // Wait for the published row (its Archive action) so both badges render.
+    await screen.findByRole("button", { name: "Archive" });
+    // Radix encodes the resolved tone as data-accent-color on the badge span.
+    // This pins the statusTone map (draft -> amber, published -> emerald/grass)
+    // behaviorally -- the untyped API mocks alone never exercise it, so a regression
+    // that broke the per-status tone would otherwise pass every test. Scope to the
+    // span so the FilterBar pills (buttons) of the same name do not match.
+    expect(
+      screen
+        .getByText("draft", { selector: "span" })
+        .getAttribute("data-accent-color"),
+    ).toBe("amber");
+    expect(
+      screen
+        .getByText("published", { selector: "span" })
+        .getAttribute("data-accent-color"),
+    ).toBe("grass");
+  });
 });

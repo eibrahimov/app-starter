@@ -12,14 +12,22 @@ import { Card } from "../components/ui/Card";
 import { Input } from "../components/ui/Input";
 import { useApiMutation } from "../hooks/useApiMutation";
 import { useApiQuery } from "../hooks/useApiQuery";
+import type { components } from "../api/schema";
+
+// The post lifecycle vocabulary, sourced from the generated contract: the
+// backend `PostStatus` enum surfaces here as the closed union
+// `"draft" | "published" | "archived"` instead of a bare string.
+type PostStatus = components["schemas"]["PostStatus"];
 
 const FILTERS = ["all", "draft", "published", "archived"] as const;
 type Filter = (typeof FILTERS)[number];
 
-// The OpenAPI schema types `status` as an open string, so an unknown value is
-// possible at runtime; fall back to the neutral tone explicitly rather than
-// leaning on Badge's default.
-const statusTone: Record<string, BadgeTone> = {
+// `status` is the typed `PostStatus` union now. The safety lives in this being a
+// total `Record<PostStatus, BadgeTone>`: adding a lifecycle state to the backend
+// enum makes the regenerated types fail this object literal (a missing key) until
+// its tone is supplied. The `statusTone[post.status]` lookup below is not itself
+// guarded, so keep this a total Record -- never a Partial or `Record<string, ...>`.
+const statusTone: Record<PostStatus, BadgeTone> = {
   draft: "amber",
   published: "emerald",
   archived: "zinc",
@@ -94,9 +102,7 @@ export function PostsPage() {
         errorMessage="Could not load posts."
         renderItem={(post) => (
           <Card as="li" key={post.id}>
-            <Badge tone={statusTone[post.status] ?? "neutral"}>
-              {post.status}
-            </Badge>
+            <Badge tone={statusTone[post.status]}>{post.status}</Badge>
             <Text size="2" style={{ flexGrow: 1 }}>
               {post.title}
             </Text>
