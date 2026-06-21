@@ -122,7 +122,10 @@ pagination, get-by-id, and an aggregate stats endpoint). Copy their shape exactl
    404 case. Run `just test`. Unit-test pure logic (enums, parsers, aggregates) in a
    `#[cfg(test)] mod tests` inside the domain module, as `src/posts.rs` does. The
    `openapi_spec_has_no_dangling_schema_refs` guard test fails if a handler's type is
-   missing from `components(schemas(...))` — a safety net for the step 5 footgun.
+   missing from `components(schemas(...))`, and `routes_and_openapi_spec_are_in_parity`
+   fails if a `/api/v1` route and the OpenAPI paths disagree (a handler routed but
+   missing from `paths(...)`, or vice versa) — together a safety net for the step 5
+   footgun.
 7. Run `just typegen` and COMMIT the regenerated `interface/src/api/schema.d.ts`.
    Never hand-edit that file. Skipping typegen makes `just lint` (tsc) fail.
 8. Frontend page: `interface/src/pages/<Name>.tsx` modeled on the refactored

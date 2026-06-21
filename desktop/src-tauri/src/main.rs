@@ -68,12 +68,20 @@ fn main() {
             let data_dir = app.path().app_data_dir()?;
             std::fs::create_dir_all(&data_dir)?;
 
+            // The sidecar port and the webview's API base URL are the two ends of
+            // one contract (docs/api-endpoint.md). Pass PORT explicitly so the
+            // shell no longer silently relies on the server binary's own default;
+            // a desktop launch can override it, in which case the webview must be
+            // built with a matching VITE_API_BASE_URL. Default is unchanged (8080).
+            let port = std::env::var("PORT").unwrap_or_else(|_| "8080".to_owned());
+
             let (mut events, child) = app
                 .shell()
                 .sidecar("app-starter")
                 .expect("sidecar missing: run scripts/bundle-sidecar.sh first")
                 .current_dir(&data_dir)
                 .env("DATABASE_URL", "sqlite://app.db?mode=rwc")
+                .env("PORT", &port)
                 .spawn()
                 .expect("failed to spawn server sidecar");
 
