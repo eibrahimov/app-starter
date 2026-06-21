@@ -58,8 +58,10 @@ SQLite is the default operational path. Treat it seriously:
 - run migrations on startup only if that matches your deployment model;
 - leave demo seeding off in production — the `src/seed.rs` seam runs only via
   `just seed` / `--seed` / `SEED=1` and is for local examples, not real data;
-- define backup and restore procedures before storing important data;
-- test restore on a throwaway environment;
+- define backup and restore procedures before storing important data — the
+  `just db-backup` / `just db-restore` / `just db-check` recipes cover this
+  ([docs/recipes/backup-restore.md](recipes/backup-restore.md));
+- test restore on a throwaway environment (the recipe walks through it);
 - never edit committed migrations after they have run anywhere important.
 
 If a generated app needs a different database, prove the need there first. Do
