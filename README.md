@@ -74,6 +74,7 @@ Resource endpoints are versioned under `/api/v1/`, and the contract is additive 
 ```bash
 just dev            # run the backend
 just frontend-dev   # run Vite with API proxy
+just seed           # seed example items + posts, then run the backend (see src/seed.rs)
 just typegen        # regenerate TS types from the OpenAPI spec
 just check-typegen  # fail if committed TS types are stale, same as CI
 just lint           # fmt check + clippy -D warnings + Biome + tsc (fast gate)
