@@ -163,7 +163,18 @@ async fn routes_and_openapi_spec_are_in_parity() {
     // source is read as the source of truth for "what the router serves". These
     // are the candidate paths for finding a served-but-undocumented route; the
     // spec paths cover the opposite direction.
-    let source_v1_routes = declared_v1_route_paths(include_str!("../src/api.rs"));
+    let api_source = include_str!("../src/api.rs");
+    // The parser below treats `.route("literal", ...)` calls as the source of
+    // truth for what the router serves. Routes added via `.nest(`/`.merge(` are
+    // invisible to it, which would silently shrink checks 2 and 3 -- so fail
+    // loudly if the router ever moves off the flat style this parser assumes.
+    assert!(
+        !api_source.contains(".nest(") && !api_source.contains(".merge("),
+        "src/api.rs uses `.nest(`/`.merge(`, which `declared_v1_route_paths` \
+         cannot see -- those routes vanish from checks 2 and 3. Flatten the \
+         router into `.route(...)` calls or teach the parser the new shape."
+    );
+    let source_v1_routes = declared_v1_route_paths(api_source);
     assert!(
         !source_v1_routes.is_empty(),
         "parsed no /api/v1 `.route(...)` literals from src/api.rs -- the parser \
@@ -285,33 +296,46 @@ fn concrete_path(path: &str) -> String {
 /// Extracts the `/api/v1/...` path literals from the `.route(...)` calls in
 /// src/api.rs source text. Only the string literal that is the first argument of
 /// `.route(` is taken, so prose mentioning `/api/v1` is ignored; a `.route(` that
-/// sits behind a `//` line comment (commented-out or example code) is skipped too,
-/// so it cannot inject a phantom route.
+/// sits behind a `//` line comment (commented-out or example code) is skipped, so
+/// it cannot inject a phantom route. A `.route(` with no string literal before the
+/// next `.route(` (e.g. a `const` path) is passed over rather than mis-paired with
+/// a later route's quote, and one malformed call never aborts the rest of the
+/// scan. Assumes the flat-router style this template uses: one
+/// `.route("literal", ...)` per statement and no block comment wrapping a route.
+/// The caller separately asserts src/api.rs has no `.nest(`/`.merge(`, which this
+/// parser cannot see.
 fn declared_v1_route_paths(source: &str) -> BTreeSet<String> {
     let mut routes = BTreeSet::new();
     let mut search_from = 0usize;
     while let Some(relative) = source[search_from..].find(".route(") {
         let route_at = search_from + relative;
-        // Is this `.route(` after a `//` on its own line? If so it is commented out.
-        let line_start = source[..route_at].rfind('\n').map_or(0, |nl| nl + 1);
-        let commented = source[line_start..route_at].contains("//");
-        // The path literal is the first argument: the next quoted string.
         let after_token = route_at + ".route(".len();
-        let Some(open_rel) = source[after_token..].find('"') else {
-            break;
+        // Advance unconditionally, so a malformed or non-literal `.route(` is
+        // skipped rather than aborting the scan of everything after it.
+        search_from = after_token;
+        // Skip a `.route(` that sits behind a `//` on its own line.
+        let line_start = source[..route_at].rfind('\n').map_or(0, |nl| nl + 1);
+        if source[line_start..route_at].contains("//") {
+            continue;
+        }
+        // The path literal is the first argument and must appear before the next
+        // `.route(`; otherwise this call has no string-literal first arg, so skip
+        // it instead of stealing a later route's quote.
+        let next_route = source[after_token..]
+            .find(".route(")
+            .map_or(source.len(), |rel| after_token + rel);
+        let segment = &source[after_token..next_route];
+        let Some(open_rel) = segment.find('"') else {
+            continue;
         };
         let open = after_token + open_rel + 1;
-        let Some(close_rel) = source[open..].find('"') else {
-            break;
+        let Some(close_rel) = source[open..next_route].find('"') else {
+            continue;
         };
-        let close = open + close_rel;
-        if !commented {
-            let path = &source[open..close];
-            if path.starts_with("/api/v1") {
-                routes.insert(path.to_owned());
-            }
+        let path = &source[open..open + close_rel];
+        if path.starts_with("/api/v1") {
+            routes.insert(path.to_owned());
         }
-        search_from = close + 1;
     }
     routes
 }
