@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vitest";
+import { toneColor } from "../components/ui/Badge";
+import { VARIANT_MAP } from "../components/ui/Button";
 import catalogRaw from "./radix.catalog.json?raw";
 import * as icons from "./icons";
 import { themeConfig } from "./theme.config";
@@ -41,5 +43,17 @@ describe("radix.catalog.json", () => {
     // `appearance` reintroduces a load flash. The catalog flags it doNotSet.
     expect(themeConfig).not.toHaveProperty("appearance");
     expect(catalog.theme.props.appearance.doNotSet).toBe(true);
+  });
+
+  it("Badge/Button wrapper value sets match the catalog", () => {
+    // The wrappers are the source of truth for the template's public tone and
+    // variant names; pin the catalog's copies to them so editing either map
+    // (e.g. adding a Badge tone) without updating the catalog fails here.
+    expect([...catalog.templatePrimitives.Badge.values].sort()).toEqual(
+      Object.keys(toneColor).sort(),
+    );
+    expect([...catalog.templatePrimitives.Button.values].sort()).toEqual(
+      Object.keys(VARIANT_MAP).sort(),
+    );
   });
 });

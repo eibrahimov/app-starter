@@ -1,5 +1,5 @@
 {
-  "$comment": "Machine-readable companion to docs/radix-reference.md and docs/radix-workflow.md: the closed Radix vocabulary an agent maps a natural-language UI request onto deterministically. radix.catalog.test.ts pins the two sections backed by code -- the icon list against icons.ts, and each theme.config.ts value against its props.*.values list -- so those cannot silently drift. The rest (components, componentProps, layoutProps, templatePrimitives, statusColors, gaps) mirrors docs/radix-reference.md by hand and is prose-authoritative: change one, change both.",
+  "$comment": "Machine-readable companion to docs/radix-reference.md and docs/radix-workflow.md: the closed Radix vocabulary an agent maps a natural-language UI request onto deterministically. radix.catalog.test.ts pins the sections backed by code -- the icon list against icons.ts, each theme.config.ts value against its props.*.values list, and the templatePrimitives Badge/Button value sets against Badge.tsx/Button.tsx -- so those cannot silently drift. The rest (the full Radix-package value lists, components, componentProps, layoutProps, statusColors, gaps) mirrors docs/radix-reference.md by hand and is prose-authoritative: change one, change both.",
   "version": "1",
   "themesPackageVersion": "^3.3.0",
   "products": [

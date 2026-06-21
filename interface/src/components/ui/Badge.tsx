@@ -6,7 +6,9 @@ import type { ComponentPropsWithoutRef } from "react";
 // color; the e2e a11y test audits these for contrast.
 export type BadgeTone = "neutral" | "emerald" | "amber" | "red" | "zinc";
 
-const toneColor: Record<
+// Exported so radix.catalog.test.ts can pin the catalog's Badge tone list to
+// this map -- the wrapper is the source of truth for the app's tone names.
+export const toneColor: Record<
   BadgeTone,
   ComponentPropsWithoutRef<typeof ThemesBadge>["color"]
 > = {

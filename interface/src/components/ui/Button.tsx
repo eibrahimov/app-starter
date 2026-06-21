@@ -15,7 +15,9 @@ export type ButtonVariant =
 type ThemesVariant = "solid" | "ghost";
 type ThemesColor = "red" | "grass" | "amber" | undefined;
 
-const VARIANT_MAP: Record<
+// Exported so radix.catalog.test.ts can pin the catalog's Button variant list to
+// this map -- the wrapper is the source of truth for the app's variant names.
+export const VARIANT_MAP: Record<
   ButtonVariant,
   { variant: ThemesVariant; color: ThemesColor }
 > = {
