@@ -4,9 +4,13 @@
 # Mirrors the project's own commands (justfile) instead of re-implementing them:
 #   1. typegen drift     -> `just check-typegen`  (regenerate types, fail if they
 #                           differ from the committed interface/src/api/schema.d.ts)
-#   2. backend tests     -> `just test`           (includes the
-#                           openapi_spec_has_no_dangling_schema_refs guard test that
-#                           catches the silent three-place-registration footgun)
+#   2. backend tests     -> `just test`           (includes two guard tests for the
+#                           silent three-place-registration footgun:
+#                           openapi_spec_has_no_dangling_schema_refs catches a missing
+#                           components(schemas(...)) entry, and
+#                           routes_and_openapi_spec_are_in_parity catches a route<->spec
+#                           /api/v1 path mismatch -- a handler routed but absent from
+#                           paths(...), or vice versa)
 #
 # Prefers `just` (the documented dev UX); falls back to the raw commands when `just`
 # is not installed. Run from anywhere inside the repo.
@@ -17,6 +21,7 @@
 set -uo pipefail
 
 GUARD_TEST="openapi_spec_has_no_dangling_schema_refs"
+PARITY_TEST="routes_and_openapi_spec_are_in_parity"
 FAILED=0
 
 note() { printf '\n=== %s ===\n' "$1"; }
@@ -80,8 +85,13 @@ if [ "$RC" -eq 0 ]; then
   else
     echo "note: did not see '$GUARD_TEST' in output; confirm it still exists in tests/api.rs."
   fi
+  if grep -q "$PARITY_TEST" "$TEST_LOG"; then
+    ok "route<->spec parity guard ($PARITY_TEST) ran"
+  else
+    echo "note: did not see '$PARITY_TEST' in output; confirm it still exists in tests/api.rs."
+  fi
 else
-  bad "backend tests failed. If $GUARD_TEST failed, a handler's ToSchema type is missing from components(schemas(...)) in src/api/mod.rs (recipe step 5)."
+  bad "backend tests failed. If $GUARD_TEST failed, a handler's ToSchema type is missing from components(schemas(...)) in src/api.rs (recipe step 5). If $PARITY_TEST failed, a handler is registered in only one of paths(...) / .route(...) -- wire it in both (recipe step 5)."
 fi
 rm -f "$TEST_LOG"
 

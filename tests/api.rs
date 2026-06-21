@@ -7,6 +7,7 @@ use axum::http::{Request, StatusCode, header};
 use http_body_util::BodyExt;
 use sqlx::SqlitePool;
 use sqlx::sqlite::SqlitePoolOptions;
+use std::collections::BTreeSet;
 use tower::util::ServiceExt;
 
 use app_starter::{AppState, api};
@@ -88,6 +89,231 @@ async fn openapi_spec_has_no_dangling_schema_refs() {
         "OpenAPI references schemas missing from components(schemas(...)) in \
          src/api.rs: {dangling:?}"
     );
+}
+
+/// Route<->spec parity guard (issue #32). The OpenAPI spec is generated from the
+/// `#[openapi(paths(...))]` list in src/api.rs, while the router is built from a
+/// separate set of `.route(...)` calls. A handler can be wired with `.route(...)`
+/// but omitted from `paths(...)` -- it compiles, then silently vanishes from the
+/// spec and the generated TypeScript client -- or listed in the spec with no
+/// matching route. Neither is a compile error, and `openapi_spec_has_no_dangling_\
+/// schema_refs` only catches a missing *schema*, not a missing *path*. This test
+/// asserts the route surface three ways:
+///   1. every operation the spec declares is actually served by the router,
+///   2. every `/api/v1` operation the router serves is declared in the spec, and
+///   3. the set of `/api/v1` `.route(...)` path literals in src/api.rs equals the
+///      set of `/api/v1` spec paths -- a source-level check that still catches a
+///      deleted or renamed route when a parameterized sibling (e.g.
+///      `/api/v1/posts/{id}`) would shadow the missing path at runtime and hide it
+///      from check 1.
+///
+/// "Not served" is detected via the SPA fallback rather than status alone (which
+/// avoids 404-vs-405 flakiness): an unmatched path falls through to
+/// `crate::frontend::spa`, which serves index.html (HTML content-type) or, when
+/// `interface/dist` is empty -- the state under `just test`, which sets
+/// SKIP_FRONTEND_BUILD=1 -- a 404 with a "frontend not built" marker. A real
+/// handler answering a probe with 404/400/415 is therefore still "served".
+#[tokio::test]
+async fn routes_and_openapi_spec_are_in_parity() {
+    // The REST verbs the resource recipe uses. Probing is restricted to these;
+    // spec operations are filtered to them so a non-method path-item key (or an
+    // exotic verb) cannot desync the two sides. A future custom `.head`/`.options`/
+    // `.trace` handler would fall outside this set and is a known blind spot.
+    const METHODS: [&str; 5] = ["GET", "POST", "PUT", "PATCH", "DELETE"];
+
+    let app = test_app().await;
+
+    // --- the (method, path) operations the spec declares ---
+    let response = app
+        .clone()
+        .oneshot(
+            Request::get("/api/openapi.json")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::OK);
+    let spec = body_json(response).await;
+    let paths = spec
+        .pointer("/paths")
+        .and_then(|paths| paths.as_object())
+        .expect("served spec has a /paths object");
+
+    let mut spec_ops: BTreeSet<(String, String)> = BTreeSet::new();
+    for (path, item) in paths {
+        let Some(operations) = item.as_object() else {
+            continue;
+        };
+        for method in operations.keys() {
+            let method = method.to_uppercase();
+            if METHODS.contains(&method.as_str()) {
+                spec_ops.insert((method, path.clone()));
+            }
+        }
+    }
+    assert!(
+        !spec_ops.is_empty(),
+        "the served spec declared no operations -- the test harness is broken"
+    );
+
+    // --- the `/api/v1` paths the source actually wires with `.route(...)` ---
+    // axum exposes no API to enumerate a built router's routes, and refactoring
+    // the router into a data table is out of scope (this is a test), so the
+    // source is read as the source of truth for "what the router serves". These
+    // are the candidate paths for finding a served-but-undocumented route; the
+    // spec paths cover the opposite direction.
+    let source_v1_routes = declared_v1_route_paths(include_str!("../src/api.rs"));
+    assert!(
+        !source_v1_routes.is_empty(),
+        "parsed no /api/v1 `.route(...)` literals from src/api.rs -- the parser \
+         or the source layout changed"
+    );
+
+    // --- the (method, path) operations the router actually serves ---
+    let mut candidate_paths: BTreeSet<String> =
+        spec_ops.iter().map(|(_, path)| path.clone()).collect();
+    candidate_paths.extend(source_v1_routes.iter().cloned());
+
+    let mut served_ops: BTreeSet<(String, String)> = BTreeSet::new();
+    for path in &candidate_paths {
+        let concrete = concrete_path(path);
+        for method in METHODS {
+            let (status, is_spa_fallback) = probe(&app, method, &concrete).await;
+            if is_spa_fallback || status == StatusCode::METHOD_NOT_ALLOWED {
+                continue;
+            }
+            served_ops.insert((method.to_owned(), path.clone()));
+        }
+    }
+
+    // Direction 1: every operation the spec declares is served. A spec entry with
+    // no matching route means a `#[utoipa::path]` handler was added to
+    // `#[openapi(paths(...))]` without a matching `.route(...)` in src/api.rs.
+    let declared_but_unserved: Vec<&(String, String)> = spec_ops.difference(&served_ops).collect();
+    assert!(
+        declared_but_unserved.is_empty(),
+        "OpenAPI declares operations the router does not serve -- add the missing \
+         `.route(...)` in src/api.rs: {declared_but_unserved:?}"
+    );
+
+    // Direction 2: every `/api/v1` operation the router serves is in the spec.
+    // This is the silent footgun: a handler wired with `.route(...)` but omitted
+    // from `#[openapi(paths(...))]` vanishes from the spec and the generated
+    // TypeScript client. Scoped to `/api/v1` so the intentionally-undocumented
+    // operational routes (`/api/openapi.json`) are not flagged.
+    let served_but_undocumented: Vec<&(String, String)> = served_ops
+        .iter()
+        .filter(|(_, path)| path.starts_with("/api/v1"))
+        .filter(|operation| !spec_ops.contains(*operation))
+        .collect();
+    assert!(
+        served_but_undocumented.is_empty(),
+        "the router serves /api/v1 operations absent from the OpenAPI spec -- add \
+         the handler to `#[openapi(paths(...))]` in src/api.rs or it vanishes from \
+         the generated TS client: {served_but_undocumented:?}"
+    );
+
+    // Direction 3 (source vs spec, path level): the `/api/v1` paths wired with
+    // `.route(...)` in src/api.rs must match the `/api/v1` paths in the served
+    // spec. Unlike check 1 this is a source comparison, not a runtime probe, so it
+    // catches a deleted or renamed route even when a parameterized sibling shadows
+    // the missing path -- e.g. dropping `.route("/api/v1/posts/stats", ...)` while
+    // `posts::post_stats` stays in `paths(...)`: a probe to `/api/v1/posts/stats`
+    // would match `/api/v1/posts/{id}` and look "served", but the literal is gone.
+    let spec_v1_paths: BTreeSet<String> = spec_ops
+        .iter()
+        .map(|(_, path)| path.clone())
+        .filter(|path| path.starts_with("/api/v1"))
+        .collect();
+    let routed_but_unspecified: Vec<&String> =
+        source_v1_routes.difference(&spec_v1_paths).collect();
+    let specified_but_unrouted: Vec<&String> =
+        spec_v1_paths.difference(&source_v1_routes).collect();
+    assert!(
+        routed_but_unspecified.is_empty() && specified_but_unrouted.is_empty(),
+        "route<->spec /api/v1 path drift in src/api.rs -- the `.route(...)` literals \
+         and the OpenAPI `/api/v1` paths must be identical: routed but absent from \
+         spec = {routed_but_unspecified:?}; in spec but not routed = \
+         {specified_but_unrouted:?}"
+    );
+}
+
+/// Sends `method path` through the router and reports `(status, is_spa_fallback)`.
+/// `is_spa_fallback` is true when no API route matched and the request fell
+/// through to `crate::frontend::spa`: a served index.html (HTML content-type) or,
+/// when `interface/dist` is empty, a 404 whose body is the "frontend not built"
+/// marker. A real handler -- even one returning 404/400/415 for a probe with a
+/// dummy id and empty body -- is not the fallback.
+async fn probe(app: &Router, method: &str, path: &str) -> (StatusCode, bool) {
+    let request = Request::builder()
+        .method(method)
+        .uri(path)
+        .body(Body::empty())
+        .unwrap();
+    let response = app.clone().oneshot(request).await.unwrap();
+    let status = response.status();
+    let content_type = response
+        .headers()
+        .get(header::CONTENT_TYPE)
+        .and_then(|value| value.to_str().ok())
+        .unwrap_or_default()
+        .to_owned();
+    let bytes = response.into_body().collect().await.unwrap().to_bytes();
+    let is_spa_fallback = content_type.contains("text/html")
+        || String::from_utf8_lossy(&bytes).starts_with("frontend not built");
+    (status, is_spa_fallback)
+}
+
+/// Replaces every `{param}` path segment with a dummy value so a parameterized
+/// route can be probed (`/api/v1/items/{id}` -> `/api/v1/items/__parity_probe__`).
+/// The sentinel is deliberately improbable so it cannot collide with a real static
+/// route (e.g. `/api/v1/posts/stats`) and mask a missing parameterized route.
+fn concrete_path(path: &str) -> String {
+    path.split('/')
+        .map(|segment| {
+            if segment.starts_with('{') && segment.ends_with('}') {
+                "__parity_probe__"
+            } else {
+                segment
+            }
+        })
+        .collect::<Vec<_>>()
+        .join("/")
+}
+
+/// Extracts the `/api/v1/...` path literals from the `.route(...)` calls in
+/// src/api.rs source text. Only the string literal that is the first argument of
+/// `.route(` is taken, so prose mentioning `/api/v1` is ignored; a `.route(` that
+/// sits behind a `//` line comment (commented-out or example code) is skipped too,
+/// so it cannot inject a phantom route.
+fn declared_v1_route_paths(source: &str) -> BTreeSet<String> {
+    let mut routes = BTreeSet::new();
+    let mut search_from = 0usize;
+    while let Some(relative) = source[search_from..].find(".route(") {
+        let route_at = search_from + relative;
+        // Is this `.route(` after a `//` on its own line? If so it is commented out.
+        let line_start = source[..route_at].rfind('\n').map_or(0, |nl| nl + 1);
+        let commented = source[line_start..route_at].contains("//");
+        // The path literal is the first argument: the next quoted string.
+        let after_token = route_at + ".route(".len();
+        let Some(open_rel) = source[after_token..].find('"') else {
+            break;
+        };
+        let open = after_token + open_rel + 1;
+        let Some(close_rel) = source[open..].find('"') else {
+            break;
+        };
+        let close = open + close_rel;
+        if !commented {
+            let path = &source[open..close];
+            if path.starts_with("/api/v1") {
+                routes.insert(path.to_owned());
+            }
+        }
+        search_from = close + 1;
+    }
+    routes
 }
 
 /// Collects every `#/components/schemas/<Name>` referenced anywhere in the spec.
