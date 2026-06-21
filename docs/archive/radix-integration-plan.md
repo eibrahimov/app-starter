@@ -1,5 +1,13 @@
 # Radix Themes integration plan
 
+> **Historical record (archived).** This is the migration plan that moved the UI
+> layer from shadcn-lite to Radix Themes. The migration shipped — approval in issue
+> #27, merged in #28 — so this plan is kept for rationale only; do not follow its
+> steps. The live vocabulary and build workflow are in
+> [radix-reference.md](../radix-reference.md) and [radix-workflow.md](../radix-workflow.md).
+> Parts below are written in future tense and reference artifacts that were never
+> built (notably `docs/radix-migration-manifest.md`).
+
 End-to-end plan to make Radix Themes the default UI layer of this template, with a
 single declarative configuration surface, an AI-friendly extension story, and a
 rollout designed for the Claude Code `/loop` and `/workflows` features.

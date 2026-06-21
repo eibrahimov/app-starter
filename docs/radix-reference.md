@@ -2,14 +2,14 @@
 
 A documented map of the Radix ecosystem, scoped to this template. It is the
 vocabulary that humans and AI agents read before configuring or extending the UI.
-Pair it with [radix-integration-plan.md](radix-integration-plan.md), which turns
+Pair it with [radix-integration-plan.md](archive/radix-integration-plan.md), which turns
 this map into an end-to-end migration.
 
 Radix is not one library. It is four products that integrate very differently.
 Knowing which product a request belongs to is the first decision in every UI task.
 
 Status: Radix Themes is the shipped default UI layer (the migration described in
-[radix-integration-plan.md](radix-integration-plan.md) landed via #28). This
+[radix-integration-plan.md](archive/radix-integration-plan.md) landed via #28). This
 reference and the shipped code agree; the plan is now historical context for how
 it got here. For the end-to-end "build a new app from a natural-language
 description" lifecycle that uses everything below, see
