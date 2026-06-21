@@ -27,17 +27,28 @@ tag/version mismatch fails the workflow — the preflight below catches it local
 1. **Decide the bump** (semver): patch for fixes, minor for additive features/endpoints,
    major only for a breaking change — which for the API means opening `/api/v2` (per
    AGENTS.md; get approval first).
-2. **Bump the version** in `Cargo.toml` (`version = "X.Y.Z"`), then refresh the lockfile so
-   `Cargo.lock` records the new version:
-   ```sh
-   cargo update -p app-starter
-   ```
+2. **Bump the version in lockstep** across every manifest that carries it. The release
+   CI only publishes the backend, but a stale value elsewhere ships a wrong-versioned
+   desktop bundle — the preflight in step 4 fails if these disagree:
+   - `Cargo.toml` (`version = "X.Y.Z"`), then refresh the lockfile:
+     ```sh
+     cargo update -p app-starter
+     ```
+   - `interface/package.json` and `desktop/package.json`
+   - `desktop/src-tauri/Cargo.toml` (the `app-starter-desktop` crate), then:
+     ```sh
+     cargo update -p app-starter-desktop
+     ```
+   - `desktop/src-tauri/tauri.conf.json` (top-level `version`; the dmg/installer filename
+     is derived from it)
+   - `interface/e2e/a11y.spec.ts` (the `HEALTH` mock's `version`; cosmetic — keep it truthful)
 3. **Run the full gate set:**
    ```sh
    just verify
    ```
 4. **Preflight** (read-only) before tagging — confirms a clean tree, Cargo.toml/Cargo.lock
-   agreement, and that the tag does not already exist:
+   agreement, that the interface/desktop manifests all match the bumped version, and that
+   the tag does not already exist:
    ```sh
    .claude/skills/cut-release/scripts/preflight-release.sh
    ```

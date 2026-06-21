@@ -40,6 +40,33 @@ else
   warn "no Cargo.lock present."
 fi
 
+# --- manifest version agreement ---------------------------------------------
+# The product version also lives in the interface + desktop manifests, which do
+# NOT auto-update with Cargo.toml. A stale value here ships a wrong-versioned
+# desktop bundle (the dmg/installer filename is derived from tauri.conf.json's
+# `version`). The v* release CI only publishes the backend image + binaries, so
+# this never corrupts a published image -- but it does ship mislabeled desktop
+# builds, so the bumps must happen in lockstep (see the cut-release SKILL).
+# Only the four shippable manifests are gated here; the cosmetic version in
+# interface/e2e/a11y.spec.ts (a test mock) is bumped per the SKILL but not gated.
+note "Manifest version agreement"
+check_manifest() {  # <path> <grep-pattern> <cut-field>  (delimiter is always ")
+  local path="$1" pat="$2" field="$3" mv
+  if [ ! -f "$path" ]; then warn "$path not found; skipping."; return; fi
+  mv="$(grep -m1 "$pat" "$path" | cut -d '"' -f "$field")"
+  if [ -z "$mv" ]; then
+    warn "could not read a version from $path."
+  elif [ "$mv" = "$VER" ]; then
+    ok "$path matches ($mv)."
+  else
+    bad "$path has $mv but Cargo.toml has $VER. Bump it in lockstep before tagging."
+  fi
+}
+check_manifest "interface/package.json"            '"version"' 4
+check_manifest "desktop/package.json"              '"version"' 4
+check_manifest "desktop/src-tauri/Cargo.toml"      '^version'  2
+check_manifest "desktop/src-tauri/tauri.conf.json" '"version"' 4
+
 # --- clean working tree -----------------------------------------------------
 note "Working tree"
 if [ -n "$(git status --porcelain)" ]; then

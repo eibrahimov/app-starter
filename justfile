@@ -3,6 +3,10 @@ set shell := ["bash", "-euo", "pipefail", "-c"]
 default:
     @just --list
 
+# Read-only environment + build-state check; prints a fix for anything missing.
+doctor:
+    bash scripts/doctor.sh
+
 # Run the backend (serves the embedded UI when interface/dist exists)
 dev:
     cargo run
