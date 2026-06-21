@@ -186,7 +186,7 @@ export interface components {
             id: string;
             /** Format: date-time */
             published_at?: string | null;
-            status: string;
+            status: components["schemas"]["PostStatus"];
             title: string;
         };
         /** @description Per-status counts for the stats endpoint. */
@@ -198,6 +198,19 @@ export interface components {
             /** Format: int64 */
             published: number;
         };
+        /**
+         * @description Lifecycle state of a post.
+         *
+         *     One closed vocabulary, expressed once: the same lowercase strings are the
+         *     stored TEXT value (`sqlx::Type`), the on-the-wire JSON (`serde`), and the
+         *     OpenAPI/TypeScript enum (`utoipa::ToSchema`). Typing `Post.status` as this
+         *     enum narrows the generated `status` from an open `string` to the closed
+         *     union `"draft" | "published" | "archived"`. Because the wire values are
+         *     unchanged, this is an additive contract refinement that stays compatible
+         *     within `/api/v1`.
+         * @enum {string}
+         */
+        PostStatus: "draft" | "published" | "archived";
     };
     responses: never;
     parameters: never;

@@ -768,3 +768,35 @@ async fn get_unknown_post_is_404() {
         .unwrap();
     assert_eq!(response.status(), StatusCode::NOT_FOUND);
 }
+
+/// The stats fold decodes the stored status straight into `PostStatus`, so a row
+/// whose status falls outside the lifecycle vocabulary surfaces as a loud 500
+/// rather than being silently dropped from the counts -- issue #47 removed the
+/// previous `_ => {}` arm. Every API write path stores one of the three known
+/// values, so only an out-of-band write can produce such a row; this seeds one
+/// directly through the pool to pin the fail-loud behavior the issue introduced.
+#[tokio::test]
+async fn out_of_vocabulary_status_fails_loudly_instead_of_being_dropped() {
+    let (app, pool) = test_app_with_pool().await;
+
+    sqlx::query("INSERT INTO posts (id, title, status, created_at) VALUES (?1, ?2, ?3, ?4)")
+        .bind("legacy-row")
+        .bind("legacy")
+        .bind("scheduled")
+        .bind("2026-06-21T00:00:00Z")
+        .execute(&pool)
+        .await
+        .expect("seed an out-of-vocabulary status row");
+
+    let response = app
+        .oneshot(
+            Request::get("/api/v1/posts/stats")
+                .body(Body::empty())
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    // The unknown value cannot be decoded into the enum, so the aggregate fails
+    // loudly (AppError::Sqlx -> 500) instead of returning 200 with a dropped row.
+    assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
+}

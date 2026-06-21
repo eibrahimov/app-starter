@@ -46,6 +46,7 @@ const REQUEST_TIMEOUT: Duration = Duration::from_secs(30);
         crate::items::CreateItem,
         crate::posts::Post,
         crate::posts::CreatePost,
+        crate::posts::PostStatus,
         crate::posts::PostStats,
     ))
 )]

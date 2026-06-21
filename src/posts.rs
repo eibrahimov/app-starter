@@ -8,8 +8,18 @@ use sqlx::SqlitePool;
 use utoipa::ToSchema;
 use uuid::Uuid;
 
-/// Lifecycle state of a post. Stored as TEXT; parsed from query params.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+/// Lifecycle state of a post.
+///
+/// One closed vocabulary, expressed once: the same lowercase strings are the
+/// stored TEXT value (`sqlx::Type`), the on-the-wire JSON (`serde`), and the
+/// OpenAPI/TypeScript enum (`utoipa::ToSchema`). Typing `Post.status` as this
+/// enum narrows the generated `status` from an open `string` to the closed
+/// union `"draft" | "published" | "archived"`. Because the wire values are
+/// unchanged, this is an additive contract refinement that stays compatible
+/// within `/api/v1`.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, ToSchema, sqlx::Type)]
+#[serde(rename_all = "lowercase")]
+#[sqlx(rename_all = "lowercase")]
 pub enum PostStatus {
     Draft,
     Published,
@@ -17,6 +27,9 @@ pub enum PostStatus {
 }
 
 impl PostStatus {
+    /// The stored/wire string for this status. Kept alongside the derived
+    /// `serde`/`sqlx` mappings for binding into queries and for `parse`; the
+    /// round-trip tests pin all three representations to the same strings.
     pub fn as_str(self) -> &'static str {
         match self {
             PostStatus::Draft => "draft",
@@ -26,6 +39,9 @@ impl PostStatus {
     }
 
     /// Returns `None` for unknown values so handlers can reject them as 400.
+    /// The list handler routes `?status=` through this to keep an unknown value
+    /// a clear `AppError::BadRequest` rather than a generic deserialization
+    /// rejection.
     pub fn parse(value: &str) -> Option<Self> {
         match value {
             "draft" => Some(PostStatus::Draft),
@@ -41,7 +57,7 @@ pub struct Post {
     pub id: String,
     pub title: String,
     pub body: String,
-    pub status: String,
+    pub status: PostStatus,
     pub created_at: DateTime<Utc>,
     pub published_at: Option<DateTime<Utc>>,
 }
@@ -104,7 +120,7 @@ pub async fn create(pool: &SqlitePool, title: String, body: String) -> Result<Po
         id: Uuid::new_v4().to_string(),
         title,
         body,
-        status: PostStatus::Draft.as_str().to_owned(),
+        status: PostStatus::Draft,
         created_at: Utc::now(),
         published_at: None,
     };
@@ -114,7 +130,7 @@ pub async fn create(pool: &SqlitePool, title: String, body: String) -> Result<Po
     .bind(&post.id)
     .bind(&post.title)
     .bind(&post.body)
-    .bind(&post.status)
+    .bind(post.status.as_str())
     .bind(post.created_at)
     .execute(pool)
     .await?;
@@ -147,18 +163,21 @@ pub async fn archive(pool: &SqlitePool, id: &str) -> Result<bool, sqlx::Error> {
 }
 
 pub async fn stats(pool: &SqlitePool) -> Result<PostStats, sqlx::Error> {
-    let rows: Vec<(String, i64)> =
+    // Decode the grouped status column straight into the enum. The exhaustive
+    // match (no `_` arm) makes adding a lifecycle state a compile error here
+    // rather than a silently dropped count, and a stored value outside the
+    // vocabulary surfaces as a decode error instead of vanishing.
+    let rows: Vec<(PostStatus, i64)> =
         sqlx::query_as("SELECT status, COUNT(*) FROM posts GROUP BY status")
             .fetch_all(pool)
             .await?;
 
     let mut stats = PostStats::default();
     for (status, count) in rows {
-        match status.as_str() {
-            "draft" => stats.draft = count,
-            "published" => stats.published = count,
-            "archived" => stats.archived = count,
-            _ => {}
+        match status {
+            PostStatus::Draft => stats.draft = count,
+            PostStatus::Published => stats.published = count,
+            PostStatus::Archived => stats.archived = count,
         }
     }
     Ok(stats)
@@ -191,5 +210,28 @@ mod tests {
         ] {
             assert_eq!(PostStatus::parse(status.as_str()), Some(status));
         }
+    }
+
+    #[test]
+    fn serde_round_trips_through_the_wire_string() {
+        for status in [
+            PostStatus::Draft,
+            PostStatus::Published,
+            PostStatus::Archived,
+        ] {
+            let json = serde_json::to_string(&status).expect("serialize");
+            // The JSON form is exactly the bound/stored string, so the contract
+            // (serde + utoipa) and the database (`as_str`) cannot drift apart.
+            assert_eq!(json, format!("\"{}\"", status.as_str()));
+            let parsed: PostStatus = serde_json::from_str(&json).expect("deserialize");
+            assert_eq!(parsed, status);
+        }
+    }
+
+    #[test]
+    fn deserialize_rejects_unknown_or_miscased_values() {
+        assert!(serde_json::from_str::<PostStatus>("\"Published\"").is_err());
+        assert!(serde_json::from_str::<PostStatus>("\"bogus\"").is_err());
+        assert!(serde_json::from_str::<PostStatus>("\"\"").is_err());
     }
 }
