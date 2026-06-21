@@ -13,7 +13,9 @@ lifecycle actions.
 > For the full Radix vocabulary — the component catalog, the `<Theme>` prop
 > reference, the status-color mapping, and the four Radix products — read
 > [`radix-reference.md`](radix-reference.md). This guide is the day-to-day
-> how-to; that file is the authoritative map.
+> how-to; that file is the authoritative map. For the end-to-end lifecycle that
+> takes a natural-language app request to a gated build, see
+> [`radix-workflow.md`](radix-workflow.md).
 
 > Adding a component, section, or hook? The
 > [`add-component`](../.claude/skills/add-component/SKILL.md) skill is the

@@ -8,9 +8,12 @@ this map into an end-to-end migration.
 Radix is not one library. It is four products that integrate very differently.
 Knowing which product a request belongs to is the first decision in every UI task.
 
-Note: this reference is written in the target-state voice (Radix Themes as the
-default UI layer). That target is the approval-gated migration described in the
-plan; the shipped code remains the shadcn-lite layer until the migration lands.
+Status: Radix Themes is the shipped default UI layer (the migration described in
+[radix-integration-plan.md](radix-integration-plan.md) landed via #28). This
+reference and the shipped code agree; the plan is now historical context for how
+it got here. For the end-to-end "build a new app from a natural-language
+description" lifecycle that uses everything below, see
+[radix-workflow.md](radix-workflow.md).
 
 ## The four Radix products
 
@@ -28,8 +31,12 @@ approval gate.
 
 ## Packages and versions
 
-Confirm exact versions against npm at implementation time; pin them in
-`interface/package.json` with Bun (`cd interface && bun add ...`).
+Shipped pins in `interface/package.json`: `@radix-ui/themes` `^3.3.0` and
+`@radix-ui/react-icons` `^1.3.2` (the caret stays within the 1.x line, below the
+unvetted 2.0 icon release — see Radix Icons below). `@radix-ui/colors` and the
+unstyled `radix-ui` primitives are added on demand (`cd interface && bun add ...`)
+when a custom brand color or a documented Themes gap needs them. Confirm exact
+versions against npm before bumping.
 
 | Package | Purpose | Replaces |
 | --- | --- | --- |
@@ -72,6 +79,13 @@ human pick every prop above at runtime and click "Copy Theme" to get the exact
 the panel writes the same JSX a prompt would. Ship it behind a dev-only flag.
 
 ## Component catalog (Radix Themes)
+
+> This prose catalog has a machine-readable companion at
+> [`interface/src/theme/radix.catalog.json`](../interface/src/theme/radix.catalog.json):
+> the same prop values, components, status colors, icons, and gaps as JSON, for
+> agents (and non-Claude LLM tooling) that prefer a structured lookup. A guard
+> test (`radix.catalog.test.ts`) keeps it in sync with `icons.ts` and
+> `theme.config.ts`, so it cannot silently drift from this doc.
 
 Grouped by purpose. Bold = the app already needs an equivalent today (mapped from
 the current `ui/`+`sections/` layer).

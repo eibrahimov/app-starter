@@ -26,6 +26,9 @@ Authoritative references -- read before mapping a request to props:
 - [`docs/radix-integration-plan.md`](../../../docs/radix-integration-plan.md) ->
   the resolved decisions (notably: `accent.css` ships empty; the skill owns the
   custom-color recipe and runs it at use-time).
+- [`interface/src/theme/radix.catalog.json`](../../../interface/src/theme/radix.catalog.json)
+  -> the `<Theme>` prop value sets as parseable JSON (`theme.props.*.values`);
+  a guard test keeps it in sync with `theme.config.ts`.
 
 The single global config surface is
 [`interface/src/theme/theme.config.ts`](../../../interface/src/theme/theme.config.ts)
@@ -108,7 +111,7 @@ that no built-in hue matches. This follows the recipe documented in
 
 Run from `interface/`:
 
-```
+```sh
 cd interface
 bunx tsc --noEmit     # catches an invalid prop value or a typo'd hue
 bun run build         # confirms Themes/CSS compile
@@ -117,7 +120,7 @@ bun run build         # confirms Themes/CSS compile
 For a custom palette (Path B), also confirm contrast did not regress -- the new
 scale changes every accent color, so the a11y gate is the safety net:
 
-```
+```sh
 just a11y
 ```
 

@@ -29,21 +29,21 @@ tag/version mismatch fails the workflow — the preflight below catches it local
    AGENTS.md; get approval first).
 2. **Bump the version** in `Cargo.toml` (`version = "X.Y.Z"`), then refresh the lockfile so
    `Cargo.lock` records the new version:
-   ```
+   ```sh
    cargo update -p app-starter
    ```
 3. **Run the full gate set:**
-   ```
+   ```sh
    just verify
    ```
 4. **Preflight** (read-only) before tagging — confirms a clean tree, Cargo.toml/Cargo.lock
    agreement, and that the tag does not already exist:
-   ```
+   ```sh
    .claude/skills/cut-release/scripts/preflight-release.sh
    ```
 5. **Commit** with a conventional message: `chore(release): bump version to X.Y.Z`.
 6. **Tag and push** (this triggers publishing — an outward-facing action; confirm intent):
-   ```
+   ```sh
    git tag vX.Y.Z
    git push origin master --tags
    ```

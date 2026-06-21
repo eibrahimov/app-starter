@@ -1,0 +1,289 @@
+{
+  "$comment": "Machine-readable companion to docs/radix-reference.md and docs/radix-workflow.md: the closed Radix vocabulary an agent maps a natural-language UI request onto deterministically. radix.catalog.test.ts pins the two sections backed by code -- the icon list against icons.ts, and each theme.config.ts value against its props.*.values list -- so those cannot silently drift. The rest (components, componentProps, layoutProps, templatePrimitives, statusColors, gaps) mirrors docs/radix-reference.md by hand and is prose-authoritative: change one, change both.",
+  "version": "1",
+  "themesPackageVersion": "^3.3.0",
+  "products": [
+    {
+      "name": "Themes",
+      "package": "@radix-ui/themes",
+      "role": "default styled UI layer (components + <Theme> provider + tokens)"
+    },
+    {
+      "name": "Primitives",
+      "package": "radix-ui",
+      "role": "unstyled accessible behavior, composed only for the documented Themes gaps"
+    },
+    {
+      "name": "Colors",
+      "package": "@radix-ui/colors",
+      "role": "12-step scales; touched only for a custom brand hex"
+    },
+    {
+      "name": "Icons",
+      "package": "@radix-ui/react-icons",
+      "role": "15x15 currentColor glyph set; consumed via the icons.ts allow-list"
+    }
+  ],
+  "theme": {
+    "configFile": "interface/src/theme/theme.config.ts",
+    "note": "One <Theme> configures the whole app. An NL restyle maps to a single edit here; the configure-theme skill owns the procedure. Never add `appearance` (light/dark is driven by the .dark class).",
+    "props": {
+      "accentColor": {
+        "values": [
+          "gray",
+          "gold",
+          "bronze",
+          "brown",
+          "yellow",
+          "amber",
+          "orange",
+          "tomato",
+          "red",
+          "ruby",
+          "crimson",
+          "pink",
+          "plum",
+          "purple",
+          "violet",
+          "iris",
+          "indigo",
+          "blue",
+          "cyan",
+          "teal",
+          "jade",
+          "green",
+          "grass",
+          "lime",
+          "mint",
+          "sky"
+        ],
+        "default": "indigo",
+        "request": "\"make it teal\", \"use a green accent\""
+      },
+      "grayColor": {
+        "values": ["auto", "gray", "mauve", "slate", "sage", "olive", "sand"],
+        "default": "auto",
+        "request": "\"switch the gray to slate\", \"warmer neutrals\""
+      },
+      "panelBackground": {
+        "values": ["solid", "translucent"],
+        "default": "translucent",
+        "request": "\"solid panels\", \"translucent/blurred menus\""
+      },
+      "radius": {
+        "values": ["none", "small", "medium", "large", "full"],
+        "default": "medium",
+        "request": "\"rounder corners\", \"sharp/square corners\""
+      },
+      "scaling": {
+        "values": ["90%", "95%", "100%", "105%", "110%"],
+        "default": "100%",
+        "request": "\"denser UI\" (90%), \"make it bigger/roomier\" (105%+)"
+      },
+      "appearance": {
+        "values": ["inherit", "light", "dark"],
+        "default": "inherit",
+        "doNotSet": true,
+        "note": "Driven by the .dark class on <html> (ThemeProvider + pre-hydration script). Passing this prop reintroduces a load flash."
+      }
+    },
+    "customBrandColor": {
+      "file": "interface/src/theme/accent.css",
+      "state": "templated-empty",
+      "note": "Escape hatch for a specific brand hex no built-in hue matches: a renamed 12-step scale scoped to .radix-themes / .dark. The configure-theme skill (Path B) owns the recipe."
+    }
+  },
+  "components": {
+    "layout": [
+      "Box",
+      "Flex",
+      "Grid",
+      "Container",
+      "Section",
+      "Inset",
+      "AspectRatio"
+    ],
+    "typography": [
+      "Text",
+      "Heading",
+      "Blockquote",
+      "Code",
+      "Em",
+      "Kbd",
+      "Link",
+      "Quote",
+      "Strong",
+      "Separator"
+    ],
+    "forms": [
+      "TextField",
+      "TextArea",
+      "Checkbox",
+      "CheckboxGroup",
+      "CheckboxCards",
+      "RadioGroup",
+      "RadioCards",
+      "Select",
+      "Slider",
+      "Switch",
+      "SegmentedControl"
+    ],
+    "actions": ["Button", "IconButton", "DropdownMenu", "ContextMenu"],
+    "dataDisplay": [
+      "Card",
+      "Badge",
+      "Avatar",
+      "Table",
+      "DataList",
+      "Callout",
+      "Progress",
+      "Spinner",
+      "Skeleton"
+    ],
+    "overlays": ["Dialog", "AlertDialog", "Popover", "HoverCard", "Tooltip"],
+    "navigation": ["TabNav", "Tabs", "Link"],
+    "utilities": ["VisuallyHidden", "Portal", "Reset", "Theme", "ThemePanel"]
+  },
+  "componentProps": {
+    "variant": {
+      "values": ["solid", "soft", "surface", "outline", "ghost"],
+      "note": "The exact set varies per component; Button/Badge/Card support most."
+    },
+    "size": {
+      "values": ["1", "2", "3", "4"],
+      "note": "Common control scale. Typography (Text/Heading) and some layout props extend to \"9\". Use size \"3\"+ on interactive elements for >=44px touch targets."
+    },
+    "color": {
+      "values": "any accentColor hue (see theme.props.accentColor.values)",
+      "note": "Overrides the theme accent for one element."
+    },
+    "highContrast": { "values": [true, false] },
+    "radius": {
+      "values": ["none", "small", "medium", "large", "full"],
+      "note": "Per-element override of the global radius."
+    }
+  },
+  "layoutProps": {
+    "spacing": {
+      "props": [
+        "p",
+        "px",
+        "py",
+        "pt",
+        "pr",
+        "pb",
+        "pl",
+        "m",
+        "mx",
+        "my",
+        "mt",
+        "mr",
+        "mb",
+        "ml",
+        "gap",
+        "gapX",
+        "gapY"
+      ],
+      "scale": ["1", "2", "3", "4", "5", "6", "7", "8", "9"]
+    },
+    "flexGrid": [
+      "direction",
+      "align",
+      "justify",
+      "wrap",
+      "columns",
+      "rows",
+      "flexGrow",
+      "flexShrink"
+    ],
+    "sizing": ["width", "minWidth", "maxWidth", "height"],
+    "breakpoints": ["initial", "xs", "sm", "md", "lg", "xl"],
+    "responsiveSyntax": "object per prop, e.g. direction={{ initial: \"column\", md: \"row\" }}"
+  },
+  "templatePrimitives": {
+    "note": "interface/src/components/ui/* -- thin wrappers that pin the template's public API over a Themes component. Use these in pages; reach for the bare Themes component when a wrapper does not exist.",
+    "Button": {
+      "wraps": "Button",
+      "prop": "variant",
+      "values": ["primary", "ghost", "danger", "success", "warning"]
+    },
+    "Badge": {
+      "wraps": "Badge",
+      "prop": "tone",
+      "values": ["neutral", "emerald", "amber", "red", "zinc"]
+    },
+    "Card": { "wraps": "Card", "prop": "as", "values": ["div", "li"] },
+    "Input": { "wraps": "TextField.Root" },
+    "Checkbox": { "wraps": "Checkbox" },
+    "Dialog": { "wraps": "Dialog.*" },
+    "DropdownMenu": { "wraps": "DropdownMenu.*" },
+    "Tooltip": { "wraps": "Tooltip" },
+    "Spinner": { "wraps": "Spinner" },
+    "EmptyState": { "wraps": "Text" },
+    "ErrorState": { "wraps": "Callout/Text", "role": "alert" },
+    "VisuallyHidden": { "wraps": "VisuallyHidden" }
+  },
+  "sections": {
+    "note": "interface/src/components/sections/* -- composite blocks composing primitives + Themes layout.",
+    "members": [
+      "PageHeader",
+      "Toolbar",
+      "FilterBar",
+      "StatGroup",
+      "DataList",
+      "Field"
+    ]
+  },
+  "statusColors": {
+    "note": "Semantic status maps to Radix hues (the replacement for old text-success/-warning/-destructive tokens). Apply via the `color` prop, the Badge `tone`, or the Button `variant`.",
+    "success": "grass",
+    "pending": "amber",
+    "destructive": "red",
+    "neutral": "gray"
+  },
+  "icons": {
+    "package": "@radix-ui/react-icons",
+    "allowListFile": "interface/src/theme/icons.ts",
+    "note": "Closed set. Add a glyph to icons.ts before using it; broadening past Radix Icons (e.g. lucide-react) is an approval-gated dependency swap. This list is asserted equal to icons.ts by radix.catalog.test.ts.",
+    "allow": [
+      "SunIcon",
+      "MoonIcon",
+      "CheckIcon",
+      "CaretSortIcon",
+      "ChevronDownIcon",
+      "CrossCircledIcon",
+      "CheckCircledIcon",
+      "ExclamationTriangleIcon",
+      "MagnifyingGlassIcon",
+      "PlusIcon",
+      "TrashIcon"
+    ]
+  },
+  "gaps": {
+    "note": "Not in Themes -- compose from unstyled radix-ui primitives + Theme tokens (var(--accent-9), Text/Flex/Box). This is an add-component gap task, not a Themes-config task.",
+    "members": [
+      "Toast",
+      "Accordion",
+      "Collapsible",
+      "NavigationMenu",
+      "Menubar",
+      "Toolbar",
+      "ToggleGroup",
+      "Toggle",
+      "Form"
+    ]
+  },
+  "gates": {
+    "lint": "just lint",
+    "test": "just test",
+    "typegen": "just check-typegen",
+    "verify": "just verify",
+    "a11y": "just a11y",
+    "component": ".claude/skills/add-component/scripts/validate-component.sh"
+  },
+  "see": [
+    "docs/radix-reference.md",
+    "docs/radix-workflow.md",
+    "docs/components.md"
+  ]
+}
