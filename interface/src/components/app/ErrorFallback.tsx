@@ -6,7 +6,8 @@ import type { FallbackProps } from "react-error-boundary";
 // even when the backend or network is unreachable — it must never itself depend
 // on a fetch. "Try again" re-mounts the boundary's subtree to recover from a
 // transient error; "Reload" reloads the SPA from its embedded (desktop) or
-// served (web) assets, both of which are local to the app origin.
+// served (web) assets, both of which are local to the app origin. For a failed
+// data query (not a render crash) use `ui/ErrorState` instead.
 export function ErrorFallback({ error, resetErrorBoundary }: FallbackProps) {
   const message = error instanceof Error ? error.message : String(error);
   return (
