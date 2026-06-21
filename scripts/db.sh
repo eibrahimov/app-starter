@@ -34,20 +34,30 @@ require_sqlite3() {
 
 # Echo the effective DATABASE_URL: the environment wins, then the DATABASE_URL
 # line in .env (the same file dotenvy loads at startup), then the built-in
-# default from src/main.rs.
+# default from src/main.rs. The .env parse mirrors dotenvy: an optional `export `
+# prefix, a single- or double-quoted value, and a trailing ` # comment` on an
+# unquoted value are all handled, so a fork's .env resolves to the database the
+# server actually opens instead of silently falling back to the default.
 resolve_database_url() {
   if [ -n "${DATABASE_URL:-}" ]; then
     printf '%s' "$DATABASE_URL"
     return
   fi
   if [ -f "$ROOT/.env" ]; then
-    local line
-    line="$(grep -E '^[[:space:]]*DATABASE_URL=' "$ROOT/.env" | tail -n1 || true)"
+    local line val
+    line="$(grep -E '^[[:space:]]*(export[[:space:]]+)?DATABASE_URL=' "$ROOT/.env" | tail -n1 || true)"
     if [ -n "$line" ]; then
-      line="${line#*=}"
-      line="${line%\"}"; line="${line#\"}"
-      line="${line%\'}"; line="${line#\'}"
-      printf '%s' "$line"
+      val="${line#*=}"                              # drop `[export ]DATABASE_URL=`
+      case "$val" in
+        \"*) val="${val#\"}"; val="${val%%\"*}" ;;  # "quoted": content up to the next "
+        \'*) val="${val#\'}"; val="${val%%\'*}" ;;  # 'quoted': content up to the next '
+        *)                                          # unquoted: drop ` # comment`, then trim
+          val="${val%%[[:space:]]#*}"
+          val="${val#"${val%%[![:space:]]*}"}"      # ltrim leading whitespace
+          val="${val%"${val##*[![:space:]]}"}"      # rtrim trailing whitespace
+          ;;
+      esac
+      printf '%s' "$val"
       return
     fi
   fi
@@ -81,7 +91,12 @@ resolve_db_file() {
 # snapshot <src-db> <dest-file>: consistent online backup of a live DB into a new
 # file. The destination is passed as a double-quoted .backup argument with
 # backslash/double-quote escaping, so paths containing spaces or apostrophes work.
+# A newline cannot be represented in the line-based .backup dot-command, so a
+# destination containing one is rejected rather than turned into a broken command.
 snapshot() {
+  case "$2" in
+    *$'\n'*) die "refusing to snapshot to a path containing a newline: $2" ;;
+  esac
   local esc="$2"
   esc="${esc//\\/\\\\}"   # backslash -> \\
   esc="${esc//\"/\\\"}"   # double quote -> \"
@@ -91,6 +106,21 @@ snapshot() {
 # integrity <db>: echo the PRAGMA integrity_check result ('ok' when healthy).
 integrity() {
   sqlite3 "$1" 'PRAGMA integrity_check;' 2>/dev/null
+}
+
+# unique_db_path <base>: echo "<base>.db", or "<base>-2.db", "<base>-3.db", ... --
+# the first variant that does not yet exist. The timestamp is per-second, so two
+# snapshots in the same second share a <base>; this keeps the later one from
+# clobbering the earlier. Best-effort (a check-then-create window), which is
+# ample for the manual and cron use these recipes target.
+unique_db_path() {
+  local base="$1" path n=2
+  path="${base}.db"
+  while [ -e "$path" ]; do
+    path="${base}-${n}.db"
+    n=$((n + 1))
+  done
+  printf '%s' "$path"
 }
 
 backup() {
@@ -103,7 +133,7 @@ backup() {
   dir="${BACKUP_DIR:-$ROOT/backups}"
   mkdir -p "$dir" || die "could not create backup directory: $dir"
   stem="$(basename "$DBFILE")"; stem="${stem%.db}"
-  dest="$dir/${stem}-${stamp}.db"
+  dest="$(unique_db_path "$dir/${stem}-${stamp}")"
 
   snapshot "$DBFILE" "$dest"
   # Verify the snapshot opens and is structurally sound before claiming success.
@@ -146,7 +176,7 @@ restore() {
     mkdir -p "$dir" || die "could not create backup directory: $dir"
     stem="$(basename "$dbfile")"; stem="${stem%.db}"
     stamp="$(date -u +%Y%m%dT%H%M%SZ)"
-    safety="$dir/${stem}-pre-restore-${stamp}.db"
+    safety="$(unique_db_path "$dir/${stem}-pre-restore-${stamp}")"
     snapshot "$dbfile" "$safety"
     printf 'Saved current database to %s\n' "$safety"
   fi

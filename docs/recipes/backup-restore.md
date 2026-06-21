@@ -19,6 +19,10 @@ Requires the `sqlite3` CLI on your PATH (macOS ships it; Debian/Ubuntu:
 `apt-get install sqlite3`). No `just`? Run the underlying script directly:
 `bash scripts/db.sh {backup|restore <file>|check}`.
 
+Verify the helper itself with `just db-selftest` (or `bash scripts/db.test.sh`),
+which runs the full backup -> restore -> check round-trip and the guard rails
+against a throwaway database in a temp dir — it never touches your real data.
+
 ## Why not `cp`?
 
 The server (via sqlx) opens SQLite in **WAL** mode, so a live database is spread
@@ -98,8 +102,9 @@ just db-check
 # PRAGMA integrity_check: ok
 #
 # Applied migrations:
-#   20240101000000  create items
-#   20240102000000  create posts
+#   20260611000001  create items
+#   20260613000001  create posts
+#   20260621000001  add posts status check
 ```
 
 - Exits non-zero if the check fails, so `just db-check` works as a CI gate or a

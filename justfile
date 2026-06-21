@@ -32,6 +32,11 @@ db-restore file:
 db-check:
     bash scripts/db.sh check
 
+# Smoke-test scripts/db.sh: the backup/restore/check round-trip and guard rails
+# against a throwaway database (no real data touched). See scripts/db.test.sh.
+db-selftest:
+    bash scripts/db.test.sh
+
 # Run the Vite dev server with /api proxied to the backend
 frontend-dev:
     cd interface && bun run dev
