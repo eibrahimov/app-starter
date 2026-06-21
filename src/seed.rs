@@ -19,9 +19,13 @@
 //!
 //! It is idempotent by design: each resource is seeded only when its table is
 //! empty, so re-running (or leaving `--seed` on) never duplicates rows and
-//! never overwrites real data. It deliberately goes through the same
-//! `items`/`posts` domain functions the HTTP handlers use, so the seed path
-//! exercises the real code instead of bypassing it with raw SQL.
+//! never overwrites real data. The empty check and the inserts are separate
+//! statements, so this assumes a single seeding process — two instances
+//! booting with `--seed` against the same database could each seed once. That
+//! is fine for the single-instance startup this seam targets. It deliberately
+//! goes through the same `items`/`posts` domain functions the HTTP handlers
+//! use, so the seed path exercises the real code instead of bypassing it with
+//! raw SQL.
 
 use sqlx::SqlitePool;
 
@@ -125,7 +129,9 @@ async fn seed_posts(pool: &SqlitePool) -> Result<u64, sqlx::Error> {
     Ok(inserted)
 }
 
-/// Total posts across all statuses, reusing the existing aggregate query.
+/// Total posts across all statuses. Unlike `items::list`, `posts::list` takes
+/// status/limit/offset arguments, so the emptiness check reuses the existing
+/// `stats` aggregate instead of fetching rows just to count them.
 async fn post_count(pool: &SqlitePool) -> Result<i64, sqlx::Error> {
     let stats = posts::stats(pool).await?;
     Ok(stats.draft + stats.published + stats.archived)

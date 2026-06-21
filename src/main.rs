@@ -18,8 +18,9 @@ struct Args {
     database_url: String,
 
     /// Seed the database with example items and posts on startup, then keep
-    /// serving. Off by default; also enabled with `SEED=1`. Idempotent (it
-    /// skips any resource that already has rows), so it is safe to leave on.
+    /// serving. Off by default; also enabled with `SEED=1`. Idempotent for a
+    /// single seeding process — it skips any resource that already has rows —
+    /// so it is safe to leave on for a normal single-instance deploy.
     /// Removable convenience — see `src/seed.rs`.
     #[arg(long)]
     seed: bool,
