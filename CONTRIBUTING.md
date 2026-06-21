@@ -39,15 +39,13 @@ Use conventional commit messages (`feat:`, `fix:`, `ci:`, `docs:`, `test:`). Kee
 
 ## Approval boundaries
 
-Open an issue or get maintainer approval before changing:
-
-- security posture, authentication, authorization, CORS, request limits, or public exposure defaults;
-- dependency policy, major dependency upgrades, Rust edition/toolchain, or JS package manager;
-- release workflow, Docker publishing, tags, package names, binary names, or registry targets;
-- migration history, data-destructive behavior, or committed migration edits/renames;
-- generated-file policy or manual edits to `interface/src/api/schema.d.ts`;
-- architectural conventions not represented by both worked examples;
-- license policy or copied third-party code.
+The canonical list lives in [`AGENTS.md`](AGENTS.md) ("Approval boundaries"). In
+short, open an issue or get maintainer approval before changing: security posture,
+auth, CORS, request limits, or public-exposure defaults; dependency, toolchain, or
+package-manager policy; the release, Docker-publishing, tag, or naming/registry
+pipeline; migration history or data-destructive behavior; generated-file policy
+(`interface/src/api/schema.d.ts`); architectural conventions not shown by both
+worked examples; or license/third-party-code policy.
 
 Routine docs clarifications, tests, bug fixes, and resource additions following
 the `items`/`posts` pattern do not need a separate approval issue.
