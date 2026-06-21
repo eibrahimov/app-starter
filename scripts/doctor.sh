@@ -66,6 +66,27 @@ fi
 note "Frontend build state"
 if [ -d interface/node_modules ]; then
   ok "interface/node_modules present."
+  # Install drift is the silent footgun: node_modules exists but is stale or
+  # incomplete, so the dev server only fails to resolve a dependency at runtime
+  # (e.g. a dep in package.json/bun.lock that was never physically installed).
+  # Two independent, read-only checks (no install, no lockfile write):
+  if command -v bun >/dev/null; then
+    # (a) bun.lock must satisfy package.json: --frozen-lockfile exits nonzero
+    #     when they disagree (a dep added/bumped without updating the lockfile).
+    if (cd interface && bun install --frozen-lockfile --dry-run) >/dev/null 2>&1; then
+      ok "interface/bun.lock is in sync with package.json (frozen-lockfile)."
+    else
+      warn "interface/bun.lock is out of sync with package.json. Run: cd interface && bun install"
+    fi
+    # (b) --frozen-lockfile still passes when a locked package is merely absent
+    #     from node_modules, so verify each declared dep is physically present.
+    MISSING_DEPS="$(cd interface && bun -e 'const fs=require("fs");const p=require("./package.json");const n=[...Object.keys(p.dependencies||{}),...Object.keys(p.devDependencies||{})];process.stdout.write(n.filter(x=>!fs.existsSync("node_modules/"+x)).join(" "))' 2>/dev/null)"
+    if [ -n "$MISSING_DEPS" ]; then
+      warn "interface deps declared but not installed: $MISSING_DEPS. Run: cd interface && bun install"
+    else
+      ok "all declared interface deps are present in node_modules."
+    fi
+  fi
 else
   warn "interface deps not installed. Run: cd interface && bun install"
 fi

@@ -143,6 +143,7 @@ SQLite via sqlx — a single file on disk (or `:memory:` in tests). It is a **si
 - **`bun: command not found`** during build: install [Bun](https://bun.sh), then `cd interface && bun install`.
 - **Port 8080 already in use:** run `PORT=8081 cargo run`, or stop the other process.
 - **`frontend not built` page:** run `cd interface && bun install && bun run build`, then `cargo run`.
+- **`just doctor` flags interface deps "declared but not installed" or `bun.lock` "out of sync":** your `interface/node_modules` is stale or incomplete (a dependency in `package.json`/`bun.lock` was never installed) — the dev server fails to resolve it only at runtime. Run `cd interface && bun install`.
 - **`tsc` errors after changing an endpoint:** run `just typegen` and commit `interface/src/api/schema.d.ts` — it is generated, never hand-edited.
 - **`database is locked`:** another process holds the SQLite file; stop it, or point `DATABASE_URL` at a different path.
 - **`migration … was previously applied but is missing in the resolved migrations`:** your local SQLite file recorded a migration that no longer exists in `migrations/` (e.g. you ran a branch that was later reverted). The local DB is gitignored scratch data: delete it (`rm data/app.db`) and restart — the app recreates it from the current migrations. Back it up first if it holds data you need.
