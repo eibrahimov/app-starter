@@ -93,6 +93,10 @@ Use axum 0.8 brace syntax for route params, such as `{id}`.
 
 Most common mistake: an endpoint missing from OpenAPI `paths(...)` still works
 at runtime but disappears from `interface/src/api/schema.d.ts` after typegen.
+`just test` guards against this: `routes_and_openapi_spec_are_in_parity` fails if a
+`/api/v1` route and the OpenAPI paths disagree, and
+`openapi_spec_has_no_dangling_schema_refs` fails if a registered handler's schema is
+missing from `components(schemas(...))`.
 
 ### 6. Add backend tests
 
