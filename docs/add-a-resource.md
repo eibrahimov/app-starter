@@ -141,7 +141,9 @@ Frontend conventions:
 - Use resource-scoped array query keys (`["items"]`, `["posts", filter]`); mutations
   invalidate the broad `[key]` prefix so lists and stats refresh together.
 - Co-locate a Vitest test (`<Name>.test.tsx`), as `Items.tsx`/`Posts.tsx` do.
-- Zinc palette, spaces not tabs, no `@/` path aliases, no barrel/index files.
+- Style via Radix Themes props (`color`/`variant`/`size`, layout props on
+  `Flex`/`Box`/`Grid`) — no Tailwind utilities or token CSS. Spaces not tabs, no
+  `@/` path aliases, no barrel/index files.
 
 See [components.md](components.md) and the `add-component` skill for the full catalog
 and the step-by-step component/section/hook procedure.

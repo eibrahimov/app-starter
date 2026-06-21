@@ -73,8 +73,10 @@ relative to the spec.
   import createClient from "openapi-fetch";
   import type { paths } from "./schema";
 
+  // baseUrl precedence: VITE_API_BASE_URL (build-time) -> Tauri sidecar
+  // loopback -> "/" (same-origin browser default). See docs/api-endpoint.md.
   export const api = createClient<paths>({
-    baseUrl: isTauri ? "http://127.0.0.1:8080" : "/",
+    baseUrl: resolveApiBaseUrl(),
   });
   ```
 
@@ -372,5 +374,5 @@ Tauri the page origin is `tauri://localhost`, so relative API paths would not
 reach the server. The client in `api/client.ts` detects Tauri via
 `"__TAURI_INTERNALS__" in window` and switches `baseUrl` to the sidecar origin
 `http://127.0.0.1:8080`; in the browser and the Vite dev server (which proxies
-`/api`) it uses `/`. **Do not remove or hardcode around this logic** -- it is
+`/api`) it uses `/`. A build-time `VITE_API_BASE_URL` overrides both when set (see `docs/api-endpoint.md`). **Do not remove or hardcode around this logic** -- it is
 what makes the same frontend work in both the browser and the desktop shell.

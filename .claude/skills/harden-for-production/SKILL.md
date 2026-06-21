@@ -20,7 +20,7 @@ do not restate it:
 
 ## The footgun this skill exists to catch
 
-`src/api/mod.rs` ships `CorsLayer::permissive()` so the optional Tauri sidecar can reach
+`src/api.rs` ships `CorsLayer::permissive()` so the optional Tauri sidecar can reach
 the API from `tauri://localhost`. Permissive CORS on a publicly-exposed API is the single
 most common way a generated app ships unsafe. Before public exposure you must either
 restrict origins or **explicitly accept** the permissive default for your exposure model —
