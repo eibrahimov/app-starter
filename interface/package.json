@@ -21,7 +21,8 @@
     "@tanstack/react-router": "^1",
     "openapi-fetch": "^0.17",
     "react": "^19",
-    "react-dom": "^19"
+    "react-dom": "^19",
+    "react-error-boundary": "^6.1.2"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.11.3",

@@ -11,7 +11,11 @@ import {
   createRouter,
   Link,
   Outlet,
+  useRouterState,
 } from "@tanstack/react-router";
+import { ErrorBoundary } from "react-error-boundary";
+import { ErrorFallback } from "./components/app/ErrorFallback";
+import { reportBoundaryError } from "./components/app/reportBoundaryError";
 import { ThemeToggle } from "./components/theme/ThemeToggle";
 import { HomePage } from "./pages/Home";
 import { ItemsPage } from "./pages/Items";
@@ -50,6 +54,9 @@ function NavLink({ to, children }: { to: string; children: string }) {
 }
 
 function Layout() {
+  // Reset the route-level boundary on navigation so a crash on one page does
+  // not stick after the user moves to another route.
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
   return (
     <Container size="2" px="4" py={{ initial: "6", sm: "8" }}>
       <Box
@@ -71,7 +78,15 @@ function Layout() {
           </Flex>
         </nav>
       </Box>
-      <Outlet />
+      {/* Route-level boundary: a render error in a page falls back inline while
+          the nav shell above stays usable, instead of white-screening the SPA. */}
+      <ErrorBoundary
+        FallbackComponent={ErrorFallback}
+        onError={reportBoundaryError}
+        resetKeys={[pathname]}
+      >
+        <Outlet />
+      </ErrorBoundary>
     </Container>
   );
 }

@@ -161,5 +161,17 @@ These belong in the same roadmap:
   `react-error-boundary` React-19 major, the precise CSP directive set, and which
   `core:*` permissions the ACL trim can safely drop. The architectural call on each is
   sound; the version/policy specifics should be confirmed when the PR lands.
+- **Confirmed during the 0.3.0 implementation (#50, 2026-06-21):** the Tier-1 version
+  inferences are now pinned in `desktop/src-tauri/Cargo.lock` —
+  `tauri-plugin-single-instance` 2.4.2, `tauri-plugin-window-state` 2.4.1, and
+  `tauri-plugin-log` 2.8.0 (the sidecar-drain sink), plus `log` 0.4.33 (Rust facade)
+  and `react-error-boundary` 6.1.2 (frontend). Corrections to the inference list: the
+  `react-error-boundary` "React-19 major" resolves to **v6** (peer `react ^18 || ^19`,
+  native 19 support — there is no React-19-incompatible major to dodge); the
+  `tauri#12936` `set_focus`-on-hidden behavior is real, and the
+  `show() + unminimize() + set_focus()` single-instance callback is the working fix.
+  The CSP/`devCsp` directive set and the `core:*` ACL trim remain **unverified
+  inferences** — they are 0.4.0 / #51 (security-posture) scope and were deliberately
+  not touched in #50.
 - **Freshness:** every external fact is dated 2026-06-21. Re-verify the Tier 2 items
   (updater/tauri-action key formats, mobile-sidecar status) before building — they drift.
