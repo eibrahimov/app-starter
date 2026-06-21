@@ -23,6 +23,11 @@ restating everything:
   props, the styling/layout props, status-color mapping, and the documented gaps.
 - [`docs/components.md`](../../../docs/components.md) (human-facing, with the full
   catalog and snippets)
+- [`docs/radix-workflow.md`](../../../docs/radix-workflow.md) — where this skill
+  sits in the end-to-end build lifecycle (the Integrate stage).
+- [`interface/src/theme/radix.catalog.json`](../../../interface/src/theme/radix.catalog.json)
+  — the machine-readable component/prop/icon/gap catalog (the same vocabulary as
+  the reference, parseable; kept in sync by `radix.catalog.test.ts`).
 - [`AGENTS.md`](../../../AGENTS.md) -> frontend conventions (agent-facing)
 
 The layer has three tiers. Copy the shape of what already exists:
@@ -130,13 +135,13 @@ Run the bundled script from anywhere in the repo — it runs the frontend gates
 (Biome, tsc, Vitest) and greps the new files for the two frontend footguns
 (`@/` imports and `<button>` without `type=`):
 
-```
+```sh
 .claude/skills/add-component/scripts/validate-component.sh
 ```
 
 Then run the full CI set before declaring done:
 
-```
+```sh
 just verify
 ```
 

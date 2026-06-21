@@ -15,13 +15,14 @@ workflow, the resource recipe, and approval boundaries.
 The UI layer is Radix Themes (`@radix-ui/themes`); the single global config surface
 is `interface/src/theme/theme.config.ts` (fed into `<Theme>`). See
 [docs/radix-reference.md](docs/radix-reference.md) for the component catalog and
-Theme props.
+Theme props, and [docs/radix-workflow.md](docs/radix-workflow.md) for the
+end-to-end lifecycle that takes a natural-language app request to a gated build.
 
 ## Validation matrix
 
 Required before normal PR/commit handoff:
 
-```
+```sh
 just lint      # cargo fmt --check + clippy -D warnings + frontend Biome + tsc
 just test      # backend black-box tests against in-memory SQLite
 just check-typegen  # fail if the committed types are stale (CI enforces this)
@@ -30,7 +31,7 @@ just verify    # everything CI runs: lint + test + typegen drift + frontend buil
 
 Also run when relevant:
 
-```
+```sh
 just typegen   # when API/OpenAPI annotations changed; commit interface/src/api/schema.d.ts
 just build     # release, embedded UI, Docker, frontend build, or packaging changes
 just docker-build    # Dockerfile/compose/deployment changes

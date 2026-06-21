@@ -84,7 +84,7 @@ For contribution gates and approval boundaries, see [`CONTRIBUTING.md`](CONTRIBU
 
 ## Project layout
 
-```
+```text
 src/
   main.rs          server entry (clap args, env via .env)
   lib.rs           AppState

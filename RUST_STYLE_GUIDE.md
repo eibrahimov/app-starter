@@ -22,7 +22,7 @@ treat it as a bug in one of them and fix it.
 A single binary plus library crate. The binary is thin; all domain and HTTP
 logic lives in the library so integration tests and binaries can both reach it.
 
-```
+```text
 src/
 ├── main.rs          — process entry: env, logging, args, serve, shutdown
 ├── lib.rs           — crate root: pub mod declarations + AppState

@@ -30,7 +30,7 @@ and document the choice. Do NOT silently remove the Tauri-aware base URL logic i
 ## Procedure
 
 1. **Run the audit** (read-only) from the repo root to see the current posture:
-   ```
+   ```sh
    .claude/skills/harden-for-production/scripts/production-audit.sh
    ```
    It flags committed secrets, the permissive CORS default, a placeholder Tauri bundle id,

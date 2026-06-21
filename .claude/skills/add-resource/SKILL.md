@@ -86,13 +86,13 @@ Work in this order; each step maps to the canonical docs for snippets.
 Run the bundled validation script from the repo root — it checks the typegen drift
 gate and runs the backend tests including the dangling-`$ref` guard:
 
-```
+```sh
 .claude/skills/add-resource/scripts/validate-resource.sh
 ```
 
 Then run the full CI set before declaring done:
 
-```
+```sh
 just verify
 ```
 

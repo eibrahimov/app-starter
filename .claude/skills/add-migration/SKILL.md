@@ -39,7 +39,7 @@ new corrective forward migration.
    run `just typegen`, and commit `interface/src/api/schema.d.ts` (additive within `/api/v1`).
 4. **Check** (read-only) that you did not touch a committed migration and the new file sorts
    last:
-   ```
+   ```sh
    .claude/skills/add-migration/scripts/check-migrations.sh
    ```
 5. **Validate:** `just test` (migrations run against in-memory SQLite), then `just verify`.
