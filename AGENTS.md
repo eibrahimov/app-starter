@@ -140,6 +140,10 @@ pagination, get-by-id, and an aggregate stats endpoint). Copy their shape exactl
    (`<Name>.test.tsx`) as `Items.tsx`/`Posts.tsx` do. See
    [docs/radix-reference.md](docs/radix-reference.md) and the `add-component` skill
    for the component catalog and the step-by-step component/section/hook procedure.
+   Cross-cutting app-shell infrastructure (the error boundaries and the startup
+   health gate) lives in `interface/src/components/app/` — distinct from `ui/`
+   (primitives), `sections/` (composite page sections), and `theme/` (theming);
+   put new shell-level wrappers there, not in `ui/`.
 9. Route: in `interface/src/router.tsx` add a `createRoute({...})`, append it to
    `rootRoute.addChildren([...])`, and add a nav `<Link>` in `Layout`.
 

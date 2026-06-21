@@ -118,6 +118,15 @@ shell, so both layers hot-reload: the UI via Vite and the backend on Rust
 changes. It holds port 8080 first, so the shell's auto-spawned sidecar yields to
 it. (Equivalently, run `cargo run` at the repo root before `just desktop-dev`.)
 
+The shell ships a few safe-by-default behaviors (see
+[docs/desktop-features.md](docs/desktop-features.md)): a **single-instance
+guard** so a second launch focuses the running window instead of starting a
+second backend that would race the SQLite file; **window size/position
+persistence** across restarts; and a **sidecar log drain** that records the
+bundled backend's stdout/stderr and exit code to a log file (see
+[Troubleshooting](#troubleshooting)) so a failed startup is diagnosable rather
+than a blank window.
+
 Before shipping: replace the placeholder icon if needed with `cd desktop && bunx tauri icon src-tauri/icons/icon.png`, and change the bundle identifier in `desktop/src-tauri/tauri.conf.json` from `com.example.*` to your reverse domain.
 
 ## Database
@@ -132,6 +141,7 @@ SQLite via sqlx — a single file on disk (or `:memory:` in tests). It is a **si
 - **`tsc` errors after changing an endpoint:** run `just typegen` and commit `interface/src/api/schema.d.ts` — it is generated, never hand-edited.
 - **`database is locked`:** another process holds the SQLite file; stop it, or point `DATABASE_URL` at a different path.
 - **`migration … was previously applied but is missing in the resolved migrations`:** your local SQLite file recorded a migration that no longer exists in `migrations/` (e.g. you ran a branch that was later reverted). The local DB is gitignored scratch data: delete it (`rm data/app.db`) and restart — the app recreates it from the current migrations. Back it up first if it holds data you need.
+- **Desktop app shows a blank or broken window:** the bundled backend (sidecar) failed to start. The shell drains the sidecar's stdout/stderr and exit code to `app-starter-desktop.log` in the OS log directory for the app's bundle id (macOS: `~/Library/Logs/com.example.app-starter/`); open it for the bind failure, migration error, or panic that aborted startup.
 
 ## Deploy
 

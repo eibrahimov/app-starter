@@ -13,5 +13,12 @@ tauri-build = { version = "2", features = [] }
 [dependencies]
 tauri = { version = "2", features = [] }
 tauri-plugin-shell = "2"
+# Cheap-safety defaults for the sidecar shell (issue #50, docs/desktop-features.md
+# §3): single-instance guard, window-state persistence, and a log sink for the
+# drained sidecar stream. `log` provides the facade the drain writes through.
+tauri-plugin-single-instance = "2"
+tauri-plugin-window-state = "2"
+tauri-plugin-log = "2"
+log = "0.4"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"

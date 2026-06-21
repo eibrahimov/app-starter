@@ -51,7 +51,7 @@ High value, low/medium effort, safe-by-default, no signing, no scope conflict.
 |---|---|---|
 | **Single-instance guard** | `tauri-plugin-single-instance` — register **first** in the Builder; the callback shows/unminimizes/focuses the existing `main` window | The single most important safety default for *this* template. A double-launch otherwise spawns a **second axum sidecar** contending for the same `sqlite://app.db` (`mode=rwc`) and port. Desktop-only — gate with `#[cfg(desktop)]`. |
 | **CSP hardening** | Replace `app.security.csp = null` with a strict policy; add a separate `devCsp` for the Vite HMR origin; keep `dangerousDisableAssetCspModification = false` | Closes the one concrete hardening gap. The webview is a full browser pointed at an HTTP backend, so stored-XSS in any field could pivot to IPC or exfiltrate. **`connect-src` must whitelist the sidecar loopback origin** or every fork breaks — ship a known-good policy tested against the Items/Posts examples, not a guess. Tauri does **not** auto-merge a Vite HMR CSP; scaffold `devCsp` explicitly. |
-| **Forward the sidecar log stream** | In `main.rs` the sidecar is spawned as `let (_events, child) = …` and `_events` is **discarded**. Drain `CommandEvent::Stdout/Stderr/Terminated` into a log and record the exit code | Highest reliability ROI, unique to this architecture. Today a failed bind, a stale-migration panic, or a non-zero exit shows a silently broken UI with no trace. Draining the stream turns the #1 "desktop app is broken" class into a one-line diagnosis. No new crate. |
+| **Forward the sidecar log stream** | In `main.rs` the sidecar is spawned as `let (_events, child) = …` and `_events` is **discarded**. Drain `CommandEvent::Stdout/Stderr/Terminated` into a log and record the exit code | Highest reliability ROI, unique to this architecture. Today a failed bind, a stale-migration panic, or a non-zero exit shows a silently broken UI with no trace. Draining the stream turns the #1 "desktop app is broken" class into a one-line diagnosis. No new crate. **Forks adding auth:** the drained stream is persisted raw to a durable on-device log, so keep secrets and request bodies out of the backend's stdout/stderr. |
 | **Window-state persistence** | `tauri-plugin-window-state` — `Builder::default().build()` | Baseline native expectation: reopen where the user left off instead of resetting to 1100x750. Orthogonal to the sidecar/db; writes a small state file. |
 | **Frontend error boundary** | `react-error-boundary`, root + route-level, with an offline-safe fallback | Without it a render error white-screens the whole SPA in both browser and desktop webview. Provides the `onError` seam for later opt-in crash reporting. Note: does not catch async/event-handler errors. |
 | **Capabilities / ACL tightening** | In `capabilities/default.json` replace the broad `core:default` bundle with an explicit minimal `core:*` allowlist; keep the scoped `shell:allow-execute` sidecar entry; pin `windows:["main"]` and `platforms` | Least-privilege the ACL instead of shipping the broad default bundle. |
@@ -161,5 +161,17 @@ These belong in the same roadmap:
   `react-error-boundary` React-19 major, the precise CSP directive set, and which
   `core:*` permissions the ACL trim can safely drop. The architectural call on each is
   sound; the version/policy specifics should be confirmed when the PR lands.
+- **Confirmed during the 0.3.0 implementation (#50, 2026-06-21):** the Tier-1 version
+  inferences are now pinned in `desktop/src-tauri/Cargo.lock` —
+  `tauri-plugin-single-instance` 2.4.2, `tauri-plugin-window-state` 2.4.1, and
+  `tauri-plugin-log` 2.8.0 (the sidecar-drain sink), plus `log` 0.4.33 (Rust facade)
+  and `react-error-boundary` 6.1.2 (frontend). Corrections to the inference list: the
+  `react-error-boundary` "React-19 major" resolves to **v6** (peer `react ^18 || ^19`,
+  native 19 support — there is no React-19-incompatible major to dodge); the
+  `tauri#12936` `set_focus`-on-hidden behavior is real, and the
+  `show() + unminimize() + set_focus()` single-instance callback is the working fix.
+  The CSP/`devCsp` directive set and the `core:*` ACL trim remain **unverified
+  inferences** — they are 0.4.0 / #51 (security-posture) scope and were deliberately
+  not touched in #50.
 - **Freshness:** every external fact is dated 2026-06-21. Re-verify the Tier 2 items
   (updater/tauri-action key formats, mobile-sidecar status) before building — they drift.
