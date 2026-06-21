@@ -25,6 +25,7 @@ just build           # release, embedded UI, Docker, frontend build, or packagin
 just docker-build    # Dockerfile/compose/deployment changes
 just desktop-build   # desktop/Tauri sidecar changes
 just a11y            # opt-in accessibility page smoke (Playwright + axe); needs `bunx playwright install chromium`. Non-blocking in CI.
+just screenshots     # regenerate docs/assets/*.png after UI changes to Items/Posts/home; needs `bunx playwright install chromium`.
 ```
 
 If a relevant gate is skipped, explain why in the PR and state the remaining risk.

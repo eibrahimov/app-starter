@@ -51,7 +51,12 @@ test:
 # Accessibility smoke: axe-core on every page in a real browser.
 # One-time setup: `cd interface && bunx playwright install chromium`.
 a11y:
-    cd interface && bunx playwright test
+    cd interface && bunx playwright test a11y.spec.ts
+
+# Regenerate the README screenshots (docs/assets/*.png) from the deterministic
+# Playwright generator. One-time: `cd interface && bunx playwright install chromium`.
+screenshots:
+    cd interface && bunx playwright test screenshots.spec.ts
 
 # Production build: frontend first, then the binary that embeds it
 build:

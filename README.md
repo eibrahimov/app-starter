@@ -10,6 +10,30 @@ Full-stack Rust starter. One binary serves the API and the UI, typed end to end 
 
 Two example resources are wired through every layer (migration, queries, API handlers, generated TypeScript types, UI page, tests): `items`, a minimal todo CRUD, and `posts`, which adds a status lifecycle (draft -> published -> archived), filtered queries with pagination, and an aggregate stats endpoint. Replace them with your real domain. The wiring pattern stays.
 
+## See it running
+
+Clone, build the UI, and seed example data so the Items and Posts pages are populated — about a minute, start to finish:
+
+```bash
+git clone https://github.com/eibrahimov/app-starter && cd app-starter
+cd interface && bun install && bun run build && cd ..
+just seed   # seeds example items + posts, then serves on :8080
+```
+
+Open http://localhost:8080 — the Items and Posts pages already have data. Without `just`, the last step is `cargo run -- --seed`. (Starting your own project instead of evaluating the template? Use [Setup](#setup) below, which renames it.)
+
+**Home** — the embedded UI shell, health-checked against the API and typed end to end via OpenAPI.
+
+![App Starter home page showing the application shell with a resolved "Backend ok" health line](docs/assets/home.png)
+
+**Items** — minimal CRUD: add, complete, and delete todos.
+
+![App Starter Items page showing a populated todo list with completed and open items](docs/assets/items.png)
+
+**Posts** — a draft -> published -> archived lifecycle with status badges, status filters, and a stats summary.
+
+![App Starter Posts page showing posts in draft, published, and archived states with status badges and a stats summary](docs/assets/posts.png)
+
 ## Use this when
 
 - You want one Rust server to own the API and serve the built UI.
@@ -82,6 +106,7 @@ just verify         # everything CI runs: lint + test + typegen + frontend build
 just test           # backend tests (in-memory SQLite)
 just build          # production build: frontend, then binary with UI embedded
 just docker-build   # build the Docker image
+just screenshots    # regenerate the README screenshots (docs/assets/*.png)
 ```
 
 If you don't have `just`, run the commands directly — see the [`justfile`](justfile) for the exact recipe behind each task.
