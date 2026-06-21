@@ -124,12 +124,18 @@ pub async fn create(pool: &SqlitePool, title: String, body: String) -> Result<Po
 /// Returns true when the post moved draft -> published, false otherwise
 /// (missing id or not currently a draft).
 pub async fn publish(pool: &SqlitePool, id: &str) -> Result<bool, sqlx::Error> {
+    // Bind the status strings from PostStatus instead of inlining SQL literals, so
+    // the enum is the single source of the lifecycle vocabulary on writes as well
+    // as reads. A typo'd literal here would otherwise write a row that no longer
+    // round-trips through the enum.
     let result = sqlx::query(
-        "UPDATE posts SET status = 'published', published_at = ?2 \
-         WHERE id = ?1 AND status = 'draft'",
+        "UPDATE posts SET status = ?2, published_at = ?3 \
+         WHERE id = ?1 AND status = ?4",
     )
     .bind(id)
+    .bind(PostStatus::Published.as_str())
     .bind(Utc::now())
+    .bind(PostStatus::Draft.as_str())
     .execute(pool)
     .await?;
     Ok(result.rows_affected() > 0)
@@ -138,11 +144,14 @@ pub async fn publish(pool: &SqlitePool, id: &str) -> Result<bool, sqlx::Error> {
 /// Returns true when the post moved published -> archived, false otherwise
 /// (missing id or not currently published).
 pub async fn archive(pool: &SqlitePool, id: &str) -> Result<bool, sqlx::Error> {
-    let result =
-        sqlx::query("UPDATE posts SET status = 'archived' WHERE id = ?1 AND status = 'published'")
-            .bind(id)
-            .execute(pool)
-            .await?;
+    // Status strings come from PostStatus (see `publish`) so writes and reads
+    // share the one vocabulary.
+    let result = sqlx::query("UPDATE posts SET status = ?2 WHERE id = ?1 AND status = ?3")
+        .bind(id)
+        .bind(PostStatus::Archived.as_str())
+        .bind(PostStatus::Published.as_str())
+        .execute(pool)
+        .await?;
     Ok(result.rows_affected() > 0)
 }
 
