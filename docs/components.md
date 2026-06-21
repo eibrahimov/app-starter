@@ -204,22 +204,14 @@ large radius, 105% scaling"). The full prop vocabulary and allowed values live i
 
 ## Status-color mapping
 
-Status semantics map to Radix hues — this is the replacement for the old
-`text-success`/`text-warning`/`text-destructive` utilities. Use these hues
-(via the `color` prop, or the `Badge` tone / `Button` variant that wraps them)
-so contrast holds in both appearances:
-
-| Semantic                | Radix hue        |
-| ----------------------- | ---------------- |
-| success / done          | `grass`          |
-| pending / draft         | `amber`          |
-| destructive             | `red`            |
-| neutral / archived      | `gray`           |
-
-`Badge` exposes these as tones (`emerald` → `grass`, `amber` → `amber`,
-`red` → `red`, `neutral`/`zinc` → `gray`); `Button` exposes them as variants
-(`success` → `grass`, `warning` → `amber`, `danger` → `red`). The Playwright a11y
-smoke renders one `Posts` row per status so every tone's contrast is audited.
+Status semantics map to Radix hues — the replacement for the old
+`text-success`/`text-warning`/`text-destructive` utilities. The canonical
+semantic → hue table lives in [`radix-reference.md`](radix-reference.md); here is
+how the wrappers expose it: `Badge` as tones (`emerald` → `grass`,
+`amber` → `amber`, `red` → `red`, `neutral`/`zinc` → `gray`) and `Button` as
+variants (`success` → `grass`, `warning` → `amber`, `danger` → `red`). The
+Playwright a11y smoke renders one `Posts` row per status so every tone's contrast
+is audited.
 
 ## Dark mode
 
