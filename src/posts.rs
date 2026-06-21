@@ -131,9 +131,9 @@ pub async fn create(pool: &SqlitePool, title: String, body: String) -> Result<Po
     .bind(&post.title)
     .bind(&post.body)
     // Bind the status through PostStatus's own sqlx encoding, so this insert's
-    // (draft) status comes from the enum rather than a duplicated literal. The DB
-    // CHECK constraint (migration 20260621000001) enforces the closed set for
-    // every write; publish/archive still store in-vocabulary SQL literals.
+    // (draft) status comes from the enum rather than a duplicated literal --
+    // publish/archive bind their transition statuses the same way. The DB CHECK
+    // constraint (migration 20260621000001) enforces the closed set for every write.
     .bind(post.status)
     .bind(post.created_at)
     .execute(pool)

@@ -15,12 +15,11 @@
 --
 -- The INSERT ... SELECT enforces the new CHECK, so applying this against a
 -- database that already holds an out-of-vocabulary row fails the migration --
--- the intended fail-loud behavior. Every write in this template stores one of
--- the three known values (create() binds through PostStatus; publish()/archive()
--- write in-vocabulary literals), so no such row exists here. A fork that widened
--- the vocabulary in app code before pulling this migration must either extend the
--- CHECK set below or normalize offending rows first (e.g. UPDATE posts SET
--- status = 'draft' WHERE status NOT IN ('draft','published','archived')).
+-- the intended fail-loud behavior. Every write in this template binds its status
+-- through PostStatus (create/publish/archive), so no such row exists here. A fork
+-- that widened the vocabulary in app code before pulling this migration must
+-- either extend the CHECK set below or normalize offending rows first (e.g. UPDATE
+-- posts SET status = 'draft' WHERE status NOT IN ('draft','published','archived')).
 CREATE TABLE posts_new (
     id TEXT PRIMARY KEY,
     title TEXT NOT NULL,
