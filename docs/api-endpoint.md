@@ -81,6 +81,12 @@ CLI surface is covered today and the same variables carry forward to #C14.
 - `VITE_API_BASE_URL` is **baked in at build time** (it is `import.meta.env.*`),
   not read at runtime — a packaged build is fixed to the value present when its
   frontend was built. `PORT`/`DATABASE_URL` are runtime values.
+- The `DATABASE_URL` row above is the server/CLI default; this file is the
+  base-URL contract, not a database one. For context, the desktop sidecar does
+  not use that default — the shell spawns it with `current_dir` set to the per-OS
+  app-data dir and `DATABASE_URL=sqlite://app.db?mode=rwc`, so its database lives
+  inside that data dir rather than at `data/app.db` relative to the working
+  directory. By design for a packaged app, and unaffected by this contract.
 - Mobile is out of scope: the sidecar model does not run on iOS/Android, and OS
   WebView cleartext policy blocks `http://localhost` regardless. See
   `docs/desktop-features.md` §6.
