@@ -6,7 +6,7 @@ import { expect, type Page, type Route, test } from "@playwright/test";
 // BEFORE navigating. Without this, the backend is unreachable and axe would only
 // ever audit the loading/error/empty states; the populated rows (and every Badge
 // tone, where the AA contrast actually matters) would never render.
-const HEALTH = { database: "ok", status: "ok", version: "0.2.0" };
+const HEALTH = { database: "ok", status: "ok", version: "0.3.0" };
 
 const ITEMS = [
   {
