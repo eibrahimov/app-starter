@@ -39,9 +39,14 @@ cd interface && bun install && bun run build && cd ..
 cargo run
 ```
 
-Open http://localhost:8080. The binary serves both the API and the built UI.
+Open http://localhost:8080 (or `$PORT` if you overrode it). The binary serves both the API and the built UI.
 
-Copy `.env.example` to `.env` to override port, database path, or log level. Run `just hooks` once to enable the cargo fmt pre-commit hook.
+Copy `.env.example` to `.env` to override port, database path, or log level. To
+point the frontend at a non-default API (a remote host, or a different backend
+port), set `VITE_API_BASE_URL` in `interface/.env` (copy `interface/.env.example`)
+— see [docs/api-endpoint.md](docs/api-endpoint.md) for the cross-surface base-URL
+contract (server / SPA / desktop / CLI). Run `just hooks` once to enable the cargo
+fmt pre-commit hook.
 
 ## Development loop
 
