@@ -52,8 +52,10 @@ state, which carries only the pool:
 pub mod api;
 pub mod db;
 pub mod error;
+pub mod frontend;
 pub mod items;
 pub mod posts;
+pub mod seed;
 
 #[derive(Clone)]
 pub struct AppState {
@@ -73,8 +75,9 @@ per-resource handler modules live alongside it in `src/api/`. CI fails if any
 - **Edition 2024**, MSRV pinned to `1.88` in `Cargo.toml` (`rust-version`).
   Edition 2024 needs Rust `>= 1.85`, but the let-chains in `src/db.rs` need
   `>= 1.88`, so the pin makes `cargo` emit a clear "requires Rust >= X" error.
-- **`rust-toolchain.toml`** pins the `stable` channel and the `rustfmt` and
-  `clippy` components. Both are mandatory; do not work around them.
+- **`rust-toolchain.toml`** pins the toolchain to `1.96.0` — newer than the `1.88`
+  MSRV above; it is the exact version CI builds with — plus the `rustfmt` and
+  `clippy` components. All are mandatory; do not work around them.
 - **Format with default `rustfmt`.** There is no `rustfmt.toml`. Run
   `cargo fmt --all`; CI runs `cargo fmt --all -- --check` and fails on any diff.
 - **Clippy is a hard gate.** Warnings are errors:

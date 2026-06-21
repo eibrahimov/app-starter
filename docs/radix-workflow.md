@@ -15,7 +15,7 @@ asset for the detail:
 - Day-to-day component how-to: [components.md](components.md).
 - Resource recipe (data → API → UI): [add-a-resource.md](add-a-resource.md) and
   the [`add-resource`](../.claude/skills/add-resource/SKILL.md) skill.
-- How it got here (historical migration): [radix-integration-plan.md](radix-integration-plan.md).
+- How it got here (historical migration): [radix-integration-plan.md](archive/radix-integration-plan.md).
 
 ## The lifecycle at a glance
 
@@ -177,7 +177,7 @@ means this table is complete and each row is reachable from the others:
 
 Because each Stage-4 unit ends at a gate (the golden rule above), the build is
 loop- and workflow-safe. The general mechanics — and the migration-era examples —
-live in [radix-integration-plan.md](radix-integration-plan.md); the
+live in [radix-integration-plan.md](archive/radix-integration-plan.md); the
 build-specific shapes are:
 
 - **`/loop`** (self-paced, one unit per iteration): `/loop add the next unbuilt

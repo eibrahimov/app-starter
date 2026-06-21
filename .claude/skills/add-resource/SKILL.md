@@ -25,7 +25,7 @@ Copy the shape of the two worked examples exactly: `items` (minimal CRUD) and
 ## Read these invariants first (this is where resources break)
 
 1. **The three-place registration footgun (most common mistake).** In
-   `src/api/mod.rs` you must register a new endpoint in THREE places:
+   `src/api.rs` you must register a new endpoint in THREE places:
    (a) `pub mod <resource>;`, (b) the handler in `#[openapi(paths(...))]` **and
    every new `ToSchema` type in `components(schemas(...))`**, (c) a
    `.route("/api/v1/...", ...)` placed **before** `.fallback(crate::frontend::spa)`
@@ -68,7 +68,7 @@ Work in this order; each step maps to the canonical docs for snippets.
    (`AppError::BadRequest`); map `false`/`None` store results to `AppError::NotFound`;
    201 + Json for create, `StatusCode::NO_CONTENT` for delete-like actions. Each
    handler gets a complete `#[utoipa::path(...)]` (invariant 3).
-5. **Register in three places** in `src/api/mod.rs` (invariant 1). This is the step
+5. **Register in three places** in `src/api.rs` (invariant 1). This is the step
    that silently breaks typegen — double-check `components(schemas(...))`.
 6. **Backend tests** — extend `tests/api.rs` reusing `test_app()` / `body_json()`;
    import the crate as `app_starter::...`. Cover the happy-path roundtrip plus one
@@ -111,7 +111,7 @@ it to confirm:
 - every handler in `src/api/<resource>.rs` carries a complete `#[utoipa::path(...)]` (full
   `/api/v1` path, `tag`, `params`, `request_body`, every response with `body =`);
 - every new `ToSchema` type appears in BOTH `paths(...)` and `components(schemas(...))` in
-  `src/api/mod.rs` (the silent footgun);
+  `src/api.rs` (the silent footgun);
 - the domain module avoids repository structs/traits and mirrors `src/posts.rs`;
 - `interface/src/pages/<Name>.tsx` mirrors `Items.tsx` (typed `api` client only, array query
   keys, `invalidateQueries` on mutate, explicit isLoading/isError, Radix Themes styling, no `@/` alias);

@@ -1,8 +1,9 @@
 # Desktop & cross-platform built-in features — decision record
 
-**Status:** Proposed (research complete; awaiting maintainer ratification per the
-"open an issue before changing template defaults" rule in [AGENTS.md](../AGENTS.md)).
-**Date:** 2026-06-21.
+**Status:** Tier 1 implemented and shipped (#50, #55); Tier 2+ deferred. Originally a
+research/decision record filed per the "open an issue before changing template
+defaults" rule in [AGENTS.md](../AGENTS.md).
+**Date:** 2026-06-21 (research); Tier 1 landed in #50/#55.
 **Scope:** Which built-in capabilities the App Starter desktop / cross-platform shell
 should ship by default, ranked and mapped to the locked v1 scope.
 **Method:** A multi-source research pass (web discovery + adversarial verification of
@@ -161,7 +162,7 @@ These belong in the same roadmap:
   `react-error-boundary` React-19 major, the precise CSP directive set, and which
   `core:*` permissions the ACL trim can safely drop. The architectural call on each is
   sound; the version/policy specifics should be confirmed when the PR lands.
-- **Confirmed during the 0.3.0 implementation (#50, 2026-06-21):** the Tier-1 version
+- **Confirmed during the Tier 1 implementation (#50/#55, 2026-06-21):** the Tier-1 version
   inferences are now pinned in `desktop/src-tauri/Cargo.lock` —
   `tauri-plugin-single-instance` 2.4.2, `tauri-plugin-window-state` 2.4.1, and
   `tauri-plugin-log` 2.8.0 (the sidecar-drain sink), plus `log` 0.4.33 (Rust facade)

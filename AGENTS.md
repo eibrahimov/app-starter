@@ -32,6 +32,7 @@ just verify    # everything CI runs: lint + test + typegen drift + frontend buil
 Also run when relevant:
 
 ```sh
+just doctor    # preflight: toolchain + frontend install/build drift; run on a fresh clone or when an env-related failure appears
 just typegen   # when API/OpenAPI annotations changed; commit interface/src/api/schema.d.ts
 just build     # release, embedded UI, Docker, frontend build, or packaging changes
 just docker-build    # Dockerfile/compose/deployment changes
@@ -149,6 +150,11 @@ pagination, get-by-id, and an aggregate stats endpoint). Copy their shape exactl
    put new shell-level wrappers there, not in `ui/`.
 9. Route: in `interface/src/router.tsx` add a `createRoute({...})`, append it to
    `rootRoute.addChildren([...])`, and add a nav `<Link>` in `Layout`.
+
+Optional seed fixtures: the deletable seam in `src/seed.rs` (run via `just seed`,
+`--seed`, or `SEED=1`; off by default, never in tests or Docker) seeds example rows by
+driving the real domain functions. Give a new resource demo data by extending it there,
+or delete the seam per its header comment.
 
 See `docs/add-a-resource.md` for the human-facing version of this recipe.
 

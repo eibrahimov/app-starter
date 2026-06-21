@@ -23,7 +23,7 @@ Authoritative references -- read before mapping a request to props:
 - [`docs/radix-reference.md`](../../../docs/radix-reference.md) -> the `<Theme>`
   prop table (every prop + allowed values), the status-color mapping, and the
   custom-accent recipe.
-- [`docs/radix-integration-plan.md`](../../../docs/radix-integration-plan.md) ->
+- [`docs/radix-integration-plan.md`](../../../docs/archive/radix-integration-plan.md) ->
   the resolved decisions (notably: `accent.css` ships empty; the skill owns the
   custom-color recipe and runs it at use-time).
 - [`interface/src/theme/radix.catalog.json`](../../../interface/src/theme/radix.catalog.json)
