@@ -11,6 +11,12 @@ doctor:
 dev:
     cargo run
 
+# Seed example items and posts, then run the backend so the UI demos
+# immediately. Idempotent (skips resources that already have rows). Optional,
+# removable convenience — see src/seed.rs.
+seed:
+    cargo run -- --seed
+
 # Run the Vite dev server with /api proxied to the backend
 frontend-dev:
     cd interface && bun run dev

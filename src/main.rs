@@ -16,6 +16,13 @@ struct Args {
         default_value = "sqlite://data/app.db?mode=rwc"
     )]
     database_url: String,
+
+    /// Seed the database with example items and posts on startup, then keep
+    /// serving. Off by default; also enabled with `SEED=1`. Idempotent (it
+    /// skips any resource that already has rows), so it is safe to leave on.
+    /// Removable convenience — see `src/seed.rs`.
+    #[arg(long)]
+    seed: bool,
 }
 
 #[tokio::main]
@@ -27,6 +34,13 @@ async fn main() -> anyhow::Result<()> {
 
     let args = Args::parse();
     let pool = app_starter::db::init(&args.database_url).await?;
+
+    // Optional, deletable seed seam: populate a fresh database with example
+    // rows so the UI demos immediately. Off by default; see `src/seed.rs`.
+    if args.seed || std::env::var("SEED").is_ok_and(|v| is_truthy(&v)) {
+        app_starter::seed::run(&pool).await?;
+    }
+
     let app = app_starter::api::router(app_starter::AppState { pool });
 
     let listener = TcpListener::bind(("0.0.0.0", args.port)).await?;
@@ -39,6 +53,18 @@ async fn main() -> anyhow::Result<()> {
         .with_graceful_shutdown(shutdown_signal())
         .await?;
     Ok(())
+}
+
+/// True when `value` is a recognised truthy spelling (`1`, `true`, `yes`,
+/// `on`; case-insensitive, surrounding whitespace ignored). Used for the
+/// `SEED` environment toggle so `SEED=1` enables seeding, matching `--seed`.
+/// clap's bool flag parser only accepts `true`/`false`, so the env side is
+/// handled here rather than via `#[arg(env = "SEED")]`.
+fn is_truthy(value: &str) -> bool {
+    matches!(
+        value.trim().to_ascii_lowercase().as_str(),
+        "1" | "true" | "yes" | "on"
+    )
 }
 
 /// Resolves when the process receives Ctrl-C or (on Unix) SIGTERM, so axum
@@ -68,4 +94,23 @@ async fn shutdown_signal() {
     }
 
     tracing::info!("shutdown signal received, draining connections");
+}
+
+#[cfg(test)]
+mod tests {
+    use super::is_truthy;
+
+    #[test]
+    fn truthy_accepts_common_spellings() {
+        for value in ["1", "true", "TRUE", "Yes", "on", "  true  "] {
+            assert!(is_truthy(value), "{value:?} should enable seeding");
+        }
+    }
+
+    #[test]
+    fn truthy_rejects_everything_else() {
+        for value in ["0", "false", "no", "off", "", "2", "maybe"] {
+            assert!(!is_truthy(value), "{value:?} should not enable seeding");
+        }
+    }
 }

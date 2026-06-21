@@ -4,6 +4,7 @@ pub mod error;
 pub mod frontend;
 pub mod items;
 pub mod posts;
+pub mod seed;
 
 use sqlx::SqlitePool;
 
