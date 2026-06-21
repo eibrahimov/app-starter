@@ -29,6 +29,11 @@ just a11y            # opt-in accessibility page smoke (Playwright + axe); needs
 
 If a relevant gate is skipped, explain why in the PR and state the remaining risk.
 
+These mirror the CI jobs in `.github/workflows/ci.yml` (`rust` = fmt + clippy + test +
+the no-`mod.rs` guard, `typegen` = OpenAPI->TS drift, `frontend` = Biome + tsc + build +
+Vitest, `a11y` = axe smoke (non-blocking), `deny` = cargo-deny), so a green `just verify`
+predicts green CI.
+
 Use conventional commit messages (`feat:`, `fix:`, `ci:`, `docs:`, `test:`). Keep commits small and focused.
 
 ## Approval boundaries

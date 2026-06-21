@@ -56,6 +56,8 @@ SQLite is the default operational path. Treat it seriously:
 - set `DATABASE_URL` to a durable location outside ephemeral containers;
 - mount `/data` or an equivalent volume in Docker deployments;
 - run migrations on startup only if that matches your deployment model;
+- leave demo seeding off in production — the `src/seed.rs` seam runs only via
+  `just seed` / `--seed` / `SEED=1` and is for local examples, not real data;
 - define backup and restore procedures before storing important data;
 - test restore on a throwaway environment;
 - never edit committed migrations after they have run anywhere important.

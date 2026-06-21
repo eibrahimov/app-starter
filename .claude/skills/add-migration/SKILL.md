@@ -33,7 +33,10 @@ new corrective forward migration.
 2. **Write the forward change** only (e.g. `ALTER TABLE ... ADD COLUMN ...`,
    `CREATE INDEX ...`). Follow the conventions: TEXT uuid keys, INTEGER booleans (0/1),
    TEXT RFC-3339 timestamps, an index on any column you sort or filter by. Give new columns
-   a default or backfill them so existing rows stay valid.
+   a default or backfill them so existing rows stay valid. SQLite cannot `ALTER` a column
+   to add a `CHECK` or change its type — use the table-rebuild pattern (create `*_new`,
+   `INSERT ... SELECT`, `DROP`, `RENAME`, recreate indexes); see
+   `migrations/20260621000001_add_posts_status_check.sql` for a worked example.
 3. **Reflect it in code** if the shape changed: update the row struct in `src/<resource>.rs`
    and the `SELECT` columns; if the API response changed, update `#[utoipa::path]`/schemas,
    run `just typegen`, and commit `interface/src/api/schema.d.ts` (additive within `/api/v1`).
