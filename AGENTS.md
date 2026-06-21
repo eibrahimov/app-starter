@@ -37,6 +37,8 @@ just typegen   # when API/OpenAPI annotations changed; commit interface/src/api/
 just build     # release, embedded UI, Docker, frontend build, or packaging changes
 just docker-build    # Dockerfile/compose/deployment changes
 just desktop-build   # desktop/Tauri sidecar changes
+just db-check        # SQLite integrity_check + applied migrations; after backup/restore or DB-file work (docs/recipes/backup-restore.md)
+just db-selftest     # smoke-test scripts/db.sh (backup/restore/check round-trip on a throwaway DB); after editing the helper
 just a11y      # opt-in accessibility page smoke (Playwright + axe); one-time `bunx playwright install chromium`. Non-blocking in CI.
 ```
 

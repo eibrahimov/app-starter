@@ -17,6 +17,26 @@ dev:
 seed:
     cargo run -- --seed
 
+# Snapshot the SQLite database to a timestamped file in backups/. Safe on a live
+# single-writer DB (online .backup, never a raw cp). See docs/recipes/backup-restore.md.
+db-backup:
+    bash scripts/db.sh backup
+
+# Restore the SQLite database from a backup file. Guarded: confirms before
+# overwriting (FORCE=1 skips the prompt) and snapshots the current DB first.
+db-restore file:
+    bash scripts/db.sh restore "{{file}}"
+
+# Check SQLite integrity (PRAGMA integrity_check; QUICK=1 runs quick_check) and
+# report applied migrations. Non-zero exit on failure, so it is CI/script-usable.
+db-check:
+    bash scripts/db.sh check
+
+# Smoke-test scripts/db.sh: the backup/restore/check round-trip and guard rails
+# against a throwaway database (no real data touched). See scripts/db.test.sh.
+db-selftest:
+    bash scripts/db.test.sh
+
 # Run the Vite dev server with /api proxied to the backend
 frontend-dev:
     cd interface && bun run dev

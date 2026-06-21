@@ -99,6 +99,9 @@ Resource endpoints are versioned under `/api/v1/`, and the contract is additive 
 just dev            # run the backend
 just frontend-dev   # run Vite with API proxy
 just seed           # seed example items + posts, then run the backend (see src/seed.rs)
+just db-backup      # snapshot SQLite to a timestamped file in backups/ (safe online .backup)
+just db-restore f   # restore from a backup file (guarded; FORCE=1 skips the prompt)
+just db-check       # PRAGMA integrity_check + applied migrations (non-zero exit on failure)
 just typegen        # regenerate TS types from the OpenAPI spec
 just check-typegen  # fail if committed TS types are stale, same as CI
 just lint           # fmt check + clippy -D warnings + Biome + tsc (fast gate)
@@ -162,7 +165,7 @@ Before shipping: replace the placeholder icon if needed with `cd desktop && bunx
 
 ## Database
 
-SQLite via sqlx — a single file on disk (or `:memory:` in tests). It is a **single-writer** database: ideal for single-instance apps, internal tools, and desktop, but it does not support multiple server instances writing concurrently. For multi-instance or high-write deployments, swap sqlx to Postgres — that touches the pool type in `src/db.rs`, every `query`/`query_as`, and the migrations, so treat it as a fork, not a config flag. Migrations are forward-only and append-only: to fix a bad migration, add a new one; never edit a committed file (sqlx checksums them).
+SQLite via sqlx — a single file on disk (or `:memory:` in tests). It is a **single-writer** database: ideal for single-instance apps, internal tools, and desktop, but it does not support multiple server instances writing concurrently. For multi-instance or high-write deployments, swap sqlx to Postgres — that touches the pool type in `src/db.rs`, every `query`/`query_as`, and the migrations, so treat it as a fork, not a config flag. Migrations are forward-only and append-only: to fix a bad migration, add a new one; never edit a committed file (sqlx checksums them). Snapshot, restore, and integrity-check the database file with `just db-backup` / `just db-restore` / `just db-check` — see [docs/recipes/backup-restore.md](docs/recipes/backup-restore.md).
 
 ## Troubleshooting
 
