@@ -6,25 +6,18 @@ use axum::body::Body;
 use axum::http::{Request, StatusCode, header};
 use http_body_util::BodyExt;
 use sqlx::SqlitePool;
-use sqlx::sqlite::SqlitePoolOptions;
 use std::collections::BTreeSet;
 use tower::util::ServiceExt;
 
 use app_starter::{AppState, api};
 
+mod common;
+
 /// Builds the router AND hands back the pool, so tests that need to manipulate
 /// the database directly (seed many rows, or close the pool to simulate an
 /// outage) can do so. `test_app` wraps this for the common router-only case.
 async fn test_app_with_pool() -> (Router, SqlitePool) {
-    let pool = SqlitePoolOptions::new()
-        .max_connections(1)
-        .connect("sqlite::memory:")
-        .await
-        .expect("connect in-memory sqlite");
-    sqlx::migrate!("./migrations")
-        .run(&pool)
-        .await
-        .expect("run migrations");
+    let pool = common::memory_pool().await;
     let router = api::router(AppState { pool: pool.clone() });
     (router, pool)
 }

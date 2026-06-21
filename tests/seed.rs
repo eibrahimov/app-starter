@@ -5,25 +5,12 @@
 //! the seam never seeds on its own during the normal `just test` boot.
 
 use app_starter::{items, posts, seed};
-use sqlx::SqlitePool;
-use sqlx::sqlite::SqlitePoolOptions;
 
-async fn memory_pool() -> SqlitePool {
-    let pool = SqlitePoolOptions::new()
-        .max_connections(1)
-        .connect("sqlite::memory:")
-        .await
-        .expect("connect in-memory sqlite");
-    sqlx::migrate!("./migrations")
-        .run(&pool)
-        .await
-        .expect("run migrations");
-    pool
-}
+mod common;
 
 #[tokio::test]
 async fn seed_populates_an_empty_database() {
-    let pool = memory_pool().await;
+    let pool = common::memory_pool().await;
 
     let inserted = seed::run(&pool).await.expect("seed runs");
     assert!(inserted > 0, "seeding an empty database should insert rows");
@@ -42,7 +29,7 @@ async fn seed_populates_an_empty_database() {
 
 #[tokio::test]
 async fn seed_is_idempotent() {
-    let pool = memory_pool().await;
+    let pool = common::memory_pool().await;
 
     let first = seed::run(&pool).await.expect("first seed");
     assert!(first > 0, "first run should insert rows");
