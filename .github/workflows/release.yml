@@ -51,6 +51,12 @@ jobs:
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          # Attach an SLSA provenance attestation (unsigned build metadata) and
+          # an SBOM to the image so downstream consumers can see how it was built
+          # and what it contains. Pushed to GHCR alongside the image as OCI
+          # referrers (needs packages: write; no id-token/cosign signing here).
+          provenance: true
+          sbom: true
 
   create-release:
     name: Create GitHub release
@@ -116,7 +122,24 @@ jobs:
         shell: pwsh
         run: Compress-Archive -Path "target/release/${{ matrix.bin }}" -DestinationPath "${{ matrix.asset }}" -Force
 
+      # Emit a SHA-256 sidecar next to each artifact so downstream consumers can
+      # verify the download. `shasum -a 256` exists on both Linux and macOS
+      # runners; Windows uses PowerShell's Get-FileHash. The "<hash>  <file>"
+      # format matches shasum, so `shasum -c <asset>.sha256` verifies it.
+      - name: Checksum (Unix)
+        if: runner.os != 'Windows'
+        run: shasum -a 256 "${{ matrix.asset }}" > "${{ matrix.asset }}.sha256"
+
+      - name: Checksum (Windows)
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $hash = (Get-FileHash -Algorithm SHA256 "${{ matrix.asset }}").Hash.ToLower()
+          "$hash  ${{ matrix.asset }}" | Out-File -Encoding ascii "${{ matrix.asset }}.sha256"
+
       - name: Attach to GitHub release
         uses: softprops/action-gh-release@v2
         with:
-          files: ${{ matrix.asset }}
+          files: |
+            ${{ matrix.asset }}
+            ${{ matrix.asset }}.sha256
