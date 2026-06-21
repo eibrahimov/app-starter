@@ -151,7 +151,7 @@ Each generated app can improve the template. When work reveals reusable friction
 
 - Update `AGENTS.md` if it changes how agents or contributors should work.
 - Update `README.md` if it changes setup, development, deployment, or release behavior.
-- Update `docs/add-a-resource.md`, `docs/components.md`, `docs/production-readiness.md`, or `UPGRADING.md` when resource, frontend-component, hardening, or upgrade guidance changes.
+- Update `docs/add-a-resource.md`, `docs/components.md`, `docs/production-readiness.md`, `docs/desktop-features.md`, or `UPGRADING.md` when resource, frontend-component, hardening, desktop-shell, or upgrade guidance changes.
 - Open an issue before adding a reusable pattern or changing template defaults.
 - Keep generated-app/domain-specific details out of the template; port the pattern, not the feature.
 
@@ -163,6 +163,16 @@ Use `docs/contribution-prompts.md` for structured issue, change-request, backpor
 - `interface/src/api/schema.d.ts` is generated only — regenerate, never edit.
 - Do not remove the Tauri-aware baseUrl logic in `interface/src/api/client.ts` or the
   permissive `CorsLayer` in `src/api.rs` (the desktop sidecar needs both).
+- The desktop shell is **desktop-only**: `desktop/src-tauri/src/main.rs` spawns the
+  axum server as an `externalBin` sidecar and the webview talks HTTP to it. This model
+  does NOT run on mobile — iOS forbids spawning child processes and Android fails
+  bundled-binary exec with `os error 2` (tauri#9774, still open; maintainer "Not yet").
+  Do NOT add iOS/Android bundle targets or wire mobile release/CI expecting the sidecar
+  to start; a fork that runs `tauri ios build` gets a UI where every API call fails.
+  Mobile requires the in-process-axum refactor first — and even then OS WebView
+  cleartext/ATS policy blocks `http://localhost`, so it is not a turnkey path. See
+  [docs/desktop-features.md](docs/desktop-features.md) for the full rationale and the
+  ranked desktop-feature roadmap.
 - Keep clippy clean: CI runs `-D warnings`; run `cargo fmt --all` before committing.
 - Tests refer to the crate as `app_starter`; scripts use the `app-starter` binary
   name. `scripts/setup.sh` renames both — do not hardcode other variants.
