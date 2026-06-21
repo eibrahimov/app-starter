@@ -130,7 +130,11 @@ pub async fn create(pool: &SqlitePool, title: String, body: String) -> Result<Po
     .bind(&post.id)
     .bind(&post.title)
     .bind(&post.body)
-    .bind(post.status.as_str())
+    // Bind the status through PostStatus's own sqlx encoding, so this insert's
+    // (draft) status comes from the enum rather than a duplicated literal. The DB
+    // CHECK constraint (migration 20260621000001) enforces the closed set for
+    // every write; publish/archive still store in-vocabulary SQL literals.
+    .bind(post.status)
     .bind(post.created_at)
     .execute(pool)
     .await?;
@@ -166,7 +170,10 @@ pub async fn stats(pool: &SqlitePool) -> Result<PostStats, sqlx::Error> {
     // Decode the grouped status column straight into the enum. The exhaustive
     // match (no `_` arm) makes adding a lifecycle state a compile error here
     // rather than a silently dropped count, and a stored value outside the
-    // vocabulary surfaces as a decode error instead of vanishing.
+    // vocabulary surfaces as a decode error instead of vanishing. `list` and
+    // `get` decode `status` the same way, so this fail-loud behavior covers the
+    // whole read surface; the DB CHECK constraint (migration 20260621000001)
+    // keeps such a row from being written in the first place.
     let rows: Vec<(PostStatus, i64)> =
         sqlx::query_as("SELECT status, COUNT(*) FROM posts GROUP BY status")
             .fetch_all(pool)

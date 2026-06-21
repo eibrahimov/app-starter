@@ -769,34 +769,91 @@ async fn get_unknown_post_is_404() {
     assert_eq!(response.status(), StatusCode::NOT_FOUND);
 }
 
-/// The stats fold decodes the stored status straight into `PostStatus`, so a row
-/// whose status falls outside the lifecycle vocabulary surfaces as a loud 500
-/// rather than being silently dropped from the counts -- issue #47 removed the
-/// previous `_ => {}` arm. Every API write path stores one of the three known
-/// values, so only an out-of-band write can produce such a row; this seeds one
-/// directly through the pool to pin the fail-loud behavior the issue introduced.
+/// Write-side guard: the posts table carries
+/// `CHECK (status IN ('draft','published','archived'))` (migration
+/// 20260621000001), so the database itself rejects an out-of-vocabulary status.
+/// No path -- API, seed, or raw SQL -- can persist a status the `PostStatus`
+/// enum cannot represent. A valid status through the same statement still
+/// succeeds, proving the rejection is the CHECK rejecting the vocabulary rather
+/// than a malformed INSERT.
 #[tokio::test]
-async fn out_of_vocabulary_status_fails_loudly_instead_of_being_dropped() {
-    let (app, pool) = test_app_with_pool().await;
+async fn out_of_vocabulary_status_is_rejected_by_the_check_constraint() {
+    let (_app, pool) = test_app_with_pool().await;
+
+    let rejected =
+        sqlx::query("INSERT INTO posts (id, title, status, created_at) VALUES (?1, ?2, ?3, ?4)")
+            .bind("bad-row")
+            .bind("nope")
+            .bind("scheduled")
+            .bind("2026-06-21T00:00:00Z")
+            .execute(&pool)
+            .await;
+    assert!(
+        rejected.is_err(),
+        "CHECK (status IN (...)) must reject an out-of-vocabulary status, got {rejected:?}"
+    );
 
     sqlx::query("INSERT INTO posts (id, title, status, created_at) VALUES (?1, ?2, ?3, ?4)")
-        .bind("legacy-row")
-        .bind("legacy")
-        .bind("scheduled")
+        .bind("good-row")
+        .bind("ok")
+        .bind("draft")
         .bind("2026-06-21T00:00:00Z")
         .execute(&pool)
         .await
-        .expect("seed an out-of-vocabulary status row");
+        .expect("a valid status must insert cleanly through the same statement");
+}
 
-    let response = app
-        .oneshot(
-            Request::get("/api/v1/posts/stats")
-                .body(Body::empty())
-                .unwrap(),
-        )
-        .await
-        .unwrap();
-    // The unknown value cannot be decoded into the enum, so the aggregate fails
-    // loudly (AppError::Sqlx -> 500) instead of returning 200 with a dropped row.
-    assert_eq!(response.status(), StatusCode::INTERNAL_SERVER_ERROR);
+/// Read-side guard, defense in depth behind the CHECK constraint: if a row
+/// outside the lifecycle vocabulary ever exists anyway -- legacy data written
+/// before the constraint, a manual edit, or a path that bypasses it -- every
+/// read decodes `status` into `PostStatus`, so it surfaces as a loud 500 rather
+/// than being silently dropped (issue #47 removed the old `_ => {}` arm). The
+/// blast radius is the whole read surface, not just stats: the unfiltered list
+/// 500s too. We reproduce such a row by disabling CHECK enforcement on a single
+/// connection (`PRAGMA ignore_check_constraints`) -- the only way to seed a row
+/// the constraint would otherwise forbid.
+#[tokio::test]
+async fn out_of_vocabulary_legacy_row_fails_loudly_on_every_read_path() {
+    let (app, pool) = test_app_with_pool().await;
+
+    // Seed the forbidden row on one connection with CHECK enforcement off, then
+    // release it so the requests below can run. test_app_with_pool builds a
+    // `max_connections(1)` pool, so every acquire reuses the same physical
+    // connection and its `sqlite::memory:` database -- that single reused
+    // connection (a bare in-memory DB is otherwise per-connection) is why the
+    // seeded row is visible to these reads, as in the other seed-via-pool tests.
+    {
+        let mut conn = pool.acquire().await.expect("acquire connection");
+        sqlx::query("PRAGMA ignore_check_constraints = ON")
+            .execute(&mut *conn)
+            .await
+            .expect("disable check enforcement");
+        sqlx::query("INSERT INTO posts (id, title, status, created_at) VALUES (?1, ?2, ?3, ?4)")
+            .bind("legacy-row")
+            .bind("legacy")
+            .bind("scheduled")
+            .bind("2026-06-21T00:00:00Z")
+            .execute(&mut *conn)
+            .await
+            .expect("seed an out-of-vocabulary status row");
+        sqlx::query("PRAGMA ignore_check_constraints = OFF")
+            .execute(&mut *conn)
+            .await
+            .expect("restore check enforcement");
+    }
+
+    // Both the aggregate and the unfiltered list decode the poisoned row, so each
+    // fails loud (AppError::Sqlx -> 500) instead of returning 200 with it dropped.
+    for path in ["/api/v1/posts/stats", "/api/v1/posts"] {
+        let response = app
+            .clone()
+            .oneshot(Request::get(path).body(Body::empty()).unwrap())
+            .await
+            .unwrap();
+        assert_eq!(
+            response.status(),
+            StatusCode::INTERNAL_SERVER_ERROR,
+            "{path} must fail loud on an out-of-vocabulary row",
+        );
+    }
 }
