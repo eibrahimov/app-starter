@@ -3,16 +3,19 @@ pub mod items;
 pub mod posts;
 
 use crate::AppState;
+use axum::Json;
+use axum::Router;
 use axum::extract::DefaultBodyLimit;
 use axum::http::StatusCode;
-use axum::routing::{delete, get, post};
-use axum::{Json, Router};
+use axum::routing::get;
 use std::time::Duration;
 use tower_http::cors::CorsLayer;
 use tower_http::request_id::{MakeRequestUuid, PropagateRequestIdLayer, SetRequestIdLayer};
 use tower_http::timeout::TimeoutLayer;
 use tower_http::trace::TraceLayer;
 use utoipa::OpenApi;
+use utoipa_axum::router::OpenApiRouter;
+use utoipa_axum::routes;
 
 /// Maximum accepted request body in bytes. Generous for JSON payloads; raise it
 /// (and say why) before accepting large uploads. Guards against trivial OOM/DoS.
@@ -21,65 +24,67 @@ const MAX_BODY_BYTES: usize = 10 * 1024 * 1024;
 /// Per-request timeout. A request still running after this is aborted (408).
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(30);
 
-/// OpenAPI document. Every handler annotated with `#[utoipa::path]` is
-/// registered here; `just typegen` turns this into TypeScript types for
-/// the frontend client.
+/// OpenAPI document metadata only. Paths and component schemas are no longer
+/// hand-listed here: each handler's `#[utoipa::path]` contributes its path AND
+/// its schemas through `OpenApiRouter` (one declaration, so the router and the
+/// spec cannot drift). This struct now carries just the top-level `info`.
 #[derive(OpenApi)]
-#[openapi(
-    info(title = "App Starter API", description = "API for App Starter"),
-    paths(
-        health::health,
-        items::list_items,
-        items::create_item,
-        items::toggle_item,
-        items::delete_item,
-        posts::list_posts,
-        posts::create_post,
-        posts::post_stats,
-        posts::get_post,
-        posts::publish_post,
-        posts::archive_post,
-    ),
-    components(schemas(
-        health::Health,
-        crate::items::Item,
-        crate::items::CreateItem,
-        crate::posts::Post,
-        crate::posts::CreatePost,
-        crate::posts::PostStatus,
-        crate::posts::PostStats,
-    ))
-)]
+#[openapi(info(title = "App Starter API", description = "API for App Starter"))]
 pub struct ApiDoc;
 
+/// The application API as an `OpenApiRouter`: every route registered here also
+/// contributes its OpenAPI path + schemas. Core resources (items, posts, the
+/// health probe) are registered directly; every registered plugin folds in via
+/// `plugins::all()` under its own `/api/v1/<name>` prefix (empty until Phase 2).
+///
+/// Shared HTTP layers and the SPA fallback are deliberately NOT added here -- they
+/// are attached once in [`router`] after `split_for_parts()`, so plugins
+/// contribute routes, never layers (docs/plugin-framework.md §4).
+fn api_router() -> OpenApiRouter<AppState> {
+    let mut router = OpenApiRouter::with_openapi(ApiDoc::openapi())
+        // Operational health probe stays unversioned (stable across API versions).
+        .routes(routes!(health::health))
+        // Versioned application API. Within a major version, only ADD fields or
+        // endpoints -- never remove or repurpose them; the generated TypeScript
+        // client and downstream consumers are pinned to it. A breaking change
+        // graduates to /api/v2 alongside /api/v1.
+        .routes(routes!(items::list_items, items::create_item))
+        .routes(routes!(items::toggle_item))
+        .routes(routes!(items::delete_item))
+        .routes(routes!(posts::list_posts, posts::create_post))
+        .routes(routes!(posts::post_stats))
+        .routes(routes!(posts::get_post))
+        .routes(routes!(posts::publish_post))
+        .routes(routes!(posts::archive_post));
+
+    for plugin in crate::plugins::all() {
+        router = router.merge(plugin.api());
+    }
+    router
+}
+
+/// The OpenAPI spec the server serves and that `just typegen` consumes (via the
+/// `openapi_spec` bin). Built from the same [`api_router`] as the live routes
+/// [review M2], so the generated `schema.d.ts` cannot diverge from what is served.
+pub fn api_spec() -> utoipa::openapi::OpenApi {
+    api_router().split_for_parts().1
+}
+
+/// Serves the generated spec. Built fresh from [`api_spec`] so it is always the
+/// exact document the router serves -- `/api/openapi.json` is tooling-only and
+/// rarely hit, so rebuilding per request is fine.
 async fn openapi_json() -> Json<utoipa::openapi::OpenApi> {
-    Json(ApiDoc::openapi())
+    Json(api_spec())
 }
 
 pub fn router(state: AppState) -> Router {
-    Router::new()
-        // Operational endpoints stay unversioned so health probes and tooling
-        // keep a stable path across API versions.
-        .route("/api/health", get(health::health))
+    // Take the axum routes from the registry-built router; the OpenAPI spec side
+    // is served separately via `openapi_json` (which rebuilds it identically).
+    let router = api_router().split_for_parts().0;
+    router
+        // Operational endpoint stays unversioned and outside the OpenApiRouter:
+        // it serves tooling, not the typed API surface.
         .route("/api/openapi.json", get(openapi_json))
-        // Versioned application API. Within a major version, only ADD fields or
-        // endpoints -- never remove or repurpose them, since the generated
-        // TypeScript client and any downstream consumers are pinned to it.
-        // A breaking change graduates to /api/v2 alongside /api/v1.
-        .route(
-            "/api/v1/items",
-            get(items::list_items).post(items::create_item),
-        )
-        .route("/api/v1/items/{id}", delete(items::delete_item))
-        .route("/api/v1/items/{id}/toggle", post(items::toggle_item))
-        .route(
-            "/api/v1/posts",
-            get(posts::list_posts).post(posts::create_post),
-        )
-        .route("/api/v1/posts/stats", get(posts::post_stats))
-        .route("/api/v1/posts/{id}", get(posts::get_post))
-        .route("/api/v1/posts/{id}/publish", post(posts::publish_post))
-        .route("/api/v1/posts/{id}/archive", post(posts::archive_post))
         .fallback(crate::frontend::spa)
         // Permissive CORS keeps the Tauri desktop shell (tauri://localhost)
         // able to call the sidecar API. Tighten before exposing publicly.

@@ -17,15 +17,15 @@
 
 - [x] **0a — sqlx 0.8→0.9 upgrade.** Bump dep; fix API breaks; `cargo deny` clean; `just verify` green. _(Done iter 1.)_
 - [x] **0b — Foundations.** _(Done iter 2.)_ Add `utoipa-axum 0.2`; `src/plugin.rs` (`Plugin` trait + `PLUGIN_API_VERSION`); empty generated `src/plugins/mod.rs`; convert to Cargo workspace with `plugins/*` glob; add `run_all_migrators(pool)` and route BOTH `db::init()` and `tests/common.rs` through it; prove `default-run="app-starter"`, Docker `--bin app-starter`, and `build.rs` paths still work.
-- [ ] **1 — Registry-driven router + typegen.** `router()`/`ApiDoc` fold in `plugins::all()`; build typegen spec from the server's own `router()` via `split_for_parts()`; repurpose the parity test; `just typegen` and commit `schema.d.ts`.
+- [x] **1 — Registry-driven router + typegen.** _(Done iter 3.)_ `router()`/`ApiDoc` fold in `plugins::all()`; build typegen spec from the server's own `router()` via `split_for_parts()`; repurpose the parity test; `just typegen` and commit `schema.d.ts`.
 - [ ] **2 — `items` → first plugin (backend + frontend together).** Move `src/items.rs`, `src/api/items.rs`, its migration, and `interface/src/pages/Items.tsx` into `plugins/items/`; add generated `register()` line; add Vite `server.fs.allow` + tsconfig/biome scope; delete central registrations; `just typegen`.
 - [ ] **3 — `posts` → second plugin** (backend + frontend together, same pattern).
 - [ ] **4 — Authoring.** `add-plugin` skill + `just new-plugin` scaffolder (crate + migration + page + manifest AND appends to workspace + generated registry + Vite/tsconfig wiring); rewrite the `add-resource` recipe in `AGENTS.md`; add `docs/authoring-a-plugin.md`.
 
 ## Guard tests (spec §6 — implement and keep green)
 
-- [ ] parity test reworked to a registry walk; `.nest`/`.merge` ban lifted.
-- [ ] `typegen_spec_matches_server`
+- [x] parity test reworked to a registry walk; `.nest`/`.merge` ban lifted. _(iter 3)_
+- [x] `typegen_spec_matches_server` _(iter 3)_
 - [ ] `every_plugin_route_is_under_its_derived_prefix`
 - [ ] `no_cross_plugin_schema_name_collisions`
 - [ ] `plugin_tables_are_prefixed_and_unique`
@@ -62,3 +62,15 @@ smoke check passes, final per-unit cycle clean, draft PR updated with an
   `cargo build --bin app-starter` (SKIP_FRONTEND_BUILD) ok, `default_run=app-starter`,
   `default_members`=root, build.rs frontend build ran in `just verify`. Gates:
   `just verify` + `cargo deny` green; live smoke (WAL active) passed. Next: **Phase 1**.
+- **Iter 3 (2026-06-23):** **Phase 1 complete** + 2 guards. Rewrote `src/api.rs`:
+  `ApiDoc` is now info-only; `api_router()` builds an `OpenApiRouter` (core
+  resources via `routes!`, plugins via `.merge(plugin.api())`) and
+  `split_for_parts()` yields the live router + spec from one declaration. Added
+  `pub api::api_spec()`; the `openapi_spec` bin + `/api/openapi.json` handler both
+  use it [M2]. Reworked the parity test to a registry walk (probe every spec op →
+  served); **lifted the `.nest`/`.merge` ban** and dropped the source parser +
+  Direction 2/3 (impossible by construction, [M9]); added
+  `typegen_spec_matches_server`. `just typegen` produced **zero `schema.d.ts`
+  drift** — the router-derived spec is byte-identical to the old hand-built one.
+  Gates: `just verify` + `cargo deny` green; both guard tests pass explicitly.
+  Next: **Phase 2** (items → first plugin).
