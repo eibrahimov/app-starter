@@ -8,6 +8,11 @@
 > dropping a self-contained **plugin** into the app — without hand-editing the
 > central router, OpenAPI document, migration list, or frontend route tree, and
 > without losing the template's end-to-end type safety or single-binary deploy.
+>
+> **Validated by research:** see [`plugin-framework-research.md`](plugin-framework-research.md)
+> (multi-agent web research, ~90 cited sources). The research confirms the
+> compile-time core and changed two decisions below — migration ownership (§5)
+> and OpenAPI/route namespacing (§3) — marked **[research]** inline.
 
 ## 1. Why this is hard in *this* template
 
@@ -91,7 +96,24 @@ description = "A public guestbook resource"
 author = "community@example.com"
 api_prefix = "/api/v1/guestbook"   # namespace this plugin owns
 frontend = "frontend/plugin.tsx"
+host_api = "^1.0"                  # [research] host plugin-API range, checked at startup
 ```
+
+**[research] Namespace by construction, not convention.** Following the
+Kubernetes `/apis/<group>/...` model (collisions structurally impossible) rather
+than WordPress-style prefix discipline: both the route prefix *and* the plugin's
+OpenAPI **component names** are derived from `name`. The component-name prefix is
+not cosmetic — when multiple OpenAPI specs are merged, same-named components are
+**silently last-wins-overwritten** (the documented openapi-merge footgun), so
+two plugins each defining a `Settings`/`Item` schema would corrupt the generated
+client without it. A plugin's `Item` is emitted as `guestbook_Item`.
+
+**[research] `host_api` compatibility.** Every mature ecosystem pins plugin↔host
+compat with one machine-checked declaration (VS Code `engines.vscode`, Grafana
+`grafanaDependency`, go-plugin's protocol version) and fails loudly on mismatch.
+`host_api` is a semver range against the core's stable plugin-API version;
+startup refuses a plugin outside the range with a human-readable error rather
+than letting drift surface as a runtime break.
 
 ### Backend contract
 
@@ -201,26 +223,47 @@ The shared HTTP concerns (`CorsLayer`, body limit, timeout, request-id, SPA
 fallback) stay in `src/api.rs::router` exactly as `AGENTS.md:202-205` requires —
 plugins contribute *routes*, never *layers*.
 
-## 5. Migrations across plugins
+## 5. Migrations across plugins **[research: default changed]**
 
 Core migrations stay in `migrations/` (append-only, unchanged). Each plugin
 owns `plugins/<name>/migrations/` with its own embedded `Migrator`. At startup
 `db::init()` runs the core migrator, then each plugin's, in name order.
 
-**The one real hazard:** sqlx records every migration in a single shared
-`_sqlx_migrations` table keyed by the `i64` version (the timestamp). Two plugins
-that pick the *same* timestamp collide. Mitigations:
+**Each plugin's `Migrator` writes to its own tracking table**
+(`_sqlx_migrations_<plugin>`) via `Migrator::dangerous_set_table_name(...)`, so
+each plugin owns an independent version keyspace.
 
-1. The scaffolder always stamps a unique current-time version.
-2. A new guard (§6) fails the build if any two migrations across core + all
-   plugins share a version.
-3. Per-plugin append-only rule, identical to the core rule
-   (`AGENTS.md:177`): never edit or rename a committed plugin migration.
+> **Why not one shared `_sqlx_migrations` table?** The research
+> ([`plugin-framework-research.md`](plugin-framework-research.md) §2.3) showed
+> this is a *documented sqlx failure mode*, not a tunable risk: a `Migrator`
+> calls `validate_applied_migrations`, which returns `VersionMissing` for any
+> applied row not in *its own* set — so with one Migrator per plugin against a
+> shared table, **each plugin sees the others' rows as "missing" and the app
+> refuses to start** ([sqlx#1698], [sqlx#3573]). The only built-in escape,
+> `ignore_missing(true)`, also silences genuine drift. sqlx's own 0.9 fix is a
+> per-app tracking table — but its "dedicated schema" form is Postgres-only;
+> SQLite has no schemas, so the per-plugin *table* (settable today, though the
+> API is flagged dangerous → set it deterministically, never change it) is the
+> SQLite-compatible analogue. This replaces the earlier shared-table + collision-
+> guard proposal.
 
-> **Open question for sign-off:** an alternative is a per-plugin migration
-> *table* (`_sqlx_migrations_<plugin>`), which fully isolates plugins but needs a
-> custom migrator wrapper since sqlx hard-codes the table name. The shared-table
-> + collision-guard approach above is simpler and is the recommended default.
+Additional rules, drawn from how Rails engines, Django apps, and WordPress
+isolate plugin schema:
+
+1. **Table-name prefixing** — every plugin table is `<plugin>_<table>` (Rails
+   `table_name_prefix` / WordPress `$wpdb->prefix`), the primary collision
+   guard for the data tables themselves.
+2. **Dependency direction** — a plugin may FK *to* core tables; **core never
+   depends on a plugin table**.
+3. **Uninstall policy** — decide up front (orphan the prefixed tables vs. run a
+   teardown). Discourse cites the missing uninstall story as the main reason to
+   discourage plugin-owned tables, so we answer it explicitly rather than skip
+   it.
+4. **Append-only per plugin**, identical to the core rule (`AGENTS.md:177`):
+   never edit or rename a committed plugin migration.
+
+[sqlx#1698]: https://github.com/launchbadge/sqlx/issues/1698
+[sqlx#3573]: https://github.com/launchbadge/sqlx/issues/3573
 
 ## 6. Guard tests — repurposed, not removed
 
@@ -236,11 +279,21 @@ The existing guards encode real invariants; the framework makes most of them
   With `utoipa-axum` the two are generated from one declaration, so this becomes
   a regression guard rather than a footgun-catcher. The **`.nest`/`.merge` ban
   (`tests/api.rs:164-169`) is lifted** — merging is now the mechanism.
-- **New: `plugin_migration_versions_are_unique`** — scans core + every plugin
-  migration dir and fails on a duplicate timestamp (§5).
 - **New: `every_plugin_route_is_under_its_declared_prefix`** — each plugin's
   routes must live under the `api_prefix` in its `plugin.toml`, so two plugins
   can't claim the same path.
+- **[research] New: `no_cross_plugin_schema_name_collisions`** — assert plugin
+  OpenAPI component names are prefixed by plugin `name`, so the silent last-wins
+  merge can't corrupt the generated client (§3).
+- **[research] New: `expected_plugins_are_registered`** — assert the registry is
+  non-empty and contains each enabled plugin. `inventory` registers via
+  life-before-main and **fails silently** under dead-code elimination / LTO or on
+  unsupported targets (the registry is just empty, not a compile error), so this
+  guard turns a silent miswire into a test failure.
+
+> Per-plugin tracking tables (§5) make a migration-version-uniqueness guard
+> unnecessary — each plugin owns its own keyspace — so the earlier
+> `plugin_migration_versions_are_unique` guard is dropped.
 
 Editing these guard tests and lifting the `.nest`/`.merge` ban is itself an
 architectural-convention change requiring sign-off (§9).
@@ -281,6 +334,16 @@ core abstraction can be reviewed before any worked example is migrated.
 - **No runtime/dynamic loading.** Plugins are compile-time crates. We
   explicitly reject WASM/dylib loading (option C from the discussion): it breaks
   the typed OpenAPI contract, the embedded-SPA model, and single-binary deploy.
+  **[research]** The escape hatch, *if* untrusted third-party or no-rebuild
+  plugins ever become a goal, is the WASM Component Model / Extism
+  (in-process, capability-sandboxed) — an additive boundary, never native dylib
+  loading (Rust has no stable ABI). See research report §1.
+- **[research] Trust model is honest, not implied.** A plugin crate compiles in
+  with full process access, and its `build.rs`/proc-macros run arbitrary code at
+  *build* time. There is no sandbox; a capability manifest here would be
+  *disclosure, not enforcement* (Obsidian is the precedent). The plugin source
+  tree is part of the host's trusted computing base — gate additions through
+  review + `cargo-vet`/`cargo-deny`. See research report §2.5.
 - **Handler authoring is unchanged.** Same domain-module shape, same
   `#[utoipa::path]`, same `AppError`, same typed hooks. Only *registration*
   becomes automatic.
@@ -309,14 +372,23 @@ Docker, `VISION.md` (referenced for intent, never edited).
 
 ## 10. Open questions for reviewers
 
-1. **Plugin migration isolation** — shared `_sqlx_migrations` + collision guard
-   (recommended) vs. per-plugin table (§5)?
-2. **Plugin enable/disable** — implicit (a plugin is "on" if its crate is a
+*Resolved by research (§5/§3 updated): migration isolation is now per-plugin
+tracking table (was the open question); namespacing is by-construction with a
+`host_api` compat field.*
+
+1. **Plugin enable/disable** — implicit (a plugin is "on" if its crate is a
    dependency) vs. an explicit Cargo feature per plugin for opt-out builds?
-3. **First PR scope** — machinery-only (Phases 0–1) for review, or land through
+   Feature gating also covers the `inventory` silent-empty risk (§6).
+2. **First PR scope** — machinery-only (Phases 0–1) for review, or land through
    Phase 3 so the worked examples prove it end to end?
-4. **`utoipa-axum` adoption** — it is the lever that removes the dual
+3. **`utoipa-axum` adoption** — it is the lever that removes the dual
    path/schema registration; acceptable as a core dependency?
+4. **[research] API tier** — do we want a VS Code-style "stable vs proposed"
+   tier for the plugin-facing surface now, or defer until there's a second
+   consumer of the contract?
+5. **[research] `cargo-vet` gate** — adopt audit-before-entry for a blessed
+   plugin set now, or start with `cargo-deny`/`cargo-audit` (already in
+   `just verify`) and add `cargo-vet` when a third-party plugin lands?
 
 ---
 
