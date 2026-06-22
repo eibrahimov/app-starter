@@ -4,6 +4,18 @@
 > before implementation. This document is the deliverable for the
 > `claude/modular-plugin-framework` branch.
 >
+> **⚠ Under revision after re-review.** A 6-agent adversarial review
+> ([`plugin-framework-review.md`](plugin-framework-review.md)) found **5 blockers**
+> that must be closed before Phase 0. Affected claims below are tagged
+> **[BLOCKER → see review]**. In short: (B1) a plugin is *not* enabled just by
+> being a dependency — Rust drops unreferenced crates, so registration needs an
+> explicit link, and "no central edits" narrows accordingly; (B2)
+> `dangerous_set_table_name` does **not** exist in the pinned sqlx 0.8 (§5 needs
+> sqlx 0.9 or an alternative); (B3) the test harness bypasses `db::init()`;
+> (B4) a runtime route array loses TanStack `<Link>` type safety; (B5) the Vite
+> glob needs a `server.fs.allow` edit. Four maintainer decisions are listed in the
+> review §6.
+>
 > **Goal:** Let anyone develop, extend, and ship a working end product by
 > dropping a self-contained **plugin** into the app — without hand-editing the
 > central router, OpenAPI document, migration list, or frontend route tree, and
@@ -207,15 +219,31 @@ export const pluginRoutes: PluginRoute[] = Object.values(modules)
 `router.tsx` then builds its children and nav by iterating `pluginRoutes`
 instead of listing each page by hand. The pages themselves are written exactly
 as `Items.tsx`/`Posts.tsx` are today (Radix Themes + sections + typed hooks);
-they still consume the generated `schema.d.ts`, so the plugin's API stays typed
-end to end.
+they still consume the generated `schema.d.ts`, so the plugin's **API access**
+stays typed end to end.
+
+> **[BLOCKER B4/B5 + see review §2.4/§2.5]** Two corrections to this section:
+> (B4) the "typed end to end" guarantee holds for the **API client** but **not for
+> navigation** — TanStack derives `<Link to=…>` type-safety from a *statically
+> known* route tree, and a runtime-mapped `PluginRoute[]` erases the path literals,
+> so links to plugin routes are not compile-time checked (scope the claim to the
+> API client, or add route-tree codegen and drop the "no codegen" framing). (B5)
+> "no central edit" is not quite true: the Vite root is `interface/`, so globbing
+> the sibling `plugins/` dir **403s in the dev server** until `vite.config.ts` adds
+> `server.fs.allow` (production `vite build` is unaffected). Also: plugin TSX under
+> `plugins/*/frontend` falls **outside** `interface/tsconfig.json` + Biome scope, so
+> `just lint` would skip it — extend the configs (M10); and `{ eager: true }` bundles
+> every plugin into the initial chunk — prefer lazy globbing + `route.lazy`.
 
 ## 4. How the central files change
 
 | File | Today | After |
 |------|-------|-------|
-| `src/api.rs` | Hand-listed `paths(...)`, `components(schemas(...))`, and `.route(...)` calls | `router()` merges `OpenApiRouter`s from `inventory::iter::<PluginRegistration>`; core keeps only `/api/health` + `/api/openapi.json` and the shared layers |
-| `src/db.rs:25` | `sqlx::migrate!("./migrations").run(...)` | Run core migrator, then each plugin's `migrator()` in deterministic order |
+| `src/api.rs` | Hand-listed `paths(...)`, `components(schemas(...))`, and `.route(...)` calls | `router()` merges `OpenApiRouter`s from the plugin registry; core keeps only `/api/health` + `/api/openapi.json` and the shared layers. **[B1]** plugins must be *explicitly linked* (generated `force_link`/`register()` per plugin), not merely declared as deps |
+| `src/db.rs:25` | `sqlx::migrate!("./migrations").run(...)` | Run core migrator, then each plugin's `migrator()` — each writing its own `_sqlx_migrations_<plugin>` table (§5) — in name order. **[B2]** needs sqlx 0.9 or an alternative |
+| `tests/common.rs` | `sqlx::migrate!("./migrations")` directly | **[B3]** must call a shared `run_all_migrators(pool)` (same path as `db::init()`) or moving example migrations into plugins breaks the suite |
+| `interface/vite.config.ts` | no `server.fs` config | **[B5]** add `server.fs.allow` so the dev server can read the sibling `plugins/` dir |
+| `src/bin/openapi_spec.rs` | prints `ApiDoc::openapi()` | **[M2]** generate the spec from the server's own `router()` (`split_for_parts`) so typegen can't diverge from what's served |
 | `interface/src/router.tsx` | Hand-listed routes + `<NavLink>`s | Iterate `pluginRoutes` to build children + nav |
 | `tests/api.rs` | Source-text parity parser; bans `.nest`/`.merge` | Registry-driven parity (see §6); `.nest`/`.merge` ban lifted |
 
@@ -232,6 +260,17 @@ owns `plugins/<name>/migrations/` with its own embedded `Migrator`. At startup
 **Each plugin's `Migrator` writes to its own tracking table**
 (`_sqlx_migrations_<plugin>`) via `Migrator::dangerous_set_table_name(...)`, so
 each plugin owns an independent version keyspace.
+
+> **[BLOCKER B2 → see review §2.2]** Verified false against the repo:
+> `dangerous_set_table_name` does **not** exist in the pinned `sqlx 0.8.6` — it
+> first ships in **0.9.0**. So this default requires either a breaking, approval-
+> gated upgrade to `sqlx 0.9`, **or** a 0.8-compatible alternative: ATTACH-per-
+> plugin database files (each gets its own default `_sqlx_migrations`, no 0.9 API
+> needed — but cannot cross-DB-FK to core tables and loses cross-file WAL
+> atomicity), or a custom per-plugin versioned-SQL applier. Pick one before
+> implementing. Also unaddressed below: SQLite `busy_timeout`/WAL at multi-migrator
+> startup, cross-plugin ordering/FK-to-core, and a guard that plugin **table**
+> names (not just routes/OpenAPI components) don't collide.
 
 > **Why not one shared `_sqlx_migrations` table?** The research
 > ([`plugin-framework-research.md`](plugin-framework-research.md) §2.3) showed

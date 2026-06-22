@@ -1,9 +1,14 @@
 # Plugin Framework — Research Report
 
 > Companion to [`plugin-framework.md`](plugin-framework.md). Multi-agent web
-> research (5 parallel angles, ~90 sources) validating the design against how
-> real-world plugin ecosystems are built. Each claim is cited; disagreements
-> between sources are called out rather than smoothed over.
+> research (5 parallel angles, ~55 unique cited sources) validating the design
+> against how real-world plugin ecosystems are built. Each claim is cited;
+> disagreements between sources are called out rather than smoothed over.
+>
+> **Re-reviewed** by a 6-agent adversarial panel — see
+> [`plugin-framework-review.md`](plugin-framework-review.md). Citation integrity
+> was found high (no fabricated/dead URLs); minor corrections from that review are
+> marked inline below.
 >
 > **Date:** 2026-06-22. **Method:** scope → 5 parallel search agents
 > (architecture · ecosystems/contracts · DB/migrations · frontend · security/
@@ -121,17 +126,26 @@ evidence shows running one `Migrator` per plugin against the shared table is the
   was *closed*).
 - The only built-in escape, `ignore_missing(true)`, "silences genuine drift" too
   — a blunt instrument ([sqlx migrator.rs]).
-- sqlx's own planned fix (0.9) is "each app gets a dedicated schema that owns its
-  own migrations table" ([sqlx#3565]) — but **schemas are Postgres-only; SQLite
-  has none.** So for this SQLite app the analogue is a **per-plugin tracking
-  table** via `Migrator::dangerous_set_table_name("_sqlx_migrations_<plugin>")`
-  (achievable today; flagged dangerous → must be set deterministically and never
-  changed).
+- sqlx's own planned fix ([sqlx#3565]) is to **change the migrations-tracking
+  table name per app**; its Postgres "schema per app" form is the interim
+  workaround, and **schemas are Postgres-only — SQLite has none.** So for this
+  SQLite app the analogue is a **per-plugin tracking table** via
+  `Migrator::dangerous_set_table_name("_sqlx_migrations_<plugin>")`.
 
-Cross-framework, the split is clear: **Django** keys its log on `(app_label,
-name)` so collisions are impossible by design; **Rails** engines namespace
-*tables* (`isolate_namespace` → `my_engine_articles`) but share the log relying
-on unique timestamps; **WordPress** skips a log entirely (prefix tables with
+> **Correction from re-review** (§2.2 B2): that method does **not exist in the
+> pinned `sqlx 0.8.6`** — it first ships in **0.9.0**. So this is *not* achievable
+> on the repo today; it requires a breaking, approval-gated `sqlx 0.9` upgrade, or
+> a 0.8-compatible alternative (ATTACH-per-file database, or a custom per-plugin
+> versioned-SQL applier). The diagnosis above is correct; the prescription needs
+> this decision plus a startup `busy_timeout`/WAL story and a plugin-table-name
+> collision guard.
+
+Cross-framework, the split is clear: **Django** tags each log row with its
+`app_label`, namespacing migration history per app (by *tagging* — there is no
+unique constraint on `(app_label, name)`, so it's convention-by-tag, not
+schema-enforced; the re-review corrected the earlier "impossible by design"
+wording); **Rails** engines namespace *tables* (`isolate_namespace` →
+`my_engine_articles`) but share the log relying on unique timestamps; **WordPress** skips a log entirely (prefix tables with
 `$wpdb->prefix`, store a per-plugin version int in `options`, diff via
 `dbDelta`). **Discourse explicitly discourages plugin-owned tables** because of
 "what happens when someone uninstalls the plugin?" and steers to a key/value
@@ -161,24 +175,40 @@ choice matches the direction the most relevant precedent took.
 
 ### 2.5 Security, governance & DX — name the trust model honestly
 
+> **Corrections from re-review** ([`plugin-framework-review.md`](plugin-framework-review.md)
+> §2 M6/M7, §5): the cited crates.io incidents below executed at **runtime**, not
+> build time, so they evidence the *runtime* in-process risk, not the `build.rs`
+> vector (which is dangerous *by design*, cited generically). `rustdecimal` was
+> **2022** (RUSTSEC-2022-0042), not 2025. The trust statement also needs the
+> explicit in-process reach (DB file / env / network egress) added; and the
+> governance guidance below is **marketplace-shaped and does not map to a
+> compile-time crate model** — see the review.
+
 - **Trust model (must be stated, not implied away):** a compiled-in crate has
-  full process access; worse, **`build.rs`/proc-macros run arbitrary code at
-  *build* time, before anything is loaded** — they can "exfiltrate environment
-  variables (including CI secrets)" ([systemshardening]). Obsidian (the closest
-  unsandboxed analog) says plainly it "cannot reliably restrict plugins"
-  ([Obsidian security]). A permission *manifest* in an unsandboxed host is
-  **disclosure, not enforcement** — only 39.8% of Chrome extensions met
-  least-privilege *with* a manifest system ([Springer]). Don't market a manifest
-  as a sandbox.
-- **Supply chain is build-graph, since runtime isolation is impossible:** gate a
-  blessed plugin set with **`cargo-vet`** (human audit-before-entry, importable
-  Google/Mozilla audit sets — [cargo-vet]), run **`cargo-deny`** (license/source/
-  banned-crate, already in `just verify`) + **`cargo-audit`** as reactive
-  backstops. Note these are *reactive* — they can't stop a novel malicious crate
-  or `build.rs`. crates.io's smaller scale lowers but doesn't remove typosquat
-  risk (real 2025 takedowns: `faster_log`, `rustdecimal`); maintainer-takeover
-  (event-stream 2018; TanStack 2026: 84 malicious versions via CI token) is the
-  defining risk.
+  full process access. It can read the SQLite file directly, read environment/
+  secrets, and open its own listeners or outbound connections — entirely outside
+  the CORS/body-limit/timeout layers, which govern only HTTP traffic through the
+  shared router and provide **no containment** against in-process code. Worse,
+  **`build.rs`/proc-macros run arbitrary code at *build* time, before anything is
+  loaded** — build scripts can "exfiltrate environment variables (including CI
+  secrets)" ([systemshardening]); this is a property of build scripts by design,
+  not tied to any one incident. Obsidian (the closest unsandboxed analog) says
+  plainly it "cannot reliably restrict plugins" ([Obsidian security]). A
+  permission *manifest* in an unsandboxed host is **disclosure, not enforcement** —
+  only 39.8% of Chrome extensions met least-privilege *with* a manifest system
+  ([Springer]). "Trusted plugins only" is the sole real control; don't market a
+  manifest as a sandbox.
+- **Supply chain controls are build-graph, since runtime isolation is
+  impossible:** run **`cargo-deny`** (license/source/banned-crate, already in
+  `just verify`) + **`cargo-audit`** as reactive backstops, and **`cargo-vet`**
+  (human audit-before-entry, importable Google/Mozilla audit sets — [cargo-vet])
+  over the workspace's own dependency graph. These are reactive (deny/audit) or
+  human-gated (vet) — none stop a novel malicious crate or `build.rs` payload.
+  crates.io's smaller scale lowers but doesn't remove typosquat risk (e.g.
+  `faster_log`/`async_println`, Sept 2025 — both **runtime** payloads; `rustdecimal`,
+  2022). The *defining* class is maintainer/CI compromise: event-stream (2018, a
+  social-engineering maintainer handover) and TanStack (2026, a CI/Actions OIDC-token
+  compromise — "no npm tokens were stolen" — 84 malicious versions).
 - **Governance that correlates with healthy ecosystems:** automated scanning on
   *every published version* (VS Code study: ~5.61% of 52,880 extensions
   potentially harmful, 613M installs — "high install count" is worthless as a
