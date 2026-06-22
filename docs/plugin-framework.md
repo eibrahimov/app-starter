@@ -1,30 +1,24 @@
-# Plugin Framework — Design Doc
+# Plugin Framework — Design Doc (v2)
 
 > **Status:** Proposal (design only — no code changes yet). Awaiting sign-off
-> before implementation. This document is the deliverable for the
-> `claude/modular-plugin-framework` branch.
+> before implementation. Deliverable for the `claude/modular-plugin-framework`
+> branch.
 >
-> **⚠ Under revision after re-review.** A 6-agent adversarial review
-> ([`plugin-framework-review.md`](plugin-framework-review.md)) found **5 blockers**
-> that must be closed before Phase 0. Affected claims below are tagged
-> **[BLOCKER → see review]**. In short: (B1) a plugin is *not* enabled just by
-> being a dependency — Rust drops unreferenced crates, so registration needs an
-> explicit link, and "no central edits" narrows accordingly; (B2)
-> `dangerous_set_table_name` does **not** exist in the pinned sqlx 0.8 (§5 needs
-> sqlx 0.9 or an alternative); (B3) the test harness bypasses `db::init()`;
-> (B4) a runtime route array loses TanStack `<Link>` type safety; (B5) the Vite
-> glob needs a `server.fs.allow` edit. Four maintainer decisions are listed in the
-> review §6.
+> **v2 — revised after re-review.** A 6-agent adversarial panel
+> ([`plugin-framework-review.md`](plugin-framework-review.md)) found 5 blockers in
+> v1; this revision closes them and folds in the majors. The maintainer decisions
+> from the review are now baked in: **explicit generated registration** (not
+> implicit dependency linking), **upgrade to sqlx 0.9** for per-plugin migration
+> tables, and **API-typed / navigation-runtime-checked** on the frontend.
+> Web-research backing is in [`plugin-framework-research.md`](plugin-framework-research.md)
+> (~55 cited sources); design changes it drove are tagged **[research]**.
 >
-> **Goal:** Let anyone develop, extend, and ship a working end product by
-> dropping a self-contained **plugin** into the app — without hand-editing the
-> central router, OpenAPI document, migration list, or frontend route tree, and
-> without losing the template's end-to-end type safety or single-binary deploy.
->
-> **Validated by research:** see [`plugin-framework-research.md`](plugin-framework-research.md)
-> (multi-agent web research, ~90 cited sources). The research confirms the
-> compile-time core and changed two decisions below — migration ownership (§5)
-> and OpenAPI/route namespacing (§3) — marked **[research]** inline.
+> **Goal:** Let anyone develop, extend, and ship a working end product by adding a
+> self-contained **plugin** to the app without hand-editing the central router,
+> OpenAPI document, migration list, or frontend route tree — and without losing
+> the template's single-binary deploy or its typed **API** contract. (One honest
+> caveat survives: enabling a plugin requires adding its crate to the build graph;
+> see §2.)
 
 ## 1. Why this is hard in *this* template
 
@@ -43,393 +37,416 @@ guard tests exists precisely because that hand-wiring is error-prone:
 - **The "three-place footgun"** — `AGENTS.md:117-122` calls registering a
   resource in three separate places "the most common mistake."
 - **Central frontend route tree** — pages are imported and listed by hand in
-  `interface/src/router.tsx:94-116`, with a matching `<NavLink>` in `Layout`
-  (`interface/src/router.tsx:73-75`).
+  `interface/src/router.tsx:94-116`, with a matching `<NavLink>` in `Layout`.
 
-So a "plugin framework" here is really about **making the wiring structural
-instead of manual**: a plugin declares what it contributes, and the router,
-OpenAPI document, migrations, and UI nav are *built by iterating the set of
-plugins*. When the router and the spec are generated from the same declaration,
-the three-place footgun and route↔spec drift become **impossible by
-construction** rather than caught after the fact.
+So a "plugin framework" here is about **making the wiring structural instead of
+manual**: a plugin declares what it contributes, and the router, OpenAPI
+document, migrations, and UI nav are *built by iterating the set of plugins*.
+When the router and the spec are generated from the same declaration, the
+three-place footgun and route↔spec drift become **impossible by construction**.
 
-This crosses an explicit approval boundary in `AGENTS.md:86` —
-*"architectural conventions not represented by both worked examples"* — which is
-why this is a design doc for review, not a direct change. See §9.
+This crosses `AGENTS.md:86` (*"architectural conventions not represented by both
+worked examples"*), which is why this is a design doc for review. See §9.
 
 ## 2. Chosen approach: A + B combined
 
-Per the decision on this branch:
-
-- **B — Compile-time auto-registration (backend).** A `Plugin` trait; each
-  plugin registers itself via the [`inventory`] crate; the router and OpenAPI
-  document are built by iterating the registry. Full type safety, single binary,
-  no central edits. Frontend mirror: build-time discovery via Vite's
-  `import.meta.glob` (the JS equivalent of auto-registration — no codegen step).
+- **B — Compile-time registration (backend).** A `Plugin` trait; the router and
+  OpenAPI document are built by iterating the registered plugins.
+  **[review B1] Registration is explicit, not implicit.** `inventory`-style
+  "a plugin registers just by being a dependency" is *unsound* under Rust's link
+  model: an upstream rlib from which the final binary references no symbol is
+  dropped wholesale, constructors and all (confirmed: rust-ctor#27, inventory
+  #11/#32/#34/#52/#85). So the host links plugins through a **generated
+  `src/plugins/mod.rs`** that names each plugin crate explicitly (`pub use` +
+  `register()` call). The scaffolder writes that one line; nothing else central
+  changes. This makes registration deterministic across `lto`/`strip`/targets.
 - **A — Scaffolding (authoring).** An `add-plugin` skill + `just new-plugin`
-  task generate a compliant plugin skeleton (crate + migration + React page +
-  manifest) and validate it against the same gates. This is the "anyone can
-  start" on-ramp.
+  task generate a compliant skeleton (crate + migration + React page + manifest)
+  *and* append the crate to the workspace + generated registry, then validate
+  against the gates.
 
-The result: a contributor runs one command, fills in domain logic, and the
-plugin wires itself in. They never touch `src/api.rs` or `router.tsx`.
+**The honest promise.** A plugin author never edits `src/api.rs`, the OpenAPI
+document, `interface/src/router.tsx`, or the migration list. They *do* (via the
+scaffolder, one line each) add the crate to the workspace `members` and to the
+generated `src/plugins/mod.rs`. We do not claim "zero central edits"; we claim
+"the scaffolder owns the only central edits, and they are mechanical."
 
-[`inventory`]: https://docs.rs/inventory
+Frontend mirror: build-time discovery via Vite `import.meta.glob` (§3) — the
+JS-side equivalent, with its own caveats addressed below.
 
 ## 3. Anatomy of a plugin
 
 A plugin is a **Cargo workspace member crate** (backend) with a **co-located
-frontend directory** (discovered by the SPA build). Making it a crate is what
-makes plugins independently developable and publishable — a community author
-ships a crate, the app depends on it, and `inventory` links it in.
+frontend directory** (discovered by the SPA build). A crate is what makes plugins
+independently developable and publishable.
 
 ```
 plugins/
   guestbook/
-    plugin.toml                 # manifest: name, version, author, description
-    Cargo.toml                  # workspace member; depends on app-starter-core
+    plugin.toml                 # manifest: name, version, author, host_api
+    Cargo.toml                  # workspace member; depends on app-starter
     src/
-      lib.rs                    # domain + handlers + `impl Plugin` + register!
+      lib.rs                    # domain + handlers + `impl Plugin` + register()
     migrations/
-      20260701000001_create_guestbook.sql
+      20260701000001_create_guestbook_entries.sql
     frontend/
-      plugin.tsx                # exports routes + nav entry (glob target)
+      plugin.tsx                # exports a PluginRoute descriptor (glob target)
       Guestbook.tsx
       Guestbook.test.tsx
 ```
 
-`plugin.toml` (manifest, consumed by the scaffolder and `just plugins`):
+`plugin.toml` (manifest, consumed by the scaffolder, `just plugins`, and guards):
 
 ```toml
 [plugin]
-name = "guestbook"
+name = "guestbook"                 # the namespace key — route prefix + schema prefix derive from it
 version = "0.1.0"
 description = "A public guestbook resource"
 author = "community@example.com"
-api_prefix = "/api/v1/guestbook"   # namespace this plugin owns
+host_api = "^1"                    # [research] semver range against PLUGIN_API_VERSION, checked at startup
 frontend = "frontend/plugin.tsx"
-host_api = "^1.0"                  # [research] host plugin-API range, checked at startup
 ```
 
-**[research] Namespace by construction, not convention.** Following the
-Kubernetes `/apis/<group>/...` model (collisions structurally impossible) rather
-than WordPress-style prefix discipline: both the route prefix *and* the plugin's
-OpenAPI **component names** are derived from `name`. The component-name prefix is
-not cosmetic — when multiple OpenAPI specs are merged, same-named components are
-**silently last-wins-overwritten** (the documented openapi-merge footgun), so
-two plugins each defining a `Settings`/`Item` schema would corrupt the generated
-client without it. A plugin's `Item` is emitted as `guestbook_Item`.
+**[research] Namespace by construction.** Following Kubernetes
+(`/apis/<group>/...`, collisions structurally impossible) rather than
+WordPress-style prefix discipline: the route prefix (`/api/v1/<name>`), the
+OpenAPI **component-name prefix** (`<name>_Item`), and the DB table prefix
+(`<name>_*`, §5) are all **derived from `name`** — there is one source of truth,
+not a hand-declared `api_prefix`. The component-name prefix is not cosmetic: when
+OpenAPI specs are merged, same-named components are **silently last-wins-
+overwritten** by naive/`.merge()` composition (the design's own path), so two
+plugins each defining `Item`/`Settings` would corrupt the generated client
+without it. A guard enforces the derivation (§6).
 
-**[research] `host_api` compatibility.** Every mature ecosystem pins plugin↔host
-compat with one machine-checked declaration (VS Code `engines.vscode`, Grafana
-`grafanaDependency`, go-plugin's protocol version) and fails loudly on mismatch.
-`host_api` is a semver range against the core's stable plugin-API version;
-startup refuses a plugin outside the range with a human-readable error rather
-than letting drift surface as a runtime break.
+**[research] `host_api` compatibility.** Mature ecosystems pin plugin↔host compat
+with one machine-checked declaration that fails loudly (VS Code `engines.vscode`,
+Grafana `grafanaDependency`, go-plugin's protocol version). The core exposes a
+`PLUGIN_API_VERSION` constant; `host_api` is a semver range against it; startup
+refuses an out-of-range plugin with a human-readable error. Introducing that
+constant is itself a small API-surface commitment (see §10).
 
 ### Backend contract
 
-The core exposes a small trait. Each plugin returns its routes and OpenAPI
-fragment from **one** source of truth, so they cannot drift:
+The core exposes a small trait; each plugin returns its routes and OpenAPI
+fragment from **one** source of truth so they cannot drift:
 
 ```rust
 // core: src/plugin.rs (new)
+pub const PLUGIN_API_VERSION: &str = "1.0.0";
+
 pub trait Plugin: Send + Sync + 'static {
-    /// Stable identifier, also the migration/namespace key.
+    /// Stable identifier; the route/schema/table namespace key.
     fn name(&self) -> &'static str;
 
-    /// Routes AND their OpenAPI paths, built together so they can't desync.
-    /// utoipa-axum's OpenApiRouter registers a handler once and contributes
-    /// both the axum route and the OpenAPI path+schemas in a single call.
+    /// Required host-API semver range (from plugin.toml host_api).
+    fn host_api(&self) -> &'static str;
+
+    /// Routes AND their OpenAPI paths/schemas, built together so they can't
+    /// desync. utoipa-axum's OpenApiRouter registers a handler once and
+    /// contributes both the axum route and the OpenAPI path+schemas.
     fn api(&self) -> utoipa_axum::router::OpenApiRouter<AppState>;
 
-    /// Migrations this plugin owns (embedded at compile time).
+    /// Migrations this plugin owns (embedded at compile time, plugin-relative).
     fn migrator(&self) -> Option<sqlx::migrate::Migrator> { None }
-}
-
-/// Registration slot. `inventory` collects every `register_plugin!` across all
-/// linked crates with zero central edits.
-pub struct PluginRegistration(pub fn() -> Box<dyn Plugin>);
-inventory::collect!(PluginRegistration);
-
-#[macro_export]
-macro_rules! register_plugin {
-    ($ctor:expr) => {
-        inventory::submit! { $crate::plugin::PluginRegistration($ctor) }
-    };
 }
 ```
 
-A plugin implements it once:
+A plugin implements it once and exposes a `register()` the generated module calls:
 
 ```rust
 // plugins/guestbook/src/lib.rs
 struct Guestbook;
 
-impl Plugin for Guestbook {
+impl app_starter::Plugin for Guestbook {
     fn name(&self) -> &'static str { "guestbook" }
-
+    fn host_api(&self) -> &'static str { "^1" }
     fn api(&self) -> OpenApiRouter<AppState> {
-        OpenApiRouter::new()
-            // one registration → route + OpenAPI path + schemas
-            .routes(routes!(list_entries, create_entry))
+        // routes! contributes route + OpenAPI path + schemas in one call
+        OpenApiRouter::new().routes(routes!(list_entries, create_entry))
     }
-
-    fn migrator(&self) -> Option<Migrator> {
-        Some(sqlx::migrate!("./migrations"))
-    }
+    fn migrator(&self) -> Option<Migrator> { Some(sqlx::migrate!("./migrations")) }
 }
 
-app_starter::register_plugin!(|| Box::new(Guestbook));
+/// Called from the host's generated src/plugins/mod.rs (explicit link, [review B1]).
+pub fn register() -> Box<dyn app_starter::Plugin> { Box::new(Guestbook) }
 ```
 
-The domain module, handlers, and `#[utoipa::path]` annotations are written
-**exactly as the `items`/`posts` recipe describes today** (`AGENTS.md:102-116`).
-Nothing about writing a handler changes — only the registration becomes
-automatic. `utoipa_axum::routes!` is what collapses the "register the route" and
-"list it in `paths(...)` + `components(schemas(...))`" steps into one, killing
-the three-place footgun.
+```rust
+// core: src/plugins/mod.rs  (GENERATED by the scaffolder — the only central edit)
+pub fn all() -> Vec<Box<dyn crate::Plugin>> {
+    vec![
+        guestbook::register(),   // one line per plugin, written by `just new-plugin`
+        // <scaffolder inserts here>
+    ]
+}
+```
+
+`router()` and the OpenAPI doc iterate `plugins::all()`. Because the host names
+each `register()` symbol, the linker pulls the crate in — no silent-empty
+registry. Handler authoring is **unchanged** (`AGENTS.md:102-116`): same
+domain-module shape, `#[utoipa::path]`, `AppError`. Only registration is
+automatic.
+
+**Versions (verified compatible with the repo).** `utoipa-axum = "0.2"` pairs
+with `axum 0.8` + `utoipa 5` (MSRV 1.88) — all already in `Cargo.toml`. `utoipa`
+keeps its `axum_extras` feature. The `Plugin` trait is object-safe (all methods
+take `&self`, return `Self`-free types), and `AppState: Clone+Send+Sync+'static`
+makes the per-plugin `OpenApiRouter<AppState>` merge type-check.
 
 ### Frontend contract
 
-Each plugin's `frontend/plugin.tsx` exports a descriptor; the SPA discovers all
-of them at build time with `import.meta.glob` — no central edit, no codegen:
+Each plugin's `frontend/plugin.tsx` exports a `PluginRoute` descriptor (the
+contract type lives in `interface/src/plugins/contract.ts`); the SPA discovers
+all of them at build time:
 
 ```tsx
 // plugins/guestbook/frontend/plugin.tsx
-import { Guestbook } from "./Guestbook";
+import type { PluginRoute } from "../../../interface/src/plugins/contract";
 export default {
   path: "/guestbook",
   label: "Guestbook",
-  component: Guestbook,
+  component: () => import("./Guestbook").then((m) => m.Guestbook), // lazy
 } satisfies PluginRoute;
 ```
 
 ```tsx
-// interface/src/plugins/registry.ts (new, ~15 lines)
+// interface/src/plugins/registry.ts (new)
+// Lazy (not eager) so each plugin code-splits into its own chunk.
 const modules = import.meta.glob<{ default: PluginRoute }>(
   "../../../plugins/*/frontend/plugin.tsx",
-  { eager: true },
 );
-export const pluginRoutes: PluginRoute[] = Object.values(modules)
-  .map((m) => m.default)
-  .sort((a, b) => a.label.localeCompare(b.label));
 ```
 
-`router.tsx` then builds its children and nav by iterating `pluginRoutes`
-instead of listing each page by hand. The pages themselves are written exactly
-as `Items.tsx`/`Posts.tsx` are today (Radix Themes + sections + typed hooks);
-they still consume the generated `schema.d.ts`, so the plugin's **API access**
-stays typed end to end.
+`router.tsx` builds its children and nav by iterating the discovered routes,
+wiring each through TanStack's `route.lazy`.
 
-> **[BLOCKER B4/B5 + see review §2.4/§2.5]** Two corrections to this section:
-> (B4) the "typed end to end" guarantee holds for the **API client** but **not for
-> navigation** — TanStack derives `<Link to=…>` type-safety from a *statically
-> known* route tree, and a runtime-mapped `PluginRoute[]` erases the path literals,
-> so links to plugin routes are not compile-time checked (scope the claim to the
-> API client, or add route-tree codegen and drop the "no codegen" framing). (B5)
-> "no central edit" is not quite true: the Vite root is `interface/`, so globbing
-> the sibling `plugins/` dir **403s in the dev server** until `vite.config.ts` adds
-> `server.fs.allow` (production `vite build` is unaffected). Also: plugin TSX under
-> `plugins/*/frontend` falls **outside** `interface/tsconfig.json` + Biome scope, so
-> `just lint` would skip it — extend the configs (M10); and `{ eager: true }` bundles
-> every plugin into the initial chunk — prefer lazy globbing + `route.lazy`.
+**[review B4] What is and isn't typed.** The plugin's **API access stays typed
+end to end** — pages consume the generated `schema.d.ts` through the openapi-fetch
+client exactly as today, and plugin paths/components are namespaced (`<name>_*`)
+so the merged `schema.d.ts` stays coherent. But **navigation is not statically
+typed**: TanStack derives `<Link to=…>` safety from a *statically known* route
+tree, and a runtime-mapped `PluginRoute[]` erases the path literals. We accept
+this (per decision) and compensate with a **runtime guard test** asserting every
+`pluginRoutes[].path` is unique, well-formed, and resolves. We do **not** claim
+compile-time link safety for cross-plugin navigation.
+
+**[review B5] Required central config (scaffolder-owned).**
+- `interface/vite.config.ts` must set `server.fs.allow` to include the repo root
+  (e.g. `searchForWorkspaceRoot(process.cwd())`), or the **dev server 403s** on
+  the sibling `plugins/` dir (there is no JS-workspace marker, so Vite's served
+  root is `interface/`). Production `vite build` is unaffected.
+- The glob pattern stays **relative** (`../../../plugins/...`); an absolute
+  `/plugins` would resolve to the Vite root, not the repo root, and never match.
+- **[review M10]** `interface/tsconfig.json` `include` and `biome.json` must be
+  extended to cover `../plugins/*/frontend`, or `just lint`'s `tsc --noEmit` +
+  Biome would silently skip plugin UI — *reducing* coverage versus today.
 
 ## 4. How the central files change
 
 | File | Today | After |
 |------|-------|-------|
-| `src/api.rs` | Hand-listed `paths(...)`, `components(schemas(...))`, and `.route(...)` calls | `router()` merges `OpenApiRouter`s from the plugin registry; core keeps only `/api/health` + `/api/openapi.json` and the shared layers. **[B1]** plugins must be *explicitly linked* (generated `force_link`/`register()` per plugin), not merely declared as deps |
-| `src/db.rs:25` | `sqlx::migrate!("./migrations").run(...)` | Run core migrator, then each plugin's `migrator()` — each writing its own `_sqlx_migrations_<plugin>` table (§5) — in name order. **[B2]** needs sqlx 0.9 or an alternative |
-| `tests/common.rs` | `sqlx::migrate!("./migrations")` directly | **[B3]** must call a shared `run_all_migrators(pool)` (same path as `db::init()`) or moving example migrations into plugins breaks the suite |
-| `interface/vite.config.ts` | no `server.fs` config | **[B5]** add `server.fs.allow` so the dev server can read the sibling `plugins/` dir |
-| `src/bin/openapi_spec.rs` | prints `ApiDoc::openapi()` | **[M2]** generate the spec from the server's own `router()` (`split_for_parts`) so typegen can't diverge from what's served |
-| `interface/src/router.tsx` | Hand-listed routes + `<NavLink>`s | Iterate `pluginRoutes` to build children + nav |
-| `tests/api.rs` | Source-text parity parser; bans `.nest`/`.merge` | Registry-driven parity (see §6); `.nest`/`.merge` ban lifted |
+| `src/plugins/mod.rs` (new, generated) | — | `all()` lists `register()` per plugin — **[B1]** the explicit link that makes the linker include each plugin crate |
+| `src/api.rs` | Hand-listed `paths`/`components`/`.route` | `router()` merges `OpenApiRouter`s from `plugins::all()`; core keeps only `/api/health` + `/api/openapi.json` + shared layers |
+| `src/db.rs:25` | `migrate!("./migrations").run` | `run_all_migrators(pool)`: core first, then each plugin's migrator into its own `_sqlx_migrations_<name>` table; sets `busy_timeout`+WAL first (§5) |
+| `tests/common.rs` | `migrate!("./migrations")` directly | **[B3]** calls the same `run_all_migrators(pool)` so the test DB matches `db::init()` once examples move into plugins |
+| `src/bin/openapi_spec.rs` | prints `ApiDoc::openapi()` | **[M2]** builds the spec from the server's own `router()` via `split_for_parts()` so typegen can't diverge from what's served |
+| `interface/vite.config.ts` | no `server.fs` | **[B5]** `server.fs.allow` includes repo root |
+| `interface/tsconfig.json` / `biome.json` | scope `src` | **[M10]** also include `../plugins/*/frontend` |
+| `interface/src/router.tsx` | Hand-listed routes + `<NavLink>`s | Iterate discovered `pluginRoutes` (lazy) to build children + nav |
+| `tests/api.rs` | Source-text parity parser; bans `.nest`/`.merge` | Registry-driven parity (§6); `.nest`/`.merge` ban lifted |
 
-The shared HTTP concerns (`CorsLayer`, body limit, timeout, request-id, SPA
-fallback) stay in `src/api.rs::router` exactly as `AGENTS.md:202-205` requires —
-plugins contribute *routes*, never *layers*.
+Shared HTTP concerns (`CorsLayer`, body limit, timeout, request-id, SPA fallback)
+stay in `src/api.rs::router` (`AGENTS.md:202-205`). Plugins contribute *routes*,
+never *layers*. **Assembly order is fixed:** merge all plugin + core routers →
+`split_for_parts()` → attach SPA fallback and shared layers **last**; a guard
+asserts no plugin contributes a fallback.
 
-## 5. Migrations across plugins **[research: default changed]**
+## 5. Migrations across plugins — **decision: upgrade to sqlx 0.9**
 
-Core migrations stay in `migrations/` (append-only, unchanged). Each plugin
-owns `plugins/<name>/migrations/` with its own embedded `Migrator`. At startup
-`db::init()` runs the core migrator, then each plugin's, in name order.
+Core migrations stay in `migrations/` (append-only). Each plugin owns
+`plugins/<name>/migrations/` with its own embedded `Migrator`. `run_all_migrators`
+runs the core migrator first, then each plugin's in `name` order, **each writing
+to its own tracking table** `_sqlx_migrations_<name>` via
+`Migrator::dangerous_set_table_name(...)` — so every plugin owns an independent
+version keyspace.
 
-**Each plugin's `Migrator` writes to its own tracking table**
-(`_sqlx_migrations_<plugin>`) via `Migrator::dangerous_set_table_name(...)`, so
-each plugin owns an independent version keyspace.
+> **[review B2] This requires sqlx 0.9.** Verified: `dangerous_set_table_name`
+> does **not** exist in the pinned `sqlx 0.8.6` — it first ships in **0.9.0**. Per
+> decision, we **upgrade to `sqlx 0.9`** as a dedicated, approval-gated phase
+> (§7 Phase 0a) with a breaking-change audit (0.8→0.9 changed `set_*` signatures
+> and adds `sqlx.toml`). The table name is set in `run_all_migrators` from the
+> validated `name()` (not by the plugin), so the §3 sketch's bare `migrate!`
+> return is correct — the host applies the table name before `.run()`.
 
-> **[BLOCKER B2 → see review §2.2]** Verified false against the repo:
-> `dangerous_set_table_name` does **not** exist in the pinned `sqlx 0.8.6` — it
-> first ships in **0.9.0**. So this default requires either a breaking, approval-
-> gated upgrade to `sqlx 0.9`, **or** a 0.8-compatible alternative: ATTACH-per-
-> plugin database files (each gets its own default `_sqlx_migrations`, no 0.9 API
-> needed — but cannot cross-DB-FK to core tables and loses cross-file WAL
-> atomicity), or a custom per-plugin versioned-SQL applier. Pick one before
-> implementing. Also unaddressed below: SQLite `busy_timeout`/WAL at multi-migrator
-> startup, cross-plugin ordering/FK-to-core, and a guard that plugin **table**
-> names (not just routes/OpenAPI components) don't collide.
+> **Why not one shared `_sqlx_migrations`?** It is a *documented sqlx failure
+> mode*, not a tunable risk: `validate_applied_migrations` returns `VersionMissing`
+> for any applied row not in the current Migrator's set, so one Migrator per plugin
+> against a shared table makes each plugin see the others' rows as missing and the
+> **app refuses to start** ([sqlx#1698], [sqlx#3573]). `ignore_missing(true)` masks
+> genuine drift too. Per-plugin tables remove the failure entirely.
 
-> **Why not one shared `_sqlx_migrations` table?** The research
-> ([`plugin-framework-research.md`](plugin-framework-research.md) §2.3) showed
-> this is a *documented sqlx failure mode*, not a tunable risk: a `Migrator`
-> calls `validate_applied_migrations`, which returns `VersionMissing` for any
-> applied row not in *its own* set — so with one Migrator per plugin against a
-> shared table, **each plugin sees the others' rows as "missing" and the app
-> refuses to start** ([sqlx#1698], [sqlx#3573]). The only built-in escape,
-> `ignore_missing(true)`, also silences genuine drift. sqlx's own 0.9 fix is a
-> per-app tracking table — but its "dedicated schema" form is Postgres-only;
-> SQLite has no schemas, so the per-plugin *table* (settable today, though the
-> API is flagged dangerous → set it deterministically, never change it) is the
-> SQLite-compatible analogue. This replaces the earlier shared-table + collision-
-> guard proposal.
+Rules (drawn from Rails engines, Django apps, WordPress):
 
-Additional rules, drawn from how Rails engines, Django apps, and WordPress
-isolate plugin schema:
-
-1. **Table-name prefixing** — every plugin table is `<plugin>_<table>` (Rails
-   `table_name_prefix` / WordPress `$wpdb->prefix`), the primary collision
-   guard for the data tables themselves.
-2. **Dependency direction** — a plugin may FK *to* core tables; **core never
-   depends on a plugin table**.
-3. **Uninstall policy** — decide up front (orphan the prefixed tables vs. run a
-   teardown). Discourse cites the missing uninstall story as the main reason to
-   discourage plugin-owned tables, so we answer it explicitly rather than skip
-   it.
-4. **Append-only per plugin**, identical to the core rule (`AGENTS.md:177`):
-   never edit or rename a committed plugin migration.
+1. **Table-name prefixing** — every plugin table is `<name>_<table>`; a guard
+   (§6) parses plugin migrations and **fails on any unprefixed table or a clash
+   with a core table** — so prefixing is *enforced*, not convention.
+2. **Startup safety [review M4]** — `run_all_migrators` sets `PRAGMA busy_timeout`
+   and WAL on the pool before migrating; concurrent startup of two instances
+   against one file-backed DB is unsupported (documented).
+3. **Ordering & dependency direction [review M3]** — core migrates first; a
+   plugin may FK only to *already-migrated* core tables; **core never depends on a
+   plugin table**. There is no cross-plugin dependency mechanism — plugins must be
+   independent (a plugin must not FK another plugin's tables).
+4. **Partial failure** — if plugin B's migrator fails after A's committed, startup
+   aborts with the failing plugin named; the DB is left with A applied (each table
+   is its own keyspace), and re-run resumes. Documented, not hidden.
+5. **Uninstall policy** — removing a plugin orphans its `<name>_*` tables and
+   `_sqlx_migrations_<name>` by default; `just plugin-purge <name>` drops them.
+   (Discourse cites the missing uninstall story as the reason to discourage
+   plugin tables; we answer it.)
+6. **Append-only per plugin** (`AGENTS.md:177`) — never edit/rename a committed
+   plugin migration.
 
 [sqlx#1698]: https://github.com/launchbadge/sqlx/issues/1698
 [sqlx#3573]: https://github.com/launchbadge/sqlx/issues/3573
 
-## 6. Guard tests — repurposed, not removed
+## 6. Guard tests — repurposed and extended
 
-The existing guards encode real invariants; the framework makes most of them
-*structural*, but we keep equivalents as defense in depth:
+- **`openapi_spec_has_no_dangling_schema_refs`** — kept as-is.
+- **`routes_and_openapi_spec_are_in_parity`** — the source-text parser is
+  replaced by a registry walk (build router + spec from the same
+  `plugins::all()`, assert served route set == spec path set). The **`.nest`/
+  `.merge` ban is lifted** — merging is the mechanism. **[review M9]** Direction-3
+  (the source-vs-spec shadowing check) is *safe to drop* specifically because
+  `utoipa-axum` generates route and OpenAPI path from one declaration, so the
+  "route deleted but still in spec, shadowed by a parameterized sibling" class is
+  impossible by construction — stated, not silently dropped.
+- **[review M2] `typegen_spec_matches_server`** — assert the spec emitted by
+  `openapi_spec` equals the spec from the server's `router()`, so the generated
+  `schema.d.ts` can't drift from what's served.
+- **`every_plugin_route_is_under_its_derived_prefix`** — each plugin's routes
+  start with `/api/v1/<name>`.
+- **[research] `no_cross_plugin_schema_name_collisions`** — plugin OpenAPI
+  component names are prefixed by `name`.
+- **[review M3] `plugin_tables_are_prefixed_and_unique`** — every plugin-created
+  table matches `<name>_*`, no plugin table equals a core table, and plugin
+  `name`s (hence tracking-table names) are unique.
+- **[review M1] `expected_plugins_are_registered` — run in RELEASE.** Assert the
+  registry contains each expected plugin. Because the silent-loss risk is a
+  *release* `lto=thin`+`strip` phenomenon (the shipping profile), this guard runs
+  against a **release artifact** in CI (a smoke check hitting `/api/openapi.json`
+  on the release binary), on every shipped target — a debug-only assertion would
+  miss it. Explicit registration (§2) largely prevents the failure; this catches
+  regressions.
 
-- **`openapi_spec_has_no_dangling_schema_refs`** — kept as-is. Still valid and
-  cheap.
-- **`routes_and_openapi_spec_are_in_parity`** — the source-text parser
-  (`tests/api.rs:159-175`, `declared_v1_route_paths`) is **replaced** by a
-  registry walk: build the router and the spec from the same
-  `inventory::iter`, then assert the served route set equals the spec path set.
-  With `utoipa-axum` the two are generated from one declaration, so this becomes
-  a regression guard rather than a footgun-catcher. The **`.nest`/`.merge` ban
-  (`tests/api.rs:164-169`) is lifted** — merging is now the mechanism.
-- **New: `every_plugin_route_is_under_its_declared_prefix`** — each plugin's
-  routes must live under the `api_prefix` in its `plugin.toml`, so two plugins
-  can't claim the same path.
-- **[research] New: `no_cross_plugin_schema_name_collisions`** — assert plugin
-  OpenAPI component names are prefixed by plugin `name`, so the silent last-wins
-  merge can't corrupt the generated client (§3).
-- **[research] New: `expected_plugins_are_registered`** — assert the registry is
-  non-empty and contains each enabled plugin. `inventory` registers via
-  life-before-main and **fails silently** under dead-code elimination / LTO or on
-  unsupported targets (the registry is just empty, not a compile error), so this
-  guard turns a silent miswire into a test failure.
-
-> Per-plugin tracking tables (§5) make a migration-version-uniqueness guard
-> unnecessary — each plugin owns its own keyspace — so the earlier
-> `plugin_migration_versions_are_unique` guard is dropped.
-
-Editing these guard tests and lifting the `.nest`/`.merge` ban is itself an
-architectural-convention change requiring sign-off (§9).
+The version-uniqueness guard from v1 is dropped (per-plugin keyspaces make it
+moot); the table-name guard above replaces the part that still mattered.
 
 ## 7. Phased migration plan
 
-Each phase is independently shippable and keeps `just verify` green.
+Each phase keeps `just verify` green and is independently shippable.
 
-- **Phase 0 — Foundations (no behavior change).** Add `inventory` and
-  `utoipa-axum` deps. Add `src/plugin.rs` (trait, registration macro, registry
-  iterator). Convert the workspace to include a `plugins/` glob. Gates stay
-  green because nothing registers yet.
-- **Phase 1 — Registry-driven router.** Rewrite `src/api.rs::router` and
-  `ApiDoc` to fold in `OpenApiRouter`s from the registry, with core endpoints
-  still hard-wired. Repurpose the parity test (§6). At this point the registry
-  is empty of resources — items/posts still wired the old way behind a temporary
-  shim — so this phase proves the merge + parity machinery in isolation.
-- **Phase 2 — `items` becomes the first plugin.** Move `src/items.rs` +
-  `src/api/items.rs` + its migration into `plugins/items/`. Delete its central
-  registrations. This is the canonical backend worked example.
-- **Phase 3 — `posts` becomes the second plugin.** Same for the richer
-  lifecycle example. Two worked examples → two worked plugins, preserving
-  `AGENTS.md`'s "represented by both examples" rule for the *new* convention.
-- **Phase 4 — Frontend discovery.** Add `interface/src/plugins/registry.ts`
-  (`import.meta.glob`); move `Items.tsx`/`Posts.tsx` into their plugin
-  `frontend/` dirs; rewrite `router.tsx` to iterate `pluginRoutes`.
-- **Phase 5 — Migration discovery + guards.** Per-plugin migrators in
-  `db::init()`; add the two new guard tests.
-- **Phase 6 — Authoring experience.** `add-plugin` skill + `just new-plugin`
-  scaffolder; rewrite the `add-resource` recipe in `AGENTS.md` to point at the
-  plugin flow; add a human-facing `docs/authoring-a-plugin.md`.
+- **Phase 0a — sqlx 0.9 upgrade.** Bump `sqlx` 0.8→0.9, fix `set_*`/API breaks,
+  run `just verify` + `cargo deny`. Approval-gated (§9). No plugin behavior yet.
+- **Phase 0b — Foundations.** Add `utoipa-axum 0.2`; add `src/plugin.rs` (trait,
+  `PLUGIN_API_VERSION`) and an empty generated `src/plugins/mod.rs`; convert the
+  package to a workspace with a `plugins/*` glob; introduce
+  `run_all_migrators(pool)` and route **both** `db::init()` and `tests/common.rs`
+  through it **[B3]**. Confirm `default-run`/Docker `--bin app-starter`/`build.rs`
+  paths unchanged (§9). Green because nothing registers yet.
+- **Phase 1 — Registry-driven router + typegen.** Rewrite `router()`/`ApiDoc` to
+  fold in `plugins::all()`; build the typegen spec from the server router
+  **[M2]**; repurpose the parity test (§6). items/posts still wired the old way in
+  parallel; re-run `just typegen` and commit `schema.d.ts`.
+- **Phase 2 — `items` becomes the first plugin (backend + frontend together).**
+  Move `src/items.rs` + `src/api/items.rs` + its migration **and**
+  `interface/src/pages/Items.tsx` into `plugins/items/`; add the generated
+  `register()` line and the Vite/tsconfig wiring (§3); delete central
+  registrations; re-run `just typegen`. Moving both halves together keeps the
+  suite green (no orphaned page or un-migrated table).
+- **Phase 3 — `posts` becomes the second plugin** (same, backend + frontend
+  together). Two worked examples → two worked plugins, satisfying
+  `AGENTS.md`'s "represented by both examples" rule for the new convention.
+- **Phase 4 — Authoring experience.** `add-plugin` skill + `just new-plugin`
+  (scaffolds crate + migration + page + manifest, *and* appends to the workspace +
+  generated registry); rewrite the `add-resource` recipe in `AGENTS.md`; add
+  `docs/authoring-a-plugin.md`.
 
-A reasonable first PR is **Phases 0–1** (machinery, no resource moved) so the
-core abstraction can be reviewed before any worked example is migrated.
+A reasonable first PR is **Phases 0a–1** (sqlx upgrade + machinery, no example
+moved) so the abstraction is reviewable before migrating a worked example.
 
 ## 8. What stays the same (non-goals)
 
-- **No runtime/dynamic loading.** Plugins are compile-time crates. We
-  explicitly reject WASM/dylib loading (option C from the discussion): it breaks
-  the typed OpenAPI contract, the embedded-SPA model, and single-binary deploy.
-  **[research]** The escape hatch, *if* untrusted third-party or no-rebuild
-  plugins ever become a goal, is the WASM Component Model / Extism
-  (in-process, capability-sandboxed) — an additive boundary, never native dylib
-  loading (Rust has no stable ABI). See research report §1.
-- **[research] Trust model is honest, not implied.** A plugin crate compiles in
-  with full process access, and its `build.rs`/proc-macros run arbitrary code at
-  *build* time. There is no sandbox; a capability manifest here would be
-  *disclosure, not enforcement* (Obsidian is the precedent). The plugin source
-  tree is part of the host's trusted computing base — gate additions through
-  review + `cargo-vet`/`cargo-deny`. See research report §2.5.
-- **Handler authoring is unchanged.** Same domain-module shape, same
-  `#[utoipa::path]`, same `AppError`, same typed hooks. Only *registration*
-  becomes automatic.
-- **Versioning, CORS, body limits, request-id, health probe** — unchanged and
-  still centrally owned (`AGENTS.md:198-205`).
-- **`schema.d.ts` stays generated.** `just typegen` still produces it from the
-  (now registry-built) OpenAPI doc; never hand-edited (`AGENTS.md:178`).
+- **No runtime/dynamic loading.** Plugins are compile-time crates; we reject
+  WASM/dylib loading for the core (breaks the typed contract, embedded SPA, and
+  single-binary deploy; Rust has no stable ABI). **[research]** The escape hatch,
+  *if* untrusted or no-rebuild plugins ever become a goal, is the WASM Component
+  Model / Extism (in-process, capability-sandboxed) — additive, never native
+  dylibs. Research §1.
+- **[research/review M7] Trust model, stated plainly.** A plugin crate compiles
+  in with full process authority. It can read the SQLite file directly, read
+  environment/secrets, and open its own listeners or outbound connections —
+  entirely **outside** the CORS/body-limit/timeout layers, which govern only HTTP
+  through the shared router and provide **no containment** against in-process code.
+  `build.rs`/proc-macros also run arbitrary code at *build* time. There is no
+  sandbox and no capability boundary; a manifest here is *disclosure, not
+  enforcement*. **"Trusted plugins only" is the sole real control.** Gate any added
+  plugin crate through PR review + `cargo-deny` (already in `just verify`);
+  `cargo-vet` is recommended once any third-party plugin is added.
+- **[review M8] Governance is repo-shaped, not marketplace-shaped.** Because a
+  plugin is a compiled-in dependency (no runtime install, no registry, no
+  end-user install step), marketplace controls — per-version scanning, "featured"
+  tiers, install-count signals — **do not apply**. The actionable controls are PR
+  review of the added dependency, `cargo-deny`, and namespace uniqueness (§6).
+  Marketplace governance would only become relevant if the WASM escape hatch were
+  ever taken.
+- **CORS auto-applies.** Because layers wrap the merged router, tightening CORS in
+  `src/api.rs` for production covers all plugin routes automatically; plugins
+  neither relax nor re-declare it.
+- **Handler authoring, versioning, health probe** — unchanged
+  (`AGENTS.md:198-205`). **`schema.d.ts` stays generated** (`AGENTS.md:178`).
 
 ## 9. Approval boundaries this crosses
 
-Per `AGENTS.md:79-89`, the following need explicit human sign-off and should be
-recorded against this PR/issue before implementation:
+Per `AGENTS.md:79-89`, record sign-off for:
 
-1. **Architectural convention not represented by both examples**
-   (`AGENTS.md:86`) — the entire registry pattern. Mitigated by Phases 2–3
-   converting *both* worked examples so the new convention is doubly represented.
-2. **New dependencies** (`AGENTS.md:82`) — `inventory` and `utoipa-axum` (and
-   the cargo-deny license check that `just verify` runs must pass).
-3. **Editing the guard tests** and lifting the `.nest`/`.merge` ban
-   (`AGENTS.md:86`) — see §6.
-4. **Migration handling** (`AGENTS.md:84`) — per-plugin migrators touch how
-   migration history is applied (though it stays append-only).
+1. **Architectural convention not in both examples** (`:86`) — the registry
+   pattern; mitigated by Phases 2–3 converting both worked examples.
+2. **Major/breaking dependency upgrade** (`:82`) — **sqlx 0.8→0.9** (Phase 0a),
+   plus new deps `utoipa-axum` and the workspace conversion.
+3. **License policy** (`:87`) — transitive deps of the new crates must satisfy
+   `deny.toml`; adopting `cargo-vet` is itself a dependency-policy decision.
+4. **Guard-test edits + lifting the `.nest`/`.merge` ban** (`:86`) — §6. (Items 1
+   and the ban-lift are one coupled decision with adopting `utoipa-axum`.)
+5. **Migration handling** (`:84`) — per-plugin migrators + the 0.9 tracking-table
+   API (stays append-only).
+6. **Release / Docker / binary name** (`:83`, `:192-193`) — the single-crate →
+   workspace conversion must preserve `default-run = "app-starter"`, the Docker
+   `--bin app-starter` build, the embedded-SPA `build.rs` paths, and the
+   `app-starter`/`app_starter` names the `cut-release`/`setup.sh` flows rely on.
+   Phase 0b includes an explicit checklist proving this.
 
-Out of scope / unaffected: auth, public-exposure defaults, release workflow,
-Docker, `VISION.md` (referenced for intent, never edited).
+Out of scope / unaffected: auth, public-exposure defaults, `VISION.md`.
 
-## 10. Open questions for reviewers
+## 10. Resolved decisions & remaining questions
 
-*Resolved by research (§5/§3 updated): migration isolation is now per-plugin
-tracking table (was the open question); namespacing is by-construction with a
-`host_api` compat field.*
+**Resolved (this revision):** registration is **explicit/generated** (not
+implicit); migrations use **sqlx 0.9 per-plugin tables**; frontend is **API-typed,
+navigation-runtime-checked**; first PR is **Phases 0a–1**.
 
-1. **Plugin enable/disable** — implicit (a plugin is "on" if its crate is a
-   dependency) vs. an explicit Cargo feature per plugin for opt-out builds?
-   Feature gating also covers the `inventory` silent-empty risk (§6).
-2. **First PR scope** — machinery-only (Phases 0–1) for review, or land through
-   Phase 3 so the worked examples prove it end to end?
-3. **`utoipa-axum` adoption** — it is the lever that removes the dual
-   path/schema registration; acceptable as a core dependency?
-4. **[research] API tier** — do we want a VS Code-style "stable vs proposed"
-   tier for the plugin-facing surface now, or defer until there's a second
-   consumer of the contract?
-5. **[research] `cargo-vet` gate** — adopt audit-before-entry for a blessed
-   plugin set now, or start with `cargo-deny`/`cargo-audit` (already in
-   `just verify`) and add `cargo-vet` when a third-party plugin lands?
+**Still open (smaller, can be deferred):**
+
+1. **API tier** — add a VS Code-style "stable vs proposed" tier for the
+   plugin-facing trait now, or defer until there's a second contract consumer? The
+   `PLUGIN_API_VERSION` constant (§3) is the seed either way.
+2. **`cargo-vet` timing** — adopt audit-before-entry now, or keep
+   `cargo-deny`/`cargo-audit` (already gating) and add `cargo-vet` before the
+   first third-party plugin lands?
+3. **Uninstall default** — orphan-and-offer-purge (§5.5) vs. auto-teardown on
+   removal? Orphan is safer for data; auto-teardown is cleaner for dev.
 
 ---
 
-*Design only. On approval, implementation proceeds phase by phase, each phase
-gated by `just verify` and the (repurposed) guard tests.*
+*Design only. On approval, implementation proceeds phase by phase, each gated by
+`just verify` and the (repurposed) guard tests — including the release-profile
+registration smoke check (§6).*

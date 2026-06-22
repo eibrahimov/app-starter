@@ -17,6 +17,12 @@
 > the pinned sqlx; the auto-registration model is unsound under Rust's linker).
 > None require abandoning the approach; all are fixable. Citation integrity of
 > the research is high; its defects are peripheral.
+>
+> **Resolution (post-review):** the four §6 decisions were made — **explicit
+> generated registration** (B1), **upgrade to sqlx 0.9** (B2), **API-typed /
+> navigation-runtime-checked** (B4), **revise the design first**. All five
+> blockers and the majors are addressed in [`plugin-framework.md`](plugin-framework.md)
+> **v2**. This document remains as the audit record.
 
 ## 1. Severity summary
 
