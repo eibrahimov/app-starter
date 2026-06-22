@@ -16,7 +16,7 @@
 ## Phases (spec §7 — do in order)
 
 - [x] **0a — sqlx 0.8→0.9 upgrade.** Bump dep; fix API breaks; `cargo deny` clean; `just verify` green. _(Done iter 1.)_
-- [ ] **0b — Foundations.** Add `utoipa-axum 0.2`; `src/plugin.rs` (`Plugin` trait + `PLUGIN_API_VERSION`); empty generated `src/plugins/mod.rs`; convert to Cargo workspace with `plugins/*` glob; add `run_all_migrators(pool)` and route BOTH `db::init()` and `tests/common.rs` through it; prove `default-run="app-starter"`, Docker `--bin app-starter`, and `build.rs` paths still work.
+- [x] **0b — Foundations.** _(Done iter 2.)_ Add `utoipa-axum 0.2`; `src/plugin.rs` (`Plugin` trait + `PLUGIN_API_VERSION`); empty generated `src/plugins/mod.rs`; convert to Cargo workspace with `plugins/*` glob; add `run_all_migrators(pool)` and route BOTH `db::init()` and `tests/common.rs` through it; prove `default-run="app-starter"`, Docker `--bin app-starter`, and `build.rs` paths still work.
 - [ ] **1 — Registry-driven router + typegen.** `router()`/`ApiDoc` fold in `plugins::all()`; build typegen spec from the server's own `router()` via `split_for_parts()`; repurpose the parity test; `just typegen` and commit `schema.d.ts`.
 - [ ] **2 — `items` → first plugin (backend + frontend together).** Move `src/items.rs`, `src/api/items.rs`, its migration, and `interface/src/pages/Items.tsx` into `plugins/items/`; add generated `register()` line; add Vite `server.fs.allow` + tsconfig/biome scope; delete central registrations; `just typegen`.
 - [ ] **3 — `posts` → second plugin** (backend + frontend together, same pattern).
@@ -49,3 +49,16 @@ smoke check passes, final per-unit cycle clean, draft PR updated with an
   0b). Bumped declared `rust-version` 1.88 → 1.94 (sqlx 0.9 proc-macros require it).
   Gates green: `just verify` (backend + 155 FE tests + typegen drift clean) +
   `cargo deny` (advisories/bans/licenses/sources ok). Next unit: **Phase 0b**.
+- **Iter 2 (2026-06-23):** **Phase 0b complete.** Added `utoipa-axum 0.2`;
+  `src/plugin.rs` (`Plugin` trait — object-safe; `name`/`host_api`/`api`/`migrator`
+  — + `PLUGIN_API_VERSION = "1.0.0"`), re-exported at crate root; empty generated
+  `src/plugins/mod.rs` (`all() -> vec![]`); converted to a Cargo workspace
+  (`members=["plugins/*"]`, resolver 2) with a `.gitkeep`-tracked `plugins/` dir
+  (dotfile is not matched by the glob). Added `db::run_all_migrators(pool)` (sets
+  `busy_timeout`+WAL, runs core migrator, then each plugin into
+  `_sqlx_migrations_<name>` via `dangerous_set_table_name`, naming the failing
+  plugin per §5.4); routed BOTH `db::init()` and `tests/common.rs` through it [B3].
+  Router/OpenAPI still wired the old way (Phase 1). Proved invariants:
+  `cargo build --bin app-starter` (SKIP_FRONTEND_BUILD) ok, `default_run=app-starter`,
+  `default_members`=root, build.rs frontend build ran in `just verify`. Gates:
+  `just verify` + `cargo deny` green; live smoke (WAL active) passed. Next: **Phase 1**.

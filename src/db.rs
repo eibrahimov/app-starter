@@ -1,3 +1,4 @@
+use anyhow::Context;
 use sqlx::SqlitePool;
 use sqlx::sqlite::SqlitePoolOptions;
 use std::path::Path;
@@ -22,8 +23,48 @@ pub async fn init(database_url: &str) -> anyhow::Result<SqlitePool> {
         .max_connections(5)
         .connect(database_url)
         .await?;
-    sqlx::migrate!("./migrations").run(&pool).await?;
+    run_all_migrators(&pool).await?;
     Ok(pool)
+}
+
+/// Runs the core migrations, then each registered plugin's migrations into its
+/// own `_sqlx_migrations_<name>` tracking table, so every plugin owns an
+/// independent version keyspace (docs/plugin-framework.md §5).
+///
+/// Sets `busy_timeout` + WAL on the pool first so a file-backed database
+/// tolerates brief contention during startup. Both [`init`] and the integration
+/// tests route through here, so the test schema always matches `init`.
+pub async fn run_all_migrators(pool: &SqlitePool) -> anyhow::Result<()> {
+    // A small busy timeout + WAL keep startup resilient to brief contention on a
+    // file-backed DB (§5 M4). On `sqlite::memory:` WAL is a documented no-op (the
+    // PRAGMA returns "memory"); neither statement errors there.
+    sqlx::query("PRAGMA busy_timeout = 5000")
+        .execute(pool)
+        .await?;
+    sqlx::query("PRAGMA journal_mode = WAL")
+        .execute(pool)
+        .await?;
+
+    // Core migrations first, into the default `_sqlx_migrations` table. A plugin
+    // may FK only to already-migrated core tables; core never depends on a plugin.
+    sqlx::migrate!("./migrations").run(pool).await?;
+
+    // Then each plugin, each into its own keyspace so their versions can't collide.
+    for plugin in crate::plugins::all() {
+        let Some(mut migrator) = plugin.migrator() else {
+            continue;
+        };
+        // The host -- not the plugin -- sets the tracking-table name, derived
+        // from the validated plugin name (§5).
+        migrator.dangerous_set_table_name(format!("_sqlx_migrations_{}", plugin.name()));
+        // §5.4: on partial failure, abort startup naming the failing plugin.
+        // Earlier plugins stay applied (each owns its keyspace); a re-run resumes.
+        migrator
+            .run(pool)
+            .await
+            .with_context(|| format!("plugin '{}' migrations failed", plugin.name()))?;
+    }
+    Ok(())
 }
 
 /// Redacts any `user:password@` userinfo from a connection string so it is safe

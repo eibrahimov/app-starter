@@ -9,6 +9,14 @@ rust-version = "1.94"
 license = "MIT"
 default-run = "app-starter"
 
+[workspace]
+# Plugins are workspace-member crates discovered by this glob; the scaffolder
+# (`just new-plugin`) appends each new crate dir under plugins/. The root
+# package (app-starter) is the workspace root and an implicit member, so
+# `cargo run`, `default-run`, and Docker's `--bin app-starter` keep targeting it.
+members = ["plugins/*"]
+resolver = "2"
+
 [dependencies]
 tokio = { version = "1", features = ["full"] }
 axum = "0.8"
@@ -17,6 +25,7 @@ sqlx = { version = "0.9", features = ["runtime-tokio", "tls-rustls", "sqlite", "
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 utoipa = { version = "5", features = ["axum_extras", "chrono"] }
+utoipa-axum = "0.2"
 anyhow = "1"
 thiserror = "2"
 tracing = "0.1"
