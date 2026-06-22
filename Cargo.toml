@@ -2,9 +2,10 @@
 name = "app-starter"
 version = "0.3.0"
 edition = "2024"
-# Minimum supported Rust: edition 2024 needs >=1.85; the let-chains in
-# src/db.rs need >=1.88. Lets `cargo` emit a clear "requires Rust >= X" error.
-rust-version = "1.88"
+# Minimum supported Rust: edition 2024 needs >=1.85 and the let-chains in
+# src/db.rs need >=1.88, but sqlx 0.9's proc-macros require >=1.94, so 1.94 is
+# the effective floor. Lets `cargo` emit a clear "requires Rust >= X" error.
+rust-version = "1.94"
 license = "MIT"
 default-run = "app-starter"
 
@@ -12,7 +13,7 @@ default-run = "app-starter"
 tokio = { version = "1", features = ["full"] }
 axum = "0.8"
 tower-http = { version = "0.7", features = ["cors", "trace", "timeout", "request-id"] }
-sqlx = { version = "0.8", features = ["runtime-tokio", "tls-rustls", "sqlite", "migrate", "chrono"] }
+sqlx = { version = "0.9", features = ["runtime-tokio", "tls-rustls", "sqlite", "migrate", "chrono"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 utoipa = { version = "5", features = ["axum_extras", "chrono"] }

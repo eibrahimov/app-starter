@@ -4,7 +4,7 @@
 
 use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
-use sqlx::SqlitePool;
+use sqlx::{AssertSqlSafe, SqlitePool};
 use utoipa::ToSchema;
 use uuid::Uuid;
 
@@ -79,6 +79,12 @@ pub struct PostStats {
 
 const SELECT_COLUMNS: &str = "SELECT id, title, body, status, created_at, published_at FROM posts";
 
+// The reads below reuse SELECT_COLUMNS via `format!`, so each query string is
+// composed only from this compile-time constant and literal SQL -- nothing
+// runtime is interpolated (every value is bound through a `?n` placeholder).
+// sqlx 0.9's `SqlSafeStr` guard only accepts `&'static str` automatically, so
+// these audited `format!` results are wrapped in `AssertSqlSafe`.
+
 pub async fn list(
     pool: &SqlitePool,
     status: Option<PostStatus>,
@@ -87,9 +93,9 @@ pub async fn list(
 ) -> Result<Vec<Post>, sqlx::Error> {
     match status {
         Some(status) => {
-            sqlx::query_as::<_, Post>(&format!(
+            sqlx::query_as::<_, Post>(AssertSqlSafe(format!(
                 "{SELECT_COLUMNS} WHERE status = ?1 ORDER BY created_at DESC LIMIT ?2 OFFSET ?3"
-            ))
+            )))
             .bind(status.as_str())
             .bind(limit)
             .bind(offset)
@@ -97,9 +103,9 @@ pub async fn list(
             .await
         }
         None => {
-            sqlx::query_as::<_, Post>(&format!(
+            sqlx::query_as::<_, Post>(AssertSqlSafe(format!(
                 "{SELECT_COLUMNS} ORDER BY created_at DESC LIMIT ?1 OFFSET ?2"
-            ))
+            )))
             .bind(limit)
             .bind(offset)
             .fetch_all(pool)
@@ -109,7 +115,7 @@ pub async fn list(
 }
 
 pub async fn get(pool: &SqlitePool, id: &str) -> Result<Option<Post>, sqlx::Error> {
-    sqlx::query_as::<_, Post>(&format!("{SELECT_COLUMNS} WHERE id = ?1"))
+    sqlx::query_as::<_, Post>(AssertSqlSafe(format!("{SELECT_COLUMNS} WHERE id = ?1")))
         .bind(id)
         .fetch_optional(pool)
         .await
