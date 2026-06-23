@@ -50,6 +50,16 @@ worked examples"*), which is why this is a design doc for review. See §9.
 
 ## 2. Chosen approach: A + B combined
 
+> **[implementation correction, 2026-06-23]** As written below this design does
+> not compile: the host's generated `src/plugins.rs` referencing each plugin
+> crate, while every plugin depends on `app-starter` for the trait/`AppState`,
+> forms a Cargo dependency cycle (`app-starter` ⇄ plugin). The implementation
+> breaks it by extracting a leaf **`app-starter-plugin-api`** crate (the `Plugin`
+> trait + `AppState` + `PLUGIN_API_VERSION`) that both the host and every plugin
+> depend on; `app-starter` keeps the registry and re-exports the contract. Plugins
+> therefore write `impl app_starter_plugin_api::Plugin`, not `impl
+> app_starter::Plugin`. See docs/plugin-framework-impl-status.md (iter-4 blocker).
+
 - **B — Compile-time registration (backend).** A `Plugin` trait; the router and
   OpenAPI document are built by iterating the registered plugins.
   **[review B1] Registration is explicit, not implicit.** `inventory`-style
@@ -57,7 +67,7 @@ worked examples"*), which is why this is a design doc for review. See §9.
   model: an upstream rlib from which the final binary references no symbol is
   dropped wholesale, constructors and all (confirmed: rust-ctor#27, inventory
   #11/#32/#34/#52/#85). So the host links plugins through a **generated
-  `src/plugins/mod.rs`** that names each plugin crate explicitly (`pub use` +
+  `src/plugins.rs`** that names each plugin crate explicitly (`pub use` +
   `register()` call). The scaffolder writes that one line; nothing else central
   changes. This makes registration deterministic across `lto`/`strip`/targets.
 - **A — Scaffolding (authoring).** An `add-plugin` skill + `just new-plugin`
@@ -68,7 +78,7 @@ worked examples"*), which is why this is a design doc for review. See §9.
 **The honest promise.** A plugin author never edits `src/api.rs`, the OpenAPI
 document, `interface/src/router.tsx`, or the migration list. They *do* (via the
 scaffolder, one line each) add the crate to the workspace `members` and to the
-generated `src/plugins/mod.rs`. We do not claim "zero central edits"; we claim
+generated `src/plugins.rs`. We do not claim "zero central edits"; we claim
 "the scaffolder owns the only central edits, and they are mechanical."
 
 Frontend mirror: build-time discovery via Vite `import.meta.glob` (§3) — the
@@ -95,7 +105,8 @@ plugins/
       Guestbook.test.tsx
 ```
 
-`plugin.toml` (manifest, consumed by the scaffolder, `just plugins`, and guards):
+`plugin.toml` (an informational manifest — written by `just new-plugin` but NOT
+parsed at runtime; the Rust `impl Plugin` is the enforced source of truth):
 
 ```toml
 [plugin]
@@ -103,7 +114,7 @@ name = "guestbook"                 # the namespace key — route prefix + schema
 version = "0.1.0"
 description = "A public guestbook resource"
 author = "community@example.com"
-host_api = "^1"                    # [research] semver range against PLUGIN_API_VERSION, checked at startup
+host_api = "^1"                    # informational mirror of the impl's host_api(); the impl is what the host checks
 frontend = "frontend/plugin.tsx"
 ```
 
@@ -118,12 +129,16 @@ overwritten** by naive/`.merge()` composition (the design's own path), so two
 plugins each defining `Item`/`Settings` would corrupt the generated client
 without it. A guard enforces the derivation (§6).
 
-**[research] `host_api` compatibility.** Mature ecosystems pin plugin↔host compat
+**`host_api` compatibility.** Mature ecosystems pin plugin↔host compat
 with one machine-checked declaration that fails loudly (VS Code `engines.vscode`,
 Grafana `grafanaDependency`, go-plugin's protocol version). The core exposes a
-`PLUGIN_API_VERSION` constant; `host_api` is a semver range against it; startup
-refuses an out-of-range plugin with a human-readable error. Introducing that
-constant is itself a small API-surface commitment (see §10).
+`PLUGIN_API_VERSION` constant; each plugin's `host_api()` is a semver range against
+it. At startup, `db::validate_registry` (`src/db.rs`, run from `run_all_migrators`
+before any migration) refuses a plugin whose `host_api` range does not match this
+host's `PLUGIN_API_VERSION`, or is unparseable — and, in the same pass, one whose
+`name` is not a safe `^[a-z][a-z0-9_]*$` identifier — with a human-readable error
+naming the plugin. A unit test plus the §6 `plugin_names_are_valid_identifiers`
+guard keep it honest.
 
 ### Backend contract
 
@@ -138,7 +153,8 @@ pub trait Plugin: Send + Sync + 'static {
     /// Stable identifier; the route/schema/table namespace key.
     fn name(&self) -> &'static str;
 
-    /// Required host-API semver range (from plugin.toml host_api).
+    /// Required host-API semver range, checked against PLUGIN_API_VERSION at
+    /// startup (plugin.toml's host_api is an informational mirror of this).
     fn host_api(&self) -> &'static str;
 
     /// Routes AND their OpenAPI paths/schemas, built together so they can't
@@ -167,12 +183,12 @@ impl app_starter::Plugin for Guestbook {
     fn migrator(&self) -> Option<Migrator> { Some(sqlx::migrate!("./migrations")) }
 }
 
-/// Called from the host's generated src/plugins/mod.rs (explicit link, [review B1]).
+/// Called from the host's generated src/plugins.rs (explicit link, [review B1]).
 pub fn register() -> Box<dyn app_starter::Plugin> { Box::new(Guestbook) }
 ```
 
 ```rust
-// core: src/plugins/mod.rs  (GENERATED by the scaffolder — the only central edit)
+// core: src/plugins.rs  (GENERATED by the scaffolder — the only central edit)
 pub fn all() -> Vec<Box<dyn crate::Plugin>> {
     vec![
         guestbook::register(),   // one line per plugin, written by `just new-plugin`
@@ -245,7 +261,7 @@ compile-time link safety for cross-plugin navigation.
 
 | File | Today | After |
 |------|-------|-------|
-| `src/plugins/mod.rs` (new, generated) | — | `all()` lists `register()` per plugin — **[B1]** the explicit link that makes the linker include each plugin crate |
+| `src/plugins.rs` (new, generated) | — | `all()` lists `register()` per plugin — **[B1]** the explicit link that makes the linker include each plugin crate |
 | `src/api.rs` | Hand-listed `paths`/`components`/`.route` | `router()` merges `OpenApiRouter`s from `plugins::all()`; core keeps only `/api/health` + `/api/openapi.json` + shared layers |
 | `src/db.rs:25` | `migrate!("./migrations").run` | `run_all_migrators(pool)`: core first, then each plugin's migrator into its own `_sqlx_migrations_<name>` table; sets `busy_timeout`+WAL first (§5) |
 | `tests/common.rs` | `migrate!("./migrations")` directly | **[B3]** calls the same `run_all_migrators(pool)` so the test DB matches `db::init()` once examples move into plugins |
@@ -326,6 +342,9 @@ Rules (drawn from Rails engines, Django apps, WordPress):
   `schema.d.ts` can't drift from what's served.
 - **`every_plugin_route_is_under_its_derived_prefix`** — each plugin's routes
   start with `/api/v1/<name>`.
+- **`plugin_names_are_valid_identifiers`** — each plugin `name` matches
+  `^[a-z][a-z0-9_]*$` (it derives the route/schema/table names); the host also
+  enforces this at startup via `db::validate_registry`.
 - **[research] `no_cross_plugin_schema_name_collisions`** — plugin OpenAPI
   component names are prefixed by `name`.
 - **[review M3] `plugin_tables_are_prefixed_and_unique`** — every plugin-created
@@ -349,7 +368,7 @@ Each phase keeps `just verify` green and is independently shippable.
 - **Phase 0a — sqlx 0.9 upgrade.** Bump `sqlx` 0.8→0.9, fix `set_*`/API breaks,
   run `just verify` + `cargo deny`. Approval-gated (§9). No plugin behavior yet.
 - **Phase 0b — Foundations.** Add `utoipa-axum 0.2`; add `src/plugin.rs` (trait,
-  `PLUGIN_API_VERSION`) and an empty generated `src/plugins/mod.rs`; convert the
+  `PLUGIN_API_VERSION`) and an empty generated `src/plugins.rs`; convert the
   package to a workspace with a `plugins/*` glob; introduce
   `run_all_migrators(pool)` and route **both** `db::init()` and `tests/common.rs`
   through it **[B3]**. Confirm `default-run`/Docker `--bin app-starter`/`build.rs`

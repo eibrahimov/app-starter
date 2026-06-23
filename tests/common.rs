@@ -22,8 +22,7 @@ pub async fn memory_pool() -> SqlitePool {
         .connect("sqlite::memory:")
         .await
         .expect("connect in-memory sqlite");
-    sqlx::migrate!("./migrations")
-        .run(&pool)
+    app_starter::db::run_all_migrators(&pool)
         .await
         .expect("run migrations");
     pool

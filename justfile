@@ -11,7 +11,7 @@ doctor:
 dev:
     cargo run
 
-# Seed example items and posts, then run the backend so the UI demos
+# Seed the example todo + blog plugins, then run the backend so the UI demos
 # immediately. Idempotent (skips resources that already have rows). Optional,
 # removable convenience — see src/seed.rs.
 seed:
@@ -85,6 +85,18 @@ build:
 
 docker-build:
     docker build -t app-starter .
+
+# Release-profile plugin-registration smoke check (docs/plugin-framework.md §6):
+# builds the lto+strip release binary, boots it, and asserts every expected plugin
+# is served at /api/v1/<name> in /api/openapi.json. Catches release-only registry loss.
+release-smoke:
+    bash scripts/release-smoke.sh
+
+# Scaffold a new plugin end to end (crate + migration + frontend page + manifest,
+# and wire it into Cargo.toml + the generated registry). See docs/authoring-a-plugin.md.
+# Usage: just new-plugin <name>   (lowercase, e.g. guestbook). Then run `just typegen`.
+new-plugin name:
+    bash scripts/new-plugin.sh {{name}}
 
 # Tauri desktop app (needs platform prerequisites: https://tauri.app/start/prerequisites/)
 desktop-dev:

@@ -89,7 +89,7 @@ relative to the spec.
   pattern is:
 
   ```ts
-  const { data, error } = await api.GET("/api/v1/items");
+  const { data, error } = await api.GET("/api/v1/todo");
   if (error) throw error;
   return data;
   ```
@@ -102,9 +102,13 @@ relative to the spec.
 The frontend lives under `interface/src/` with a flat, predictable layout:
 
 - `api/` -- the typed client (`client.ts`) and the generated `schema.d.ts`.
-- `pages/` -- one page component per file (`Home.tsx`, `Items.tsx`,
-  `Posts.tsx`), each with a co-located test (`Home.test.tsx`, `Items.test.tsx`,
-  `Posts.test.tsx`).
+- `pages/` -- core pages, one component per file (`Home.tsx`), each with a
+  co-located test.
+- `plugins/` -- the plugin frontend layer: `contract.ts` + `registry.ts`
+  (build-time discovery via `import.meta.glob`) and one dir per plugin
+  (`plugins/todo/Todo.tsx`, `plugins/blog/Blog.tsx`) with co-located tests. The
+  router builds its nav + routes from the discovered registry; the matching
+  backend crate lives in the repo-root `plugins/<name>/`.
 - `router.tsx` -- the TanStack Router tree: the root `Layout`, the routes, and
   the `Register` module augmentation.
 - `main.tsx` -- the entry point that wires up the `QueryClient`, the providers,
@@ -142,7 +146,7 @@ typed client, destructures `{ data, error }`, throws `error`, and returns
 const items = useQuery({
   queryKey: ["items"],
   queryFn: async () => {
-    const { data, error } = await api.GET("/api/v1/items");
+    const { data, error } = await api.GET("/api/v1/todo");
     if (error) throw error;
     return data;
   },
@@ -169,7 +173,7 @@ const queryClient = useQueryClient();
 
 const createItem = useMutation({
   mutationFn: async (title: string) => {
-    const { data, error } = await api.POST("/api/v1/items", {
+    const { data, error } = await api.POST("/api/v1/todo", {
       body: { title },
     });
     if (error) throw error;
@@ -184,8 +188,8 @@ const createItem = useMutation({
 **Invalidate with matching key segments.** On mutation success, call
 `queryClient.invalidateQueries({ queryKey: [...] })` with the segments that
 identify the affected queries, so dependent reads refresh. A shared
-`invalidate` helper reused across a page's mutations (as in `Items.tsx` and
-`Posts.tsx`) keeps this consistent.
+`invalidate` helper reused across a page's mutations (as in `Todo.tsx` and
+`Blog.tsx`) keeps this consistent.
 
 **Reflect mutation status in the UI.** The shipped pages gate submit controls on
 `mutation.isPending` (for example `disabled={create.isPending}`). A `mutationFn`
@@ -340,7 +344,7 @@ Tests use **Vitest** plus **Testing Library**, configured in `vite.config.ts`
 with the `jsdom` environment and `globals: true`.
 
 - **Co-locate tests** beside the page as `Name.test.tsx` (`Items.test.tsx` next
-  to `Items.tsx`).
+  to `Todo.tsx`).
 - **Mock the typed client, not the network.** Define the mock functions with
   `vi.hoisted` so they exist before the module factory runs, then
   `vi.mock("../api/client", ...)` to substitute the `api` object. This is the

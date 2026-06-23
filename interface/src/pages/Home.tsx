@@ -18,8 +18,8 @@ export function HomePage() {
         <Heading size="7">App Starter</Heading>
         <Text color="gray">
           Rust backend (axum + SQLite) with an embedded React UI, typed
-          end-to-end via OpenAPI. Edit <Code>src/items.rs</Code> and run{" "}
-          <Code>just typegen</Code> to grow the API.
+          end-to-end via OpenAPI. Edit <Code>plugins/todo/src/lib.rs</Code> and
+          run <Code>just typegen</Code> to grow the API.
         </Text>
         <Card>
           {health.isLoading && (

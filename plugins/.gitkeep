@@ -1,0 +1,2 @@
+# Keeps the plugins/ workspace-glob directory tracked in git while empty.
+# Phase 2 adds the first real plugin crate (plugins/items/); this file can stay.

@@ -40,7 +40,7 @@ Evidence:
 
 Proposed direction:
 - Which layer changes? <migration / domain / API / typegen / frontend / desktop / CI / docs>
-- How does it apply to both items and posts?
+- How does it apply to both todo and blog?
 - What can users delete if they do not need it?
 
 Safety:
@@ -64,7 +64,7 @@ Problem found:
 
 Backport shape:
 - Template files likely affected:
-- How the fix should be demonstrated through items/posts:
+- How the fix should be demonstrated through todo/blog:
 - Existing behavior that must remain unchanged:
 
 Validation:

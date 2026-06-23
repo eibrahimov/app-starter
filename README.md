@@ -8,31 +8,31 @@ Full-stack Rust starter. One binary serves the API and the UI, typed end to end 
 
 **Stack:** axum + SQLite (sqlx) on the backend. React 19 + Vite + Radix Themes + TanStack Router/Query on the frontend, embedded into the binary with rust-embed. Optional Tauri 2 desktop shell that bundles the server as a sidecar. Bun for JS tooling, just for tasks.
 
-Two example resources are wired through every layer (migration, queries, API handlers, generated TypeScript types, UI page, tests): `items`, a minimal todo CRUD, and `posts`, which adds a status lifecycle (draft -> published -> archived), filtered queries with pagination, and an aggregate stats endpoint. Replace them with your real domain. The wiring pattern stays.
+Two example resources ship as self-contained plugins, each wired through every layer (migration, queries, API handlers, generated TypeScript types, UI page, tests): `todo`, a minimal CRUD, and `blog`, which adds a status lifecycle (draft -> published -> archived), filtered queries with pagination, and an aggregate stats endpoint. Scaffold your own with `just new-plugin`, then replace them. The wiring pattern stays.
 
 ## See it running
 
-Clone, build the UI, and seed example data so the Items and Posts pages are populated — about a minute, start to finish:
+Clone, build the UI, and seed example data so the Todo and Blog pages are populated — about a minute, start to finish:
 
 ```bash
 git clone https://github.com/eibrahimov/app-starter && cd app-starter
 cd interface && bun install && bun run build && cd ..
-just seed   # seeds example items + posts, then serves on :8080
+just seed   # seeds the example todo + blog plugins, then serves on :8080
 ```
 
-Open http://localhost:8080 — the Items and Posts pages already have data. Without `just`, the last step is `cargo run -- --seed`. (Starting your own project instead of evaluating the template? Use [Setup](#setup) below, which renames it.)
+Open http://localhost:8080 — the Todo and Blog pages already have data. Without `just`, the last step is `cargo run -- --seed`. (Starting your own project instead of evaluating the template? Use [Setup](#setup) below, which renames it.)
 
 **Home** — the embedded UI shell, health-checked against the API and typed end to end via OpenAPI.
 
 ![App Starter home page showing the application shell with a resolved "Backend ok" health line](docs/assets/home.png)
 
-**Items** — minimal CRUD: add, complete, and delete todos.
+**Todo** — minimal CRUD: add, complete, and delete todos.
 
-![App Starter Items page showing a populated todo list with completed and open items](docs/assets/items.png)
+![App Starter Todo page showing a populated todo list with completed and open items](docs/assets/todo.png)
 
-**Posts** — a draft -> published -> archived lifecycle with status badges, status filters, and a stats summary.
+**Blog** — a draft -> published -> archived lifecycle with status badges, status filters, and a stats summary.
 
-![App Starter Posts page showing posts in draft, published, and archived states with status badges and a stats summary](docs/assets/posts.png)
+![App Starter Blog page showing posts in draft, published, and archived states with status badges and a stats summary](docs/assets/blog.png)
 
 ## Use this when
 
@@ -87,7 +87,7 @@ Hot reload on the frontend, restart the backend on Rust changes.
 
 This is the core workflow. The backend is the single source of truth for API types:
 
-1. Add or change a handler in `src/api/`, annotate it with `#[utoipa::path]`, register it in `src/api.rs` (`paths` and `schemas`)
+1. Add or change an endpoint — for a new resource, scaffold a plugin with `just new-plugin <name>` and annotate its handlers with `#[utoipa::path]`. The host builds the router and OpenAPI from the registered plugins, so you don't hand-edit a central `src/api.rs` (see [AGENTS.md](AGENTS.md))
 2. Run `just typegen`
 3. The frontend client (`interface/src/api/client.ts`) is now fully typed for the new endpoint. Wrong paths, params, or body shapes fail `tsc`.
 
@@ -98,7 +98,7 @@ Resource endpoints are versioned under `/api/v1/`, and the contract is additive 
 ```bash
 just dev            # run the backend
 just frontend-dev   # run Vite with API proxy
-just seed           # seed example items + posts, then run the backend (see src/seed.rs)
+just seed           # seed the example todo + blog plugins, then run the backend (see src/seed.rs)
 just db-backup      # snapshot SQLite to a timestamped file in backups/ (safe online .backup)
 just db-restore f   # restore from a backup file (guarded; FORCE=1 skips the prompt)
 just db-check       # PRAGMA integrity_check + applied migrations (non-zero exit on failure)
@@ -119,22 +119,23 @@ For contribution gates and approval boundaries, see [`CONTRIBUTING.md`](CONTRIBU
 ## Project layout
 
 ```text
+plugin-api/        host<->plugin contract crate (Plugin trait, AppState, AppError)
 src/
   main.rs          server entry (clap args, env via .env)
-  lib.rs           AppState
-  api.rs           HTTP layer: router + OpenAPI document
-  api/             per-resource HTTP handler modules
-  items.rs         example domain module: types + queries
-  posts.rs         second example: status lifecycle, filtered queries, stats
-  db.rs            pool init + migrations
-  error.rs         AppError -> HTTP status mapping
+  lib.rs           crate root (re-exports the plugin-api contract)
+  api.rs           HTTP layer: router + OpenAPI, built from the plugin registry
+  api/health.rs    core health/readiness endpoint
+  plugins.rs       generated registry of compiled-in plugins (all())
+  db.rs            pool init + core/plugin migrations
+  seed.rs          optional example-data seeder (iterates plugins)
   frontend.rs      embedded SPA serving with index.html fallback
   bin/openapi_spec.rs  prints the spec for typegen
-migrations/        sqlx migrations, ordered by timestamp prefix
+plugins/           one crate per resource (todo, blog): handlers, queries, migrations
 interface/         React app (Vite, Radix Themes, TanStack)
+  src/plugins/     per-plugin pages + build-time registry
   src/api/         generated schema.d.ts + typed fetch client
 desktop/           Tauri 2 shell, server bundled as sidecar
-tests/             black-box API tests via tower::oneshot
+tests/             black-box API tests (incl. plugin namespacing guards)
 ```
 
 ## Desktop app (optional)

@@ -1,27 +1,27 @@
 import { Theme } from "@radix-ui/themes";
 import { fireEvent, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { renderWithClient } from "../test-utils";
-import { PostsPage } from "./Posts";
+import { renderWithClient } from "../../test-utils";
+import { BlogPage } from "./Blog";
 
 const { getMock, postMock } = vi.hoisted(() => ({
   getMock: vi.fn(),
   postMock: vi.fn(),
 }));
 vi.mock(
-  "../api/client",
+  "../../api/client",
   () =>
     ({
       api: { GET: getMock, POST: postMock },
-    }) as unknown as typeof import("../api/client"),
+    }) as unknown as typeof import("../../api/client"),
 );
 
-// PostsPage issues two GETs -- the post list and the aggregate stats -- so the
-// mock routes on the request path and returns the right shape for each. The
-// list contains one draft and one published post to exercise both row actions.
-function mockPostsApi() {
+// BlogPage issues two GETs -- the post list and the aggregate stats -- so the
+// mock routes on the request path and returns the right shape for each. The list
+// contains one draft and one published post to exercise both row actions.
+function mockBlogApi() {
   getMock.mockImplementation((path: string) => {
-    if (path === "/api/v1/posts/stats") {
+    if (path === "/api/v1/blog/stats") {
       return Promise.resolve({
         data: { draft: 1, published: 1, archived: 0 },
         error: undefined,
@@ -38,23 +38,21 @@ function mockPostsApi() {
   postMock.mockResolvedValue({ data: {}, error: undefined });
 }
 
-// Radix Themes components read their config from a <Theme> context.
 function renderPage() {
   return renderWithClient(
     <Theme>
-      <PostsPage />
+      <BlogPage />
     </Theme>,
   );
 }
 
-describe("PostsPage actions", () => {
-  // Shared vi.fn() mocks accumulate calls across tests; reset counts each time.
+describe("BlogPage actions", () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it("publishes a draft row via POST /api/v1/posts/{id}/publish", async () => {
-    mockPostsApi();
+  it("publishes a draft row via POST /api/v1/blog/{id}/publish", async () => {
+    mockBlogApi();
 
     renderPage();
 
@@ -64,14 +62,14 @@ describe("PostsPage actions", () => {
     fireEvent.click(publishButton);
 
     await waitFor(() =>
-      expect(postMock).toHaveBeenCalledWith("/api/v1/posts/{id}/publish", {
+      expect(postMock).toHaveBeenCalledWith("/api/v1/blog/{id}/publish", {
         params: { path: { id: "1" } },
       }),
     );
   });
 
-  it("archives a published row via POST /api/v1/posts/{id}/archive", async () => {
-    mockPostsApi();
+  it("archives a published row via POST /api/v1/blog/{id}/archive", async () => {
+    mockBlogApi();
 
     renderPage();
 
@@ -81,26 +79,24 @@ describe("PostsPage actions", () => {
     fireEvent.click(archiveButton);
 
     await waitFor(() =>
-      expect(postMock).toHaveBeenCalledWith("/api/v1/posts/{id}/archive", {
+      expect(postMock).toHaveBeenCalledWith("/api/v1/blog/{id}/archive", {
         params: { path: { id: "2" } },
       }),
     );
   });
 
   it("only shows the action matching each row's status", async () => {
-    mockPostsApi();
+    mockBlogApi();
 
     renderPage();
 
-    // The draft row exposes Publish and the published row exposes Archive --
-    // exactly one of each, never both on the same row.
     await screen.findByRole("button", { name: "Publish" });
     expect(screen.getAllByRole("button", { name: "Publish" })).toHaveLength(1);
     expect(screen.getAllByRole("button", { name: "Archive" })).toHaveLength(1);
   });
 
-  it("creates a post via POST /api/v1/posts after typing a title", async () => {
-    mockPostsApi();
+  it("creates a post via POST /api/v1/blog after typing a title", async () => {
+    mockBlogApi();
 
     renderPage();
 
@@ -111,14 +107,14 @@ describe("PostsPage actions", () => {
     fireEvent.click(screen.getByRole("button", { name: "Draft" }));
 
     await waitFor(() =>
-      expect(postMock).toHaveBeenCalledWith("/api/v1/posts", {
+      expect(postMock).toHaveBeenCalledWith("/api/v1/blog", {
         body: { title: "fresh post" },
       }),
     );
   });
 
   it("submits a new post when Enter is pressed in the title input", async () => {
-    mockPostsApi();
+    mockBlogApi();
 
     renderPage();
 
@@ -129,14 +125,14 @@ describe("PostsPage actions", () => {
     fireEvent.keyDown(input, { key: "Enter" });
 
     await waitFor(() =>
-      expect(postMock).toHaveBeenCalledWith("/api/v1/posts", {
+      expect(postMock).toHaveBeenCalledWith("/api/v1/blog", {
         body: { title: "via enter" },
       }),
     );
   });
 
   it("does not create a post when the title is blank or whitespace", async () => {
-    mockPostsApi();
+    mockBlogApi();
 
     renderPage();
 
@@ -146,12 +142,11 @@ describe("PostsPage actions", () => {
     fireEvent.change(input, { target: { value: "   " } });
     fireEvent.click(screen.getByRole("button", { name: "Draft" }));
 
-    // Whitespace-only titles are rejected before any request is issued.
     expect(postMock).not.toHaveBeenCalled();
   });
 
   it("clears the title input after a successful create", async () => {
-    mockPostsApi();
+    mockBlogApi();
 
     renderPage();
 
@@ -167,7 +162,7 @@ describe("PostsPage actions", () => {
   });
 
   it("refetches the list with a status filter when a FilterBar option is chosen", async () => {
-    mockPostsApi();
+    mockBlogApi();
 
     renderPage();
 
@@ -176,54 +171,42 @@ describe("PostsPage actions", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "draft" }));
 
-    // Switching to the "draft" filter refetches the list under a new query key,
-    // passing the chosen status through as a query param.
     await waitFor(() =>
-      expect(getMock).toHaveBeenCalledWith("/api/v1/posts", {
+      expect(getMock).toHaveBeenCalledWith("/api/v1/blog", {
         params: { query: { status: "draft" } },
       }),
     );
   });
 
   it("requests the unfiltered list on the initial 'all' filter", async () => {
-    mockPostsApi();
+    mockBlogApi();
 
     renderPage();
 
-    // The default "all" filter sends an empty query object, not a status param.
     await waitFor(() =>
-      expect(getMock).toHaveBeenCalledWith("/api/v1/posts", {
+      expect(getMock).toHaveBeenCalledWith("/api/v1/blog", {
         params: { query: {} },
       }),
     );
   });
 
   it("renders the per-status badge for each post", async () => {
-    mockPostsApi();
+    mockBlogApi();
 
     renderPage();
 
-    // Badge text echoes each row's status; the published row's badge proves the
-    // statusTone lookup renders for non-draft statuses too.
     await screen.findByRole("button", { name: "Archive" });
     expect(screen.getByText("a")).toBeTruthy();
     expect(screen.getByText("b")).toBeTruthy();
-    // "published" also appears as a FilterBar pill, so scope to the Badge span.
     expect(screen.getByText("published", { selector: "span" })).toBeTruthy();
   });
 
   it("resolves each status to its Badge tone via the typed statusTone map", async () => {
-    mockPostsApi();
+    mockBlogApi();
 
     renderPage();
 
-    // Wait for the published row (its Archive action) so both badges render.
     await screen.findByRole("button", { name: "Archive" });
-    // Radix encodes the resolved tone as data-accent-color on the badge span.
-    // This pins the statusTone map (draft -> amber, published -> emerald/grass)
-    // behaviorally -- the untyped API mocks alone never exercise it, so a regression
-    // that broke the per-status tone would otherwise pass every test. Scope to the
-    // span so the FilterBar pills (buttons) of the same name do not match.
     expect(
       screen
         .getByText("draft", { selector: "span" })

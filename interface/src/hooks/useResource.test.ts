@@ -26,8 +26,8 @@ describe("useResource", () => {
       () =>
         useResource({
           key: "items",
-          listPath: "/api/v1/items",
-          createPath: "/api/v1/items",
+          listPath: "/api/v1/todo",
+          createPath: "/api/v1/todo",
         }),
       { wrapper: withClient() },
     );
@@ -44,8 +44,8 @@ describe("useResource", () => {
       () =>
         useResource({
           key: "items",
-          listPath: "/api/v1/items",
-          createPath: "/api/v1/items",
+          listPath: "/api/v1/todo",
+          createPath: "/api/v1/todo",
         }),
       { wrapper: withClient() },
     );
@@ -66,8 +66,8 @@ describe("useResource", () => {
       () =>
         useResource({
           key: "items",
-          listPath: "/api/v1/items",
-          createPath: "/api/v1/items",
+          listPath: "/api/v1/todo",
+          createPath: "/api/v1/todo",
           onSuccess,
         }),
       { wrapper: withClient() },

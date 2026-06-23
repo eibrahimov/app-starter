@@ -1,8 +1,8 @@
 import { Theme } from "@radix-ui/themes";
 import { fireEvent, screen, waitFor } from "@testing-library/react";
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { renderWithClient } from "../test-utils";
-import { ItemsPage } from "./Items";
+import { renderWithClient } from "../../test-utils";
+import { TodoPage } from "./Todo";
 
 const { getMock, postMock, deleteMock } = vi.hoisted(() => ({
   getMock: vi.fn(),
@@ -10,14 +10,14 @@ const { getMock, postMock, deleteMock } = vi.hoisted(() => ({
   deleteMock: vi.fn(),
 }));
 vi.mock(
-  "../api/client",
+  "../../api/client",
   () =>
     ({
       api: { GET: getMock, POST: postMock, DELETE: deleteMock },
-    }) as unknown as typeof import("../api/client"),
+    }) as unknown as typeof import("../../api/client"),
 );
 
-function seedOneItem() {
+function seedOneTodo() {
   getMock.mockResolvedValue({
     data: [{ id: "1", title: "write tests", done: false }],
     error: undefined,
@@ -30,19 +30,19 @@ function seedOneItem() {
 function renderPage() {
   return renderWithClient(
     <Theme>
-      <ItemsPage />
+      <TodoPage />
     </Theme>,
   );
 }
 
-describe("ItemsPage actions", () => {
+describe("TodoPage actions", () => {
   // Shared vi.fn() mocks accumulate calls across tests; reset counts each time.
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it("creates an item via POST when typing a title and clicking Add", async () => {
-    seedOneItem();
+  it("creates a to-do via POST when typing a title and clicking Add", async () => {
+    seedOneTodo();
 
     renderPage();
     await waitFor(() => expect(screen.getByText("write tests")).toBeTruthy());
@@ -53,13 +53,13 @@ describe("ItemsPage actions", () => {
 
     await waitFor(() => expect(postMock).toHaveBeenCalledTimes(1));
     expect(postMock).toHaveBeenCalledWith(
-      "/api/v1/items",
+      "/api/v1/todo",
       expect.objectContaining({ body: { title: "buy milk" } }),
     );
   });
 
-  it("creates an item when pressing Enter in the input", async () => {
-    seedOneItem();
+  it("creates a to-do when pressing Enter in the input", async () => {
+    seedOneTodo();
 
     renderPage();
     await waitFor(() => expect(screen.getByText("write tests")).toBeTruthy());
@@ -70,13 +70,13 @@ describe("ItemsPage actions", () => {
 
     await waitFor(() => expect(postMock).toHaveBeenCalledTimes(1));
     expect(postMock).toHaveBeenCalledWith(
-      "/api/v1/items",
+      "/api/v1/todo",
       expect.objectContaining({ body: { title: "press enter" } }),
     );
   });
 
   it("does not submit when the title is blank or whitespace", async () => {
-    seedOneItem();
+    seedOneTodo();
 
     renderPage();
     await waitFor(() => expect(screen.getByText("write tests")).toBeTruthy());
@@ -89,7 +89,7 @@ describe("ItemsPage actions", () => {
   });
 
   it("does not submit on a non-Enter keypress", async () => {
-    seedOneItem();
+    seedOneTodo();
 
     renderPage();
     await waitFor(() => expect(screen.getByText("write tests")).toBeTruthy());
@@ -102,7 +102,7 @@ describe("ItemsPage actions", () => {
   });
 
   it("clears the input after a successful create", async () => {
-    seedOneItem();
+    seedOneTodo();
 
     renderPage();
     await waitFor(() => expect(screen.getByText("write tests")).toBeTruthy());
@@ -116,8 +116,8 @@ describe("ItemsPage actions", () => {
     await waitFor(() => expect(input.value).toBe(""));
   });
 
-  it("toggles an item via POST to the toggle path when the checkbox is clicked", async () => {
-    seedOneItem();
+  it("toggles a to-do via POST to the toggle path when the checkbox is clicked", async () => {
+    seedOneTodo();
 
     renderPage();
     await waitFor(() => expect(screen.getByText("write tests")).toBeTruthy());
@@ -126,14 +126,14 @@ describe("ItemsPage actions", () => {
 
     await waitFor(() =>
       expect(postMock).toHaveBeenCalledWith(
-        "/api/v1/items/{id}/toggle",
+        "/api/v1/todo/{id}/toggle",
         expect.objectContaining({ params: { path: { id: "1" } } }),
       ),
     );
   });
 
-  it("deletes an item via DELETE when Delete is clicked", async () => {
-    seedOneItem();
+  it("deletes a to-do via DELETE when Delete is clicked", async () => {
+    seedOneTodo();
 
     renderPage();
     await waitFor(() => expect(screen.getByText("write tests")).toBeTruthy());
@@ -142,19 +142,19 @@ describe("ItemsPage actions", () => {
 
     await waitFor(() =>
       expect(deleteMock).toHaveBeenCalledWith(
-        "/api/v1/items/{id}",
+        "/api/v1/todo/{id}",
         expect.objectContaining({ params: { path: { id: "1" } } }),
       ),
     );
   });
 
   it("renders the page header and the add control", async () => {
-    seedOneItem();
+    seedOneTodo();
 
     renderPage();
     await waitFor(() => expect(screen.getByText("write tests")).toBeTruthy());
 
-    expect(screen.getByText("Items")).toBeTruthy();
+    expect(screen.getByText("Todo")).toBeTruthy();
     expect(screen.getByText("Add")).toBeTruthy();
     expect(screen.getByPlaceholderText("What needs doing?")).toBeTruthy();
   });

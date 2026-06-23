@@ -32,6 +32,10 @@ ignore = []
 [bans]
 multiple-versions = "allow"
 wildcards = "deny"
+# Intra-workspace crates (plugin-api, plugins/*) are path deps with no registry
+# version, which `wildcards = "deny"` would otherwise flag. Allow path deps only;
+# external `foo = "*"` requirements stay banned.
+allow-wildcard-paths = true
 
 [sources]
 unknown-registry = "deny"

@@ -2,22 +2,42 @@
 name = "app-starter"
 version = "0.3.0"
 edition = "2024"
-# Minimum supported Rust: edition 2024 needs >=1.85; the let-chains in
-# src/db.rs need >=1.88. Lets `cargo` emit a clear "requires Rust >= X" error.
-rust-version = "1.88"
+# Minimum supported Rust: edition 2024 needs >=1.85 and the let-chains in
+# src/db.rs need >=1.88, but sqlx 0.9's proc-macros require >=1.94, so 1.94 is
+# the effective floor. Lets `cargo` emit a clear "requires Rust >= X" error.
+rust-version = "1.94"
 license = "MIT"
+# This is a template application + workspace root, not a crates.io library. Marking
+# it unpublishable also lets cargo-deny's `allow-wildcard-paths` exempt the
+# intra-workspace path deps (plugin-api, plugins/*).
+publish = false
 default-run = "app-starter"
+
+[workspace]
+# Plugins are workspace-member crates discovered by this glob; the scaffolder
+# (`just new-plugin`) appends each new crate dir under plugins/. The root
+# package (app-starter) is the workspace root and an implicit member, so
+# `cargo run`, `default-run`, and Docker's `--bin app-starter` keep targeting it.
+members = ["plugin-api", "plugins/*"]
+resolver = "2"
 
 [dependencies]
 tokio = { version = "1", features = ["full"] }
 axum = "0.8"
 tower-http = { version = "0.7", features = ["cors", "trace", "timeout", "request-id"] }
-sqlx = { version = "0.8", features = ["runtime-tokio", "tls-rustls", "sqlite", "migrate", "chrono"] }
+sqlx = { version = "0.9", features = ["runtime-tokio", "tls-rustls", "sqlite", "migrate", "chrono"] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 utoipa = { version = "5", features = ["axum_extras", "chrono"] }
+utoipa-axum = "0.2"
+app-starter-plugin-api = { path = "plugin-api" }
+todo = { path = "plugins/todo" }
+blog = { path = "plugins/blog" }
 anyhow = "1"
 thiserror = "2"
+# Machine-checks each plugin's `host_api` range against PLUGIN_API_VERSION at
+# startup (src/db.rs `validate_registry`). Already in the tree transitively.
+semver = "1"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 clap = { version = "4", features = ["derive", "env"] }

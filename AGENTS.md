@@ -18,6 +18,46 @@ is `interface/src/theme/theme.config.ts` (fed into `<Theme>`). See
 Theme props, and [docs/radix-workflow.md](docs/radix-workflow.md) for the
 end-to-end lifecycle that takes a natural-language app request to a gated build.
 
+## Architecture
+
+The backend is the source of truth: backend types feed the OpenAPI document, which generates the
+typed frontend client. The router, OpenAPI spec, migration runner, and nav are all assembled by
+iterating the registered plugins — none of them is a hand-maintained central list.
+
+- **Contract crate** `plugin-api/` — the `Plugin` trait (`name` / `host_api` / `api` / `migrator` /
+  `seed`), `AppState` (the `SqlitePool`), and `AppError`. The host and every plugin depend on this
+  leaf crate; no plugin depends on the host, so the package graph stays acyclic.
+- **Host** `src/` — `main.rs` boots (listener, `db::init`, optional seed, graceful shutdown);
+  `api.rs` builds the `OpenApiRouter` by iterating `plugins::all()` (the generated registry in
+  `src/plugins.rs`) and mounts each plugin under `/api/v1/<name>`. Shared HTTP layers (body
+  limit, timeout, request-id, CORS, graceful shutdown) live here, not per handler; `/api/health`
+  and `/api/openapi.json` stay unversioned; `frontend.rs` embeds `interface/dist`.
+- **Backend plugins** `plugins/<name>/` — one crate each: `plugin.toml`, handlers that take
+  `State<AppState>` and return `Result<_, AppError>`, and `migrations/` (its own
+  `_sqlx_migrations_<name>` keyspace).
+- **Frontend** `interface/src/` — a typed `api/client.ts` (openapi-fetch over the generated
+  `api/schema.d.ts`) wrapped by TanStack Query hooks (`useApiQuery` / `useApiMutation` /
+  `useResource`); Radix Themes `components/ui` + `components/sections`; plugin pages under
+  `plugins/<name>/` discovered at build time by `plugins/registry.ts`; one theme surface,
+  `theme/theme.config.ts`; routing via TanStack Router in `router.tsx`.
+
+**Request trace** (create a todo): `useApiMutation("/api/v1/todo", "post")` → the todo plugin handler
+validates input (`AppError::BadRequest`) → `sqlx` inserts into `todo_items` → JSON response;
+`AppError` maps `NotFound` / `BadRequest` / database errors to an HTTP status + `{ "error": ... }`.
+
+**Build & typegen pipeline:** `build.rs` builds the frontend and the binary embeds `interface/dist`
+(set `SKIP_FRONTEND_BUILD=1` to skip); `src/bin/openapi_spec.rs` emits the spec from the same router
+that serves requests; `just typegen` converts it to `interface/src/api/schema.d.ts`, and
+`just check-typegen` fails on drift (CI-enforced).
+
+## Conventions & environment
+
+- Git/commit conventions and the PR/backport workflow: [CONTRIBUTING.md](CONTRIBUTING.md).
+- Environment: copy `.env.example` to `.env` to override `PORT`, `DATABASE_URL`, `RUST_LOG`, or
+  `SEED` (defaults run out of the box). Setup and dev loop: [README.md](README.md).
+- Code and test conventions live in the style guides linked above; security posture in
+  [SECURITY.md](SECURITY.md).
+
 ## Validation matrix
 
 Required before normal PR/commit handoff:
@@ -74,7 +114,8 @@ Before handoff:
 Agents may proceed without additional approval for:
 
 - small bug fixes, tests, and docs clarifications;
-- resource additions that follow the existing `items`/`posts` pattern.
+- resource additions that follow the plugin pattern of the worked examples
+  (`plugins/todo/`, `plugins/blog/`); see docs/authoring-a-plugin.md.
 
 Ask for human approval before changing:
 
@@ -90,75 +131,72 @@ Record the approval issue, PR, or comment in the change description.
 
 ## Adding a resource end to end
 
-Two worked examples are wired through every layer: `items` (minimal CRUD) and
-`posts` (status lifecycle with transition validation, filtered list queries with
-pagination, get-by-id, and an aggregate stats endpoint). Copy their shape exactly:
+Resources are now self-contained **plugins** (docs/plugin-framework.md). You no
+longer hand-edit the central router, OpenAPI document, migration list, or
+`router.tsx` — a plugin declares what it contributes and the host builds the
+router, spec, migrations, and nav by iterating the registered plugins. The two
+worked examples are plugins: `todo` (minimal CRUD, `plugins/todo/`) and `blog`
+(status lifecycle, filtered/paginated list, stats; `plugins/blog/`).
 
-1. Migration: `migrations/<YYYYMMDDHHMMSS>_<description>.sql`. The timestamp must sort
-   after every existing migration. NEVER edit or rename a committed migration — sqlx
-   checksums them and the app will refuse to start against an existing database.
-   Conventions: TEXT uuid primary key generated app-side, INTEGER booleans,
-   TEXT timestamps, index on sort columns.
-2. Domain module: `src/<resource>.rs` — row struct deriving
-   `Debug, Serialize, sqlx::FromRow, utoipa::ToSchema`; payload structs deriving
-   `Debug, Deserialize, ToSchema`; plain `async fn(pool: &SqlitePool, ...) ->
-   Result<_, sqlx::Error>` queries. By-id mutations return `Result<bool, _>` from
-   `rows_affected()`; no repository structs or traits.
-3. Declare `pub mod <resource>;` in `src/lib.rs`. Extend `AppState` only for genuinely
-   shared values; the pool usually suffices.
-4. Handlers: `src/api/<resource>.rs` — thin functions taking
-   `State(state): State<AppState>`, returning `Result<_, AppError>`. Every handler
-   carries `#[utoipa::path(...)]` with the FULL literal path including the `/api/v1`
-   prefix, a per-resource `tag`, `params` for path/query inputs, `request_body` for
-   POST bodies, and every response status with `body =` schema. Validate input in the
-   handler (`AppError::BadRequest`); map a `false`/`None` store result to
-   `AppError::NotFound`; 201 + Json for create, `StatusCode::NO_CONTENT` for
-   delete-like actions.
-5. Register in `src/api.rs` in THREE places: (a) `pub mod <resource>;`, (b) the
-   handler in the `#[openapi(paths(...))]` list AND every new ToSchema type in
-   `components(schemas(...))`, (c) a `.route("/api/v1/...", ...)` entry placed before
-   `.fallback(crate::frontend::spa)`, using axum 0.8 brace syntax (`{id}`).
-   An endpoint missing from (b) does NOT error — it silently vanishes from the
-   OpenAPI spec and the generated TypeScript types. This is the most common mistake.
-6. Tests: extend `tests/api.rs` reusing `test_app()` and `body_json()`; import the
-   crate as `app_starter::...`. Cover the happy-path roundtrip plus one 400 and one
-   404 case. Run `just test`. Unit-test pure logic (enums, parsers, aggregates) in a
-   `#[cfg(test)] mod tests` inside the domain module, as `src/posts.rs` does. The
-   `openapi_spec_has_no_dangling_schema_refs` guard test fails if a handler's type is
-   missing from `components(schemas(...))`, and `routes_and_openapi_spec_are_in_parity`
-   fails if a `/api/v1` route and the OpenAPI paths disagree (a handler routed but
-   missing from `paths(...)`, or vice versa) — together a safety net for the step 5
-   footgun.
-7. Run `just typegen` and COMMIT the regenerated `interface/src/api/schema.d.ts`.
-   Never hand-edit that file. Skipping typegen makes `just lint` (tsc) fail.
-8. Frontend page: `interface/src/pages/<Name>.tsx` modeled on the refactored
-   `Items.tsx` — compose it from Radix Themes components (`Card`, `Button`, `Flex`,
-   `Table`, …), the `interface/src/components/sections/` layer (`PageHeader`,
-   `Toolbar`, `DataList`, …), and the typed data hooks in `interface/src/hooks/`
-   (`useApiQuery` / `useApiMutation`, or the `useResource` convenience layer). Data
-   access only through the typed `api` client from `../api/client` (never raw
-   `fetch`); resource-scoped array query keys (`["items"]`, `["posts", filter]`);
-   mutations invalidate the broad `[key]` prefix. `DataList` owns the
-   loading/error/empty/data triage, so pages no longer hand-roll isLoading/isError
-   branches. Style via Themes props (`color`, `variant`, `size`, layout props on
-   `Flex`/`Box`/`Grid`) — no Tailwind utilities and no DTCG/semantic tokens in
-   `styles.css`. Spaces not tabs, no `@/` path aliases. Co-locate a Vitest test
-   (`<Name>.test.tsx`) as `Items.tsx`/`Posts.tsx` do. See
-   [docs/radix-reference.md](docs/radix-reference.md) and the `add-component` skill
-   for the component catalog and the step-by-step component/section/hook procedure.
-   Cross-cutting app-shell infrastructure (the error boundaries and the startup
-   health gate) lives in `interface/src/components/app/` — distinct from `ui/`
-   (primitives), `sections/` (composite page sections), and `theme/` (theming);
-   put new shell-level wrappers there, not in `ui/`.
-9. Route: in `interface/src/router.tsx` add a `createRoute({...})`, append it to
-   `rootRoute.addChildren([...])`, and add a nav `<Link>` in `Layout`.
+1. **Scaffold:** `just new-plugin <name>` (lowercase, e.g. `guestbook`). It
+   generates the backend crate (`plugins/<name>/`: `Cargo.toml`, `plugin.toml`,
+   `src/lib.rs`, a `migrations/<ts>_create_<name>_items.sql`), the frontend page
+   (`interface/src/plugins/<name>/`), and makes the two central edits for you —
+   the path dep in the root `Cargo.toml` and the `<name>::register()` line in the
+   generated `src/plugins.rs`.
+2. **Customize** the generated migration, domain, handlers, and page for your
+   schema, keeping the invariants the §6 guard tests enforce:
+   - routes under `/api/v1/<name>` (from the handler `#[utoipa::path(path = ...)]`);
+   - OpenAPI components prefixed `<name>_*` via `#[schema(as = <name>_Type)]`;
+   - tables prefixed `<name>_*` (the plugin owns `plugins/<name>/migrations/`, its
+     own `_sqlx_migrations_<name>` keyspace; migrations stay append-only — never
+     edit a committed one).
+   Handlers take `State(state): State<AppState>`, return `Result<_, AppError>`,
+   validate input (`AppError::BadRequest`), and map a missing row to
+   `AppError::NotFound`. Optional demo data goes through the `seed()` hook on the
+   `Plugin` trait (see the todo/blog plugins) — core never seeds a plugin.
+3. **Typegen:** `just typegen` and COMMIT the regenerated
+   `interface/src/api/schema.d.ts` (never hand-edit it).
+4. **Verify:** `just verify` — lint, backend tests (including the §6 namespacing
+   guards in `tests/plugins.rs`: route-prefix, name-validity, schema-prefix/no-collision,
+   table-prefix, registered), typegen drift, frontend build/test, cargo-deny.
 
-Optional seed fixtures: the deletable seam in `src/seed.rs` (run via `just seed`,
-`--seed`, or `SEED=1`; off by default, never in tests or Docker) seeds example rows by
-driving the real domain functions. Give a new resource demo data by extending it there,
-or delete the seam per its header comment.
+The frontend page lives under `interface/src/plugins/<name>/` (so it resolves the
+shared Radix/hook deps and the typed `api` client the normal way) and is discovered
+at build time by `interface/src/plugins/registry.ts`; the backend crate stays in
+`plugins/<name>/`. Compose the page from Radix Themes + the `sections/` layer + the
+typed hooks (`useApiQuery`/`useApiMutation`), exactly as `Todo.tsx`/`Blog.tsx` do —
+see [docs/radix-reference.md](docs/radix-reference.md) and the `add-component` skill.
 
-See `docs/add-a-resource.md` for the human-facing version of this recipe.
+See [docs/authoring-a-plugin.md](docs/authoring-a-plugin.md) for the full
+walkthrough and the `add-plugin` skill for the operational procedure. (The
+pre-plugin central-registration recipe — and the now-legacy `add-resource` skill /
+`docs/add-a-resource.md` — are superseded by this flow.)
+
+## Skills
+
+`.claude/skills/` automate the common workflows:
+
+- `add-plugin` — add a new resource end to end as a self-contained plugin
+  (scaffold → migration → API → typegen → UI). Supersedes the legacy `add-resource` skill.
+- `add-migration` — evolve an existing table's schema (append-only).
+- `add-component` — add a UI primitive, composite section, or data hook on Radix Themes.
+- `configure-theme` — restyle the UI from a natural-language request
+  (edits `interface/src/theme/theme.config.ts`).
+- `harden-for-production` — work the production-readiness checklist before public exposure.
+- `cut-release` — preflight and tag a `vX.Y.Z` release.
+
+## ECC workflow
+
+On-stack ECC helpers, run after the change and before handoff (they supplement, not replace, the
+validation matrix):
+
+- Rust changes (domain, handlers, migrations): the `ecc:rust-reviewer` agent or `/ecc:rust-review`.
+- Frontend changes (components, hooks, pages): the `ecc:react-reviewer` agent or `/ecc:react-review`.
+- Cross-layer diffs: `/code-review`.
+- Before changing a security-sensitive surface (auth, CORS, request limits, public-exposure defaults
+  — see Approval boundaries): the `ecc:security-reviewer` agent or `/ecc:security-scan`, and record
+  the approval reference.
 
 ## Feeding learnings back
 
