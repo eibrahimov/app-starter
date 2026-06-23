@@ -153,11 +153,11 @@ them in tests.
 
 ### Query-key & invalidation rules
 
-- Resource-scoped first segment: `["todo"]`, `["posts", filter]`,
-  `["posts", "stats"]`.
+- Resource-scoped first segment: `["todo"]`, `["blog", filter]`,
+  `["blog", "stats"]`.
 - Mutations invalidate the broad `[key]` prefix so all sub-keyed queries (list +
   stats) refresh together — exactly
-  `queryClient.invalidateQueries({ queryKey: ["posts"] })`.
+  `queryClient.invalidateQueries({ queryKey: ["blog"] })`.
 
 ### Example (from `Todo.tsx`)
 
@@ -219,7 +219,7 @@ so contrast holds in both appearances:
 `Badge` exposes these as tones (`emerald` → `grass`, `amber` → `amber`,
 `red` → `red`, `neutral`/`zinc` → `gray`); `Button` exposes them as variants
 (`success` → `grass`, `warning` → `amber`, `danger` → `red`). The Playwright a11y
-smoke renders one `Posts` row per status so every tone's contrast is audited.
+smoke renders one `Blog` row per status so every tone's contrast is audited.
 
 ## Dark mode
 
@@ -248,8 +248,8 @@ dark scales automatically off the class, so you never hand-tune dark values.
   `just verify` and the blocking CI Frontend job; add an `axe` assertion there for
   new components. The **Playwright + axe** page smoke (`just a11y`,
   `e2e/a11y.spec.ts`) loads each route in a real browser with the API mocked to
-  **populated** fixtures, so it audits the real rendered states — Items rows,
-  Posts rows across every Badge tone (draft/amber, published/grass,
+  **populated** fixtures, so it audits the real rendered states — Todo rows,
+  Blog rows across every Badge tone (draft/amber, published/grass,
   archived/gray), and the resolved Home health line — for contrast and landmarks.
 
 ## Testing components

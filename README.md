@@ -28,11 +28,11 @@ Open http://localhost:8080 — the Todo and Blog pages already have data. Withou
 
 **Todo** — minimal CRUD: add, complete, and delete todos.
 
-![App Starter Todo page showing a populated todo list with completed and open items](docs/assets/items.png)
+![App Starter Todo page showing a populated todo list with completed and open items](docs/assets/todo.png)
 
 **Blog** — a draft -> published -> archived lifecycle with status badges, status filters, and a stats summary.
 
-![App Starter Blog page showing posts in draft, published, and archived states with status badges and a stats summary](docs/assets/posts.png)
+![App Starter Blog page showing posts in draft, published, and archived states with status badges and a stats summary](docs/assets/blog.png)
 
 ## Use this when
 
