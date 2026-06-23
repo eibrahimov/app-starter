@@ -1,14 +1,25 @@
-//! The plugin contract.
+//! The host<->plugin contract crate.
 //!
-//! A plugin is a Cargo workspace-member crate that contributes routes together
-//! with their OpenAPI fragment (built from one declaration so they cannot drift)
-//! and, optionally, its own migrations. Registration is **explicit**: the
-//! generated [`crate::plugins`] module names each plugin's `register()` so the
-//! linker is forced to include the crate. See docs/plugin-framework.md §2-3.
+//! Holds the `Plugin` trait, `AppState`, and `PLUGIN_API_VERSION` in a leaf crate
+//! that BOTH the host (`app-starter`) and every plugin crate depend on. This is
+//! what breaks the dependency cycle: the host's generated registry
+//! (`app-starter`'s `src/plugins/mod.rs`) references each plugin crate, and each
+//! plugin references this crate -- never `app-starter` -- so the package graph
+//! stays acyclic. The host re-exports these items, so
+//! `app_starter::{AppState, Plugin, PLUGIN_API_VERSION}` keep resolving.
+//!
+//! This crate must never depend on `app-starter` (see
+//! docs/plugin-framework-impl-status.md, iter-4 blocker).
 
-use crate::AppState;
+use sqlx::SqlitePool;
 use sqlx::migrate::Migrator;
 use utoipa_axum::router::OpenApiRouter;
+
+/// Shared application state, cloned into every handler.
+#[derive(Clone)]
+pub struct AppState {
+    pub pool: SqlitePool,
+}
 
 /// Host plugin-API version. A plugin's [`Plugin::host_api`] is a semver range
 /// checked against this constant when the registry is assembled; an out-of-range

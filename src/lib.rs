@@ -3,19 +3,12 @@ pub mod db;
 pub mod error;
 pub mod frontend;
 pub mod items;
-pub mod plugin;
 pub mod plugins;
 pub mod posts;
 pub mod seed;
 
-/// The plugin contract, re-exported at the crate root so plugin crates can
-/// write `impl app_starter::Plugin`.
-pub use plugin::{PLUGIN_API_VERSION, Plugin};
-
-use sqlx::SqlitePool;
-
-/// Shared application state, cloned into every handler.
-#[derive(Clone)]
-pub struct AppState {
-    pub pool: SqlitePool,
-}
+/// The plugin contract + shared state live in the leaf `app-starter-plugin-api`
+/// crate, which plugins also depend on -- this breaks the host<->plugin cycle a
+/// generated registry would otherwise create. Re-exported here so existing
+/// `app_starter::{AppState, Plugin, PLUGIN_API_VERSION}` paths keep resolving.
+pub use app_starter_plugin_api::{AppState, PLUGIN_API_VERSION, Plugin};

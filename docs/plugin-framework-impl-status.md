@@ -17,6 +17,7 @@
 
 - [x] **0a — sqlx 0.8→0.9 upgrade.** Bump dep; fix API breaks; `cargo deny` clean; `just verify` green. _(Done iter 1.)_
 - [x] **0b — Foundations.** _(Done iter 2.)_ Add `utoipa-axum 0.2`; `src/plugin.rs` (`Plugin` trait + `PLUGIN_API_VERSION`); empty generated `src/plugins/mod.rs`; convert to Cargo workspace with `plugins/*` glob; add `run_all_migrators(pool)` and route BOTH `db::init()` and `tests/common.rs` through it; prove `default-run="app-starter"`, Docker `--bin app-starter`, and `build.rs` paths still work.
+- [x] **0c — Plugin-API crate (cycle fix, iter 4).** Extracted `app-starter-plugin-api` (Plugin trait + AppState + PLUGIN_API_VERSION) so host and plugins depend on it without a cycle; `app-starter` re-exports it and keeps the registry.
 - [x] **1 — Registry-driven router + typegen.** _(Done iter 3.)_ `router()`/`ApiDoc` fold in `plugins::all()`; build typegen spec from the server's own `router()` via `split_for_parts()`; repurpose the parity test; `just typegen` and commit `schema.d.ts`.
 - [ ] **2 — `items` → first plugin (backend + frontend together).** Move `src/items.rs`, `src/api/items.rs`, its migration, and `interface/src/pages/Items.tsx` into `plugins/items/`; add generated `register()` line; add Vite `server.fs.allow` + tsconfig/biome scope; delete central registrations; `just typegen`.
 - [ ] **3 — `posts` → second plugin** (backend + frontend together, same pattern).
@@ -30,6 +31,36 @@
 - [ ] `no_cross_plugin_schema_name_collisions`
 - [ ] `plugin_tables_are_prefixed_and_unique`
 - [ ] `expected_plugins_are_registered` — MUST run against a RELEASE (lto+strip) artifact in CI (smoke check on `/api/openapi.json`), not just debug.
+
+## Decisions (locked in-loop)
+
+- **Phase 2/3 example naming (iter 4):** the worked-example plugins are renamed to
+  avoid the name==table collision — `items` → **`todo`** (table `todo_items`,
+  routes `/api/v1/todo`). `<plugin>_<entity>` models the namespace convention
+  cleanly and satisfies the prefix invariant without an `items_items` oddity.
+  Consequence: the committed `items` migration is replaced by a fresh plugin
+  migration; pre-existing dev DBs need recreation (fresh-DB template — acceptable).
+- **Plugin seed (iter 4):** add an optional `seed()` hook to the `Plugin` trait so
+  each plugin owns its seed data (core's seed runner iterates `plugins::all()`),
+  honoring "core never depends on a plugin."
+
+## BLOCKER (iter 4) — circular package dependency — RESOLVED (Option A, phase 0c)
+
+The v2 design is **not buildable as written**. It places the generated registry
+in `app-starter`'s `src/plugins/mod.rs` (so `app-starter` depends on each plugin
+crate) while every plugin depends on `app-starter` for `Plugin`/`AppState`. Cargo
+forbids that cycle — **confirmed** via probe: `error: cyclic package dependency:
+package 'app-starter' depends on itself`. Phase 0b only compiled because the
+registry was empty. Resolution requires an architecture change (awaiting decision):
+- **Option A (recommended):** extract a small `app-starter-plugin-api` crate
+  (`Plugin` trait + `AppState` + `PLUGIN_API_VERSION`); plugins depend on it;
+  `app-starter` keeps the bins + `src/plugins/mod.rs` registry and depends on
+  plugin-api + each plugin; re-export the trait/state so `app_starter::*` keeps
+  working. No cycle; bins/Docker/default-run/build.rs unchanged.
+- **Option B:** make `app-starter` lib-only (router/seed/migrators take the plugin
+  list as a param) and move the bins + registry into a new composition crate that
+  depends on the lib + plugins. Matches `impl app_starter::Plugin` exactly but
+  moves the binaries (re-prove §9 invariants).
 
 ## Stop condition
 
@@ -74,3 +105,14 @@ smoke check passes, final per-unit cycle clean, draft PR updated with an
   drift** — the router-derived spec is byte-identical to the old hand-built one.
   Gates: `just verify` + `cargo deny` green; both guard tests pass explicitly.
   Next: **Phase 2** (items → first plugin).
+- **Iter 4 (2026-06-23):** Surfaced + resolved two blockers, then **landed phase
+  0c (plugin-api extraction)**. User decisions: rename example `items` → `todo`
+  (table `todo_items`); add a `seed()` hook to the `Plugin` trait (both apply in
+  Phase 2). Then hit a fatal blocker — the spec's registry-in-core design forms a
+  Cargo cycle (confirmed by a probe: `app-starter` ⇄ `todo`). User chose **Option
+  A**: extracted `app-starter-plugin-api` (trait + AppState + PLUGIN_API_VERSION);
+  `app-starter` re-exports it and keeps `src/plugins/mod.rs`. cargo-deny needed
+  `allow-wildcard-paths = true` + `publish = false` on the internal crates so the
+  intra-workspace path deps pass the wildcard ban. Registry still empty → behavior
+  unchanged. Gates: `just verify` + `cargo deny` green. **Phase 2 (items → todo
+  plugin) is now unblocked** and is the next unit.

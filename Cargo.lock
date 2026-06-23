@@ -87,6 +87,7 @@ name = "app-starter"
 version = "0.3.0"
 dependencies = [
  "anyhow",
+ "app-starter-plugin-api",
  "axum",
  "chrono",
  "clap",
@@ -106,6 +107,14 @@ dependencies = [
  "utoipa",
  "utoipa-axum",
  "uuid",
+]
+
+[[package]]
+name = "app-starter-plugin-api"
+version = "0.1.0"
+dependencies = [
+ "sqlx",
+ "utoipa-axum",
 ]
 
 [[package]]

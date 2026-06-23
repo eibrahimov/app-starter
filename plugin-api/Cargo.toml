@@ -1,0 +1,14 @@
+[package]
+name = "app-starter-plugin-api"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.94"
+license = "MIT"
+publish = false
+
+# Leaf crate: holds the host<->plugin contract (Plugin trait + AppState +
+# PLUGIN_API_VERSION) so BOTH the host (app-starter) and every plugin can depend
+# on it without forming a cycle. It must NOT depend on app-starter.
+[dependencies]
+sqlx = { version = "0.9", features = ["runtime-tokio", "tls-rustls", "sqlite", "migrate", "chrono"] }
+utoipa-axum = "0.2"

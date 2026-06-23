@@ -7,6 +7,10 @@ edition = "2024"
 # the effective floor. Lets `cargo` emit a clear "requires Rust >= X" error.
 rust-version = "1.94"
 license = "MIT"
+# This is a template application + workspace root, not a crates.io library. Marking
+# it unpublishable also lets cargo-deny's `allow-wildcard-paths` exempt the
+# intra-workspace path deps (plugin-api, plugins/*).
+publish = false
 default-run = "app-starter"
 
 [workspace]
@@ -14,7 +18,7 @@ default-run = "app-starter"
 # (`just new-plugin`) appends each new crate dir under plugins/. The root
 # package (app-starter) is the workspace root and an implicit member, so
 # `cargo run`, `default-run`, and Docker's `--bin app-starter` keep targeting it.
-members = ["plugins/*"]
+members = ["plugin-api", "plugins/*"]
 resolver = "2"
 
 [dependencies]
@@ -26,6 +30,7 @@ serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 utoipa = { version = "5", features = ["axum_extras", "chrono"] }
 utoipa-axum = "0.2"
+app-starter-plugin-api = { path = "plugin-api" }
 anyhow = "1"
 thiserror = "2"
 tracing = "0.1"

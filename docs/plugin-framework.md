@@ -50,6 +50,16 @@ worked examples"*), which is why this is a design doc for review. See §9.
 
 ## 2. Chosen approach: A + B combined
 
+> **[implementation correction, 2026-06-23]** As written below this design does
+> not compile: the host's generated `src/plugins/mod.rs` referencing each plugin
+> crate, while every plugin depends on `app-starter` for the trait/`AppState`,
+> forms a Cargo dependency cycle (`app-starter` ⇄ plugin). The implementation
+> breaks it by extracting a leaf **`app-starter-plugin-api`** crate (the `Plugin`
+> trait + `AppState` + `PLUGIN_API_VERSION`) that both the host and every plugin
+> depend on; `app-starter` keeps the registry and re-exports the contract. Plugins
+> therefore write `impl app_starter_plugin_api::Plugin`, not `impl
+> app_starter::Plugin`. See docs/plugin-framework-impl-status.md (iter-4 blocker).
+
 - **B — Compile-time registration (backend).** A `Plugin` trait; the router and
   OpenAPI document are built by iterating the registered plugins.
   **[review B1] Registration is explicit, not implicit.** `inventory`-style
