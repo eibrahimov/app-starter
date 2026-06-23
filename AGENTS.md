@@ -29,7 +29,7 @@ iterating the registered plugins — none of them is a hand-maintained central l
   leaf crate; no plugin depends on the host, so the package graph stays acyclic.
 - **Host** `src/` — `main.rs` boots (listener, `db::init`, optional seed, graceful shutdown);
   `api.rs` builds the `OpenApiRouter` by iterating `plugins::all()` (the generated registry in
-  `src/plugins/mod.rs`) and mounts each plugin under `/api/v1/<name>`. Shared HTTP layers (body
+  `src/plugins.rs`) and mounts each plugin under `/api/v1/<name>`. Shared HTTP layers (body
   limit, timeout, request-id, CORS, graceful shutdown) live here, not per handler; `/api/health`
   and `/api/openapi.json` stay unversioned; `frontend.rs` embeds `interface/dist`.
 - **Backend plugins** `plugins/<name>/` — one crate each: `plugin.toml`, handlers that take
@@ -143,7 +143,7 @@ worked examples are plugins: `todo` (minimal CRUD, `plugins/todo/`) and `blog`
    `src/lib.rs`, a `migrations/<ts>_create_<name>_items.sql`), the frontend page
    (`interface/src/plugins/<name>/`), and makes the two central edits for you —
    the path dep in the root `Cargo.toml` and the `<name>::register()` line in the
-   generated `src/plugins/mod.rs`.
+   generated `src/plugins.rs`.
 2. **Customize** the generated migration, domain, handlers, and page for your
    schema, keeping the invariants the §6 guard tests enforce:
    - routes under `/api/v1/<name>` (from the handler `#[utoipa::path(path = ...)]`);

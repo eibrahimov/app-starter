@@ -9,7 +9,7 @@
 set -euo pipefail
 
 # Plugins that must be registered in a shipped build. Keep in sync with
-# src/plugins/mod.rs (the generated registry).
+# src/plugins.rs (the generated registry).
 EXPECTED=("todo" "blog")
 
 PORT="${PORT:-8091}"

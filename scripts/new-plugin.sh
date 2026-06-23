@@ -9,7 +9,7 @@
 #
 # ...and wires the two central edits the author would otherwise make by hand:
 #   - appends `<name> = { path = "plugins/<name>" }` to the root Cargo.toml
-#   - appends `<name>::register(),` to src/plugins/mod.rs (the generated registry)
+#   - appends `<name>::register(),` to src/plugins.rs (the generated registry)
 #
 # After scaffolding, run `just typegen` then `just verify`.
 #
@@ -221,7 +221,7 @@ impl Plugin for ${TYPE}Plugin {
     }
 }
 
-/// Registration hook the host's generated src/plugins/mod.rs calls.
+/// Registration hook the host's generated src/plugins.rs calls.
 pub fn register() -> Box<dyn Plugin> {
     Box::new(${TYPE}Plugin)
 }
@@ -325,12 +325,12 @@ awk -v line="${NAME} = { path = \"plugins/${NAME}\" }" '
 awk -v line="        ${NAME}::register()," '
   /<scaffolder inserts register/ { print line }
   { print }
-' "${ROOT}/src/plugins/mod.rs" > "${ROOT}/src/plugins/mod.rs.tmp" && mv "${ROOT}/src/plugins/mod.rs.tmp" "${ROOT}/src/plugins/mod.rs"
+' "${ROOT}/src/plugins.rs" > "${ROOT}/src/plugins.rs.tmp" && mv "${ROOT}/src/plugins.rs.tmp" "${ROOT}/src/plugins.rs"
 
 echo "Scaffolded plugin '${NAME}' (type ${TYPE}):"
 echo "  plugins/${NAME}/                       (backend crate)"
 echo "  interface/src/plugins/${NAME}/         (frontend page)"
-echo "  + wired into Cargo.toml + src/plugins/mod.rs"
+echo "  + wired into Cargo.toml + src/plugins.rs"
 echo
 echo "Next: just typegen   # regenerate the TS client for /api/v1/${NAME}"
 echo "      just verify    # lint + tests + frontend + cargo-deny"

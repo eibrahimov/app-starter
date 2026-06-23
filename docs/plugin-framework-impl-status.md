@@ -20,7 +20,7 @@
 ## Phases (spec §7 — do in order)
 
 - [x] **0a — sqlx 0.8→0.9 upgrade.** Bump dep; fix API breaks; `cargo deny` clean; `just verify` green. _(Done iter 1.)_
-- [x] **0b — Foundations.** _(Done iter 2.)_ Add `utoipa-axum 0.2`; `src/plugin.rs` (`Plugin` trait + `PLUGIN_API_VERSION`); empty generated `src/plugins/mod.rs`; convert to Cargo workspace with `plugins/*` glob; add `run_all_migrators(pool)` and route BOTH `db::init()` and `tests/common.rs` through it; prove `default-run="app-starter"`, Docker `--bin app-starter`, and `build.rs` paths still work.
+- [x] **0b — Foundations.** _(Done iter 2.)_ Add `utoipa-axum 0.2`; `src/plugin.rs` (`Plugin` trait + `PLUGIN_API_VERSION`); empty generated `src/plugins.rs`; convert to Cargo workspace with `plugins/*` glob; add `run_all_migrators(pool)` and route BOTH `db::init()` and `tests/common.rs` through it; prove `default-run="app-starter"`, Docker `--bin app-starter`, and `build.rs` paths still work.
 - [x] **0c — Plugin-API crate (cycle fix, iter 4).** Extracted `app-starter-plugin-api` (Plugin trait + AppState + PLUGIN_API_VERSION) so host and plugins depend on it without a cycle; `app-starter` re-exports it and keeps the registry.
 - [x] **1 — Registry-driven router + typegen.** _(Done iter 3.)_ `router()`/`ApiDoc` fold in `plugins::all()`; build typegen spec from the server's own `router()` via `split_for_parts()`; repurpose the parity test; `just typegen` and commit `schema.d.ts`.
 - [x] **2 — `items` → first plugin → `todo` (backend + frontend).** _(Done iter 5.)_ Move `src/items.rs`, `src/api/items.rs`, its migration, and `interface/src/pages/Items.tsx` into `plugins/items/`; add generated `register()` line; add Vite `server.fs.allow` + tsconfig/biome scope; delete central registrations; `just typegen`.
@@ -63,14 +63,14 @@
 ## BLOCKER (iter 4) — circular package dependency — RESOLVED (Option A, phase 0c)
 
 The v2 design is **not buildable as written**. It places the generated registry
-in `app-starter`'s `src/plugins/mod.rs` (so `app-starter` depends on each plugin
+in `app-starter`'s `src/plugins.rs` (so `app-starter` depends on each plugin
 crate) while every plugin depends on `app-starter` for `Plugin`/`AppState`. Cargo
 forbids that cycle — **confirmed** via probe: `error: cyclic package dependency:
 package 'app-starter' depends on itself`. Phase 0b only compiled because the
 registry was empty. Resolution requires an architecture change (awaiting decision):
 - **Option A (recommended):** extract a small `app-starter-plugin-api` crate
   (`Plugin` trait + `AppState` + `PLUGIN_API_VERSION`); plugins depend on it;
-  `app-starter` keeps the bins + `src/plugins/mod.rs` registry and depends on
+  `app-starter` keeps the bins + `src/plugins.rs` registry and depends on
   plugin-api + each plugin; re-export the trait/state so `app_starter::*` keeps
   working. No cycle; bins/Docker/default-run/build.rs unchanged.
 - **Option B:** make `app-starter` lib-only (router/seed/migrators take the plugin
@@ -99,7 +99,7 @@ smoke check passes, final per-unit cycle clean, draft PR updated with an
 - **Iter 2 (2026-06-23):** **Phase 0b complete.** Added `utoipa-axum 0.2`;
   `src/plugin.rs` (`Plugin` trait — object-safe; `name`/`host_api`/`api`/`migrator`
   — + `PLUGIN_API_VERSION = "1.0.0"`), re-exported at crate root; empty generated
-  `src/plugins/mod.rs` (`all() -> vec![]`); converted to a Cargo workspace
+  `src/plugins.rs` (`all() -> vec![]`); converted to a Cargo workspace
   (`members=["plugins/*"]`, resolver 2) with a `.gitkeep`-tracked `plugins/` dir
   (dotfile is not matched by the glob). Added `db::run_all_migrators(pool)` (sets
   `busy_timeout`+WAL, runs core migrator, then each plugin into
@@ -127,7 +127,7 @@ smoke check passes, final per-unit cycle clean, draft PR updated with an
   Phase 2). Then hit a fatal blocker — the spec's registry-in-core design forms a
   Cargo cycle (confirmed by a probe: `app-starter` ⇄ `todo`). User chose **Option
   A**: extracted `app-starter-plugin-api` (trait + AppState + PLUGIN_API_VERSION);
-  `app-starter` re-exports it and keeps `src/plugins/mod.rs`. cargo-deny needed
+  `app-starter` re-exports it and keeps `src/plugins.rs`. cargo-deny needed
   `allow-wildcard-paths = true` + `publish = false` on the internal crates so the
   intra-workspace path deps pass the wildcard ban. Registry still empty → behavior
   unchanged. Gates: `just verify` + `cargo deny` green. **Phase 2 (items → todo

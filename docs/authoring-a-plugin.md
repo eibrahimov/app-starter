@@ -47,7 +47,7 @@ above **and** makes the only two central edits — both mechanical:
    `[dependencies]` (this explicit link is what makes the linker include the
    crate — `inventory`-style implicit registration is unsound under Rust's link
    model, see the design doc §2);
-2. appends `<name>::register(),` to the generated `src/plugins/mod.rs`.
+2. appends `<name>::register(),` to the generated `src/plugins.rs`.
 
 It does **not** touch `src/api.rs`, the OpenAPI document, or `router.tsx` — those
 are built from the registry.
@@ -113,6 +113,6 @@ the design doc §8.
 ## Removing a plugin
 
 Delete `plugins/<name>/` and `interface/src/plugins/<name>/`, remove its
-`Cargo.toml` dep line and its `register()` line from `src/plugins/mod.rs`, then
+`Cargo.toml` dep line and its `register()` line from `src/plugins.rs`, then
 `just typegen`. Its `<name>_*` tables and `_sqlx_migrations_<name>` are orphaned
 (left in place for data safety); drop them manually if you want them gone.

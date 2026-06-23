@@ -439,7 +439,7 @@ impl Plugin for BlogPlugin {
     }
 }
 
-/// Registration hook the host's generated `src/plugins/mod.rs` calls.
+/// Registration hook the host's generated `src/plugins.rs` calls.
 pub fn register() -> Box<dyn Plugin> {
     Box::new(BlogPlugin)
 }

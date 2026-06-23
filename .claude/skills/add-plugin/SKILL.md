@@ -31,7 +31,7 @@ The two worked-example plugins, `plugins/todo/` (minimal CRUD) and `plugins/blog
    (`Cargo.toml`, `plugin.toml`, `src/lib.rs`, a prefixed migration), the frontend
    page `interface/src/plugins/<name>/`, and makes the two central edits — the path
    dep in the root `Cargo.toml` and the `<name>::register()` line in the generated
-   `src/plugins/mod.rs`. (If scaffolding by hand, copy `plugins/todo/` and make
+   `src/plugins.rs`. (If scaffolding by hand, copy `plugins/todo/` and make
    those two edits yourself.)
 
 2. **Customize the backend** (`plugins/<name>/`):

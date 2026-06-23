@@ -125,7 +125,7 @@ src/
   lib.rs           crate root (re-exports the plugin-api contract)
   api.rs           HTTP layer: router + OpenAPI, built from the plugin registry
   api/health.rs    core health/readiness endpoint
-  plugins/mod.rs   generated registry of compiled-in plugins (all())
+  plugins.rs       generated registry of compiled-in plugins (all())
   db.rs            pool init + core/plugin migrations
   seed.rs          optional example-data seeder (iterates plugins)
   frontend.rs      embedded SPA serving with index.html fallback

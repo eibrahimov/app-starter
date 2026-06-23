@@ -3,7 +3,7 @@
 //! Holds the `Plugin` trait, `AppState`, `AppError`, and `PLUGIN_API_VERSION` in
 //! a leaf crate that BOTH the host (`app-starter`) and every plugin crate depend
 //! on. This is what breaks the dependency cycle: the host's generated registry
-//! (`app-starter`'s `src/plugins/mod.rs`) references each plugin crate, and each
+//! (`app-starter`'s `src/plugins.rs`) references each plugin crate, and each
 //! plugin references this crate -- never `app-starter` -- so the package graph
 //! stays acyclic. The host re-exports these items, so `app_starter::{AppState,
 //! Plugin, PLUGIN_API_VERSION}` and `app_starter::error::AppError` keep resolving.

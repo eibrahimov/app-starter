@@ -217,7 +217,7 @@ impl Plugin for TodoPlugin {
     }
 }
 
-/// Registration hook the host's generated `src/plugins/mod.rs` calls -- the
+/// Registration hook the host's generated `src/plugins.rs` calls -- the
 /// explicit link that makes the linker include this crate.
 pub fn register() -> Box<dyn Plugin> {
     Box::new(TodoPlugin)
