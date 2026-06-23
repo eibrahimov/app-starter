@@ -2,10 +2,11 @@
 
 Full-stack Rust starter: one axum binary serves the JSON API and the embedded React SPA,
 typed end to end from the backend OpenAPI contract. SQLite via sqlx; Bun + `just` for tooling;
-optional Tauri 2 desktop shell. Two worked examples (`items`, `posts`) are wired through every
-layer — copy their shape, then replace them with your domain.
+optional Tauri 2 desktop shell. Resources are self-contained **plugins**; two
+worked-example plugins (`todo`, `blog`) are wired through every layer — scaffold
+your own with `just new-plugin`, then replace them with your domain.
 
-See AGENTS.md for project conventions, validation commands, and the resource recipe.
+See AGENTS.md for project conventions, validation commands, and the plugin authoring flow.
 
 Quick reminders:
 - Routine gates: `just lint`, `just test`, `just check-typegen`.
@@ -19,7 +20,7 @@ Quick reminders:
 - `VISION.md` is human-maintained; reference it for intent and never edit it (agents are denied write access).
 
 Skills (`.claude/skills/`) automate common workflows:
-- `add-resource` — new REST resource end to end (migration → API → typegen → UI).
+- `add-plugin` — new resource as a self-contained plugin via `just new-plugin` (scaffold → customize → typegen → UI); supersedes the legacy `add-resource`.
 - `add-migration` — evolve an existing table's schema (append-only).
 - `add-component` — add a UI primitive, section, or data hook on Radix Themes.
 - `configure-theme` — restyle the UI from a natural-language request (edits `theme.config.ts`).
