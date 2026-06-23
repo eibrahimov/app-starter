@@ -18,6 +18,46 @@ is `interface/src/theme/theme.config.ts` (fed into `<Theme>`). See
 Theme props, and [docs/radix-workflow.md](docs/radix-workflow.md) for the
 end-to-end lifecycle that takes a natural-language app request to a gated build.
 
+## Architecture
+
+The backend is the source of truth: backend types feed the OpenAPI document, which generates the
+typed frontend client. The router, OpenAPI spec, migration runner, and nav are all assembled by
+iterating the registered plugins — none of them is a hand-maintained central list.
+
+- **Contract crate** `plugin-api/` — the `Plugin` trait (`name` / `host_api` / `api` / `migrator` /
+  `seed`), `AppState` (the `SqlitePool`), and `AppError`. The host and every plugin depend on this
+  leaf crate; no plugin depends on the host, so the package graph stays acyclic.
+- **Host** `src/` — `main.rs` boots (listener, `db::init`, optional seed, graceful shutdown);
+  `api.rs` builds the `OpenApiRouter` by iterating `plugins::all()` (the generated registry in
+  `src/plugins/mod.rs`) and mounts each plugin under `/api/v1/<name>`. Shared HTTP layers (body
+  limit, timeout, request-id, CORS, graceful shutdown) live here, not per handler; `/api/health`
+  and `/api/openapi.json` stay unversioned; `frontend.rs` embeds `interface/dist`.
+- **Backend plugins** `plugins/<name>/` — one crate each: `plugin.toml`, handlers that take
+  `State<AppState>` and return `Result<_, AppError>`, and `migrations/` (its own
+  `_sqlx_migrations_<name>` keyspace).
+- **Frontend** `interface/src/` — a typed `api/client.ts` (openapi-fetch over the generated
+  `api/schema.d.ts`) wrapped by TanStack Query hooks (`useApiQuery` / `useApiMutation` /
+  `useResource`); Radix Themes `components/ui` + `components/sections`; plugin pages under
+  `plugins/<name>/` discovered at build time by `plugins/registry.ts`; one theme surface,
+  `theme/theme.config.ts`; routing via TanStack Router in `router.tsx`.
+
+**Request trace** (create a todo): `useApiMutation("/api/v1/todo", "post")` → the todo plugin handler
+validates input (`AppError::BadRequest`) → `sqlx` inserts into `todo_items` → JSON response;
+`AppError` maps `NotFound` / `BadRequest` / database errors to an HTTP status + `{ "error": ... }`.
+
+**Build & typegen pipeline:** `build.rs` builds the frontend and the binary embeds `interface/dist`
+(set `SKIP_FRONTEND_BUILD=1` to skip); `src/bin/openapi_spec.rs` emits the spec from the same router
+that serves requests; `just typegen` converts it to `interface/src/api/schema.d.ts`, and
+`just check-typegen` fails on drift (CI-enforced).
+
+## Conventions & environment
+
+- Git/commit conventions and the PR/backport workflow: [CONTRIBUTING.md](CONTRIBUTING.md).
+- Environment: copy `.env.example` to `.env` to override `PORT`, `DATABASE_URL`, `RUST_LOG`, or
+  `SEED` (defaults run out of the box). Setup and dev loop: [README.md](README.md).
+- Code and test conventions live in the style guides linked above; security posture in
+  [SECURITY.md](SECURITY.md).
+
 ## Validation matrix
 
 Required before normal PR/commit handoff:
@@ -74,7 +114,8 @@ Before handoff:
 Agents may proceed without additional approval for:
 
 - small bug fixes, tests, and docs clarifications;
-- resource additions that follow the existing `items`/`posts` pattern.
+- resource additions that follow the plugin pattern of the worked examples
+  (`plugins/todo/`, `plugins/blog/`); see docs/authoring-a-plugin.md.
 
 Ask for human approval before changing:
 
@@ -131,6 +172,31 @@ See [docs/authoring-a-plugin.md](docs/authoring-a-plugin.md) for the full
 walkthrough and the `add-plugin` skill for the operational procedure. (The
 pre-plugin central-registration recipe — and the now-legacy `add-resource` skill /
 `docs/add-a-resource.md` — are superseded by this flow.)
+
+## Skills
+
+`.claude/skills/` automate the common workflows:
+
+- `add-plugin` — add a new resource end to end as a self-contained plugin
+  (scaffold → migration → API → typegen → UI). Supersedes the legacy `add-resource` skill.
+- `add-migration` — evolve an existing table's schema (append-only).
+- `add-component` — add a UI primitive, composite section, or data hook on Radix Themes.
+- `configure-theme` — restyle the UI from a natural-language request
+  (edits `interface/src/theme/theme.config.ts`).
+- `harden-for-production` — work the production-readiness checklist before public exposure.
+- `cut-release` — preflight and tag a `vX.Y.Z` release.
+
+## ECC workflow
+
+On-stack ECC helpers, run after the change and before handoff (they supplement, not replace, the
+validation matrix):
+
+- Rust changes (domain, handlers, migrations): the `ecc:rust-reviewer` agent or `/ecc:rust-review`.
+- Frontend changes (components, hooks, pages): the `ecc:react-reviewer` agent or `/ecc:react-review`.
+- Cross-layer diffs: `/code-review`.
+- Before changing a security-sensitive surface (auth, CORS, request limits, public-exposure defaults
+  — see Approval boundaries): the `ecc:security-reviewer` agent or `/ecc:security-scan`, and record
+  the approval reference.
 
 ## Feeding learnings back
 
