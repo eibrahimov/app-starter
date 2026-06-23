@@ -27,10 +27,10 @@
 
 - [x] parity test reworked to a registry walk; `.nest`/`.merge` ban lifted. _(iter 3)_
 - [x] `typegen_spec_matches_server` _(iter 3)_
-- [ ] `every_plugin_route_is_under_its_derived_prefix`
-- [ ] `no_cross_plugin_schema_name_collisions`
-- [ ] `plugin_tables_are_prefixed_and_unique`
-- [ ] `expected_plugins_are_registered` — MUST run against a RELEASE (lto+strip) artifact in CI (smoke check on `/api/openapi.json`), not just debug.
+- [x] `every_plugin_route_is_under_its_derived_prefix` _(iter 7)_
+- [x] `no_cross_plugin_schema_name_collisions` _(iter 7; components prefixed via `#[schema(as = <name>_*)]`)_
+- [x] `plugin_tables_are_prefixed_and_unique` _(iter 7)_
+- [x] `expected_plugins_are_registered` _(iter 7)_ — debug test + a RELEASE (lto+strip) CI smoke check (`scripts/release-smoke.sh` / `just release-smoke`, new `registration` ci.yml job) on `/api/openapi.json`.
 
 ## Decisions (locked in-loop)
 
@@ -149,3 +149,15 @@ smoke check passes, final per-unit cycle clean, draft PR updated with an
   seed (todo=4, blog=4), blog lifecycle + 400 validation work, per-plugin tables
   (`blog_posts`/`todo_items`) + keyspaces present. **Both worked examples are now
   plugins.** Next: **Phase 4** (authoring) + remaining guard tests.
+- **Iter 7 (2026-06-23):** **All 4 remaining §6 guards green** + honored the
+  OpenAPI-component-prefix invariant (deferred from 2-3): added
+  `#[schema(as = <name>_*)]` to every plugin ToSchema type (todo_Todo, blog_Post,
+  blog_PostStatus, ...), regenerated schema.d.ts, fixed the one frontend
+  component-name ref. New `tests/plugins.rs` asserts route-prefix, schema
+  prefix+no-collision, and table prefix+unique over `plugins::all()`.
+  `expected_plugins_are_registered` is a debug test PLUS a release-profile CI
+  smoke (`scripts/release-smoke.sh` + `just release-smoke` + a `registration`
+  ci.yml job) that boots the lto+strip binary and checks `/api/openapi.json`.
+  `just verify` green; release-smoke passes locally (todo + blog registered).
+  Next + last: **Phase 4** (authoring: add-plugin skill + just new-plugin
+  scaffolder + docs/authoring-a-plugin.md + AGENTS.md recipe rewrite).
