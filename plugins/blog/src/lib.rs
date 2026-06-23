@@ -345,7 +345,14 @@ async fn publish_post(
         ));
     }
     if !publish(&state.pool, &id).await? {
-        return Err(AppError::NotFound);
+        // Lost a race: between the read above and the atomic guarded UPDATE, the
+        // post was concurrently published or deleted. Re-resolve so the status
+        // matches the sequential path (404 if it is gone, 400 if it is no longer a
+        // draft) rather than a blanket 404.
+        return Err(match get(&state.pool, &id).await? {
+            None => AppError::NotFound,
+            Some(_) => AppError::BadRequest("only draft posts can be published".into()),
+        });
     }
     let post = get(&state.pool, &id).await?.ok_or(AppError::NotFound)?;
     Ok(Json(post))
@@ -373,7 +380,13 @@ async fn archive_post(
         ));
     }
     if !archive(&state.pool, &id).await? {
-        return Err(AppError::NotFound);
+        // Lost a race (see publish_post): re-resolve so a concurrent archive/delete
+        // yields 404-if-gone / 400-if-no-longer-published, matching the sequential
+        // path rather than a blanket 404.
+        return Err(match get(&state.pool, &id).await? {
+            None => AppError::NotFound,
+            Some(_) => AppError::BadRequest("only published posts can be archived".into()),
+        });
     }
     let post = get(&state.pool, &id).await?.ok_or(AppError::NotFound)?;
     Ok(Json(post))
