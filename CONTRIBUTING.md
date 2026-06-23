@@ -25,7 +25,7 @@ just build           # release, embedded UI, Docker, frontend build, or packagin
 just docker-build    # Dockerfile/compose/deployment changes
 just desktop-build   # desktop/Tauri sidecar changes
 just a11y            # opt-in accessibility page smoke (Playwright + axe); needs `bunx playwright install chromium`. Non-blocking in CI.
-just screenshots     # regenerate docs/assets/*.png after UI changes to Items/Posts/home; needs `bunx playwright install chromium`.
+just screenshots     # regenerate docs/assets/*.png after UI changes to the Home/Todo/Blog pages; needs `bunx playwright install chromium`.
 ```
 
 If a relevant gate is skipped, explain why in the PR and state the remaining risk.
@@ -48,7 +48,7 @@ pipeline; migration history or data-destructive behavior; generated-file policy
 worked examples; or license/third-party-code policy.
 
 Routine docs clarifications, tests, bug fixes, and resource additions following
-the `items`/`posts` pattern do not need a separate approval issue.
+the plugin pattern of the worked examples (`todo`/`blog`) do not need a separate approval issue.
 
 ## Hard rules
 
@@ -71,7 +71,7 @@ the `items`/`posts` pattern do not need a separate approval issue.
 When you fix something in a generated project that is not domain-specific:
 
 - Template wiring, CI, build, or docs bug: open a PR against the template,
-  applying the fix to `items`/`posts` where relevant.
+  applying the fix to the `todo`/`blog` plugins where relevant.
 - Adoption friction: open an adoption-friction issue with the command, file, or doc that failed to guide you.
 - Reusable pattern: open an issue first describing the problem, recipe location,
   and how it applies to both examples.

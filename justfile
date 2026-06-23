@@ -11,7 +11,7 @@ doctor:
 dev:
     cargo run
 
-# Seed example items and posts, then run the backend so the UI demos
+# Seed the example todo + blog plugins, then run the backend so the UI demos
 # immediately. Idempotent (skips resources that already have rows). Optional,
 # removable convenience — see src/seed.rs.
 seed:
