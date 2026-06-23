@@ -13,8 +13,8 @@ asset for the detail:
 - Machine-readable companion (the same vocabulary as JSON, for non-Claude LLM
   tooling): [`interface/src/theme/radix.catalog.json`](../interface/src/theme/radix.catalog.json).
 - Day-to-day component how-to: [components.md](components.md).
-- Resource recipe (data → API → UI): [add-a-resource.md](add-a-resource.md) and
-  the [`add-resource`](../.claude/skills/add-resource/SKILL.md) skill.
+- Resource recipe (data → API → UI): [authoring-a-plugin.md](authoring-a-plugin.md) and
+  the [`add-plugin`](../.claude/skills/add-plugin/SKILL.md) skill.
 - How it got here (historical migration): [radix-integration-plan.md](archive/radix-integration-plan.md).
 
 ## The lifecycle at a glance
@@ -79,7 +79,7 @@ prompt decomposes along three axes; map each noun/phrase to a unit and a skill:
 
 | NL signal in the prompt | Unit | Skill |
 | --- | --- | --- |
-| domain nouns ("projects", "tasks", "invoices") | a REST resource, wired end to end | [`add-resource`](../.claude/skills/add-resource/SKILL.md) |
+| domain nouns ("projects", "tasks", "invoices") | a REST resource, wired end to end | [`add-plugin`](../.claude/skills/add-plugin/SKILL.md) |
 | "add a field / index / status column" to an existing table | a migration | [`add-migration`](../.claude/skills/add-migration/SKILL.md) |
 | screens, lists, forms, dialogs, filters | pages + sections + hooks | [`add-component`](../.claude/skills/add-component/SKILL.md) |
 | look and feel ("teal", "denser", "rounded", brand hex) | a theme config edit | [`configure-theme`](../.claude/skills/configure-theme/SKILL.md) |
@@ -89,8 +89,8 @@ and its exit gate. Order data before UI (a page needs its resource's generated
 types). Put the theme edit first or last — it is independent. Example shape:
 
 ```text
-1. resource: projects        → add-resource    (just verify + check-typegen)
-2. resource: tasks           → add-resource    (just verify + check-typegen)
+1. resource: projects        → add-plugin    (just verify + check-typegen)
+2. resource: tasks           → add-plugin    (just verify + check-typegen)
 3. theme: teal, denser       → configure-theme (lint + build)
 4. screen: tasks board       → add-component   (validate-component.sh)
 5. a11y sweep                → just a11y
@@ -107,7 +107,7 @@ the right one and links the detail:
 
 | Unit | Skill | What it owns |
 | --- | --- | --- |
-| New data resource, end to end | [`add-resource`](../.claude/skills/add-resource/SKILL.md) | migration → API → typegen → page + route (and the OpenAPI-registration footgun) |
+| New data resource, end to end | [`add-plugin`](../.claude/skills/add-plugin/SKILL.md) | migration → API → typegen → page + route (and the OpenAPI-registration footgun) |
 | Schema change to an existing table | [`add-migration`](../.claude/skills/add-migration/SKILL.md) | append-only migration (never edit a committed one) |
 | UI primitive / section / data hook | [`add-component`](../.claude/skills/add-component/SKILL.md) | Themes-first components, props not classes, gap composition |
 | Global restyle / brand color | [`configure-theme`](../.claude/skills/configure-theme/SKILL.md) | one `theme.config.ts` edit, or `accent.css` for a brand hex |
@@ -147,7 +147,7 @@ How an agent routes it through the lifecycle:
    "denser" is `scaling="90%"`. No approval gate triggered.
 3. **Plan.** Checklist: resource `projects` → resource `tasks` → theme edit
    (`accentColor: "teal"`, `scaling: "90%"`) → tasks board screen → a11y sweep.
-4. **Integrate.** `add-resource` twice (data + generated types first), then
+4. **Integrate.** `add-plugin` twice (data + generated types first), then
    `configure-theme` for the two-prop edit, then `add-component` for the board
    page composed from Themes primitives + the typed hooks.
 5. **Build.** `just verify` after each resource; `just a11y` after the screen
@@ -167,7 +167,7 @@ means this table is complete and each row is reachable from the others:
 | [`radix.catalog.json`](../interface/src/theme/radix.catalog.json) | the same vocabulary, parseable | JSON |
 | [components.md](components.md) | day-to-day component how-to | prose |
 | this doc | the build lifecycle / routing | prose |
-| [`add-resource`](../.claude/skills/add-resource/SKILL.md) / [`add-migration`](../.claude/skills/add-migration/SKILL.md) / [`add-component`](../.claude/skills/add-component/SKILL.md) / [`configure-theme`](../.claude/skills/configure-theme/SKILL.md) | the step-by-step procedures | skills |
+| [`add-plugin`](../.claude/skills/add-plugin/SKILL.md) / [`add-migration`](../.claude/skills/add-migration/SKILL.md) / [`add-component`](../.claude/skills/add-component/SKILL.md) / [`configure-theme`](../.claude/skills/configure-theme/SKILL.md) | the step-by-step procedures | skills |
 | `interface/src/theme/theme.config.ts` | the global theme config surface | code |
 | `interface/src/theme/icons.ts` | the closed icon allow-list | code |
 | `interface/src/theme/accent.css` | the custom-brand escape hatch | code (templated-empty) |
@@ -182,7 +182,7 @@ build-specific shapes are:
 
 - **`/loop`** (self-paced, one unit per iteration): `/loop add the next unbuilt
   resource from spec.md, then run just verify` — scaffold, gate, repeat until the
-  spec is wired. Swap `add-resource` for `add-component` to loop over screens, or
+  spec is wired. Swap `add-plugin` for `add-component` to loop over screens, or
   `just a11y` to iterate to zero axe violations.
 - **`/workflows`** (opt-in, deterministic fan-out): pipeline each resource through
   scaffold → verify (use `isolation: "worktree"` if parallel scaffolds would
