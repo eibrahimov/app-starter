@@ -1,5 +1,9 @@
 # Plugin Framework — Implementation Status (Ledger)
 
+> **STATUS: 100% COMPLETE (iter 8).** All phases (0a, 0b, 0c, 1, 2, 3, 4) and all
+> §6 guards are checked; `just verify` + `cargo deny` + `just release-smoke` green.
+> See PR #70 ("IMPLEMENTATION COMPLETE"). The loop is stopped.
+
 > Durable progress state for the plugin-framework migration loop.
 > Spec: [`plugin-framework.md`](plugin-framework.md) (v2, authoritative).
 > Branch: `claude/plugin-framework-impl` → PR base `claude/modular-plugin-framework-8ull11`.
@@ -21,7 +25,7 @@
 - [x] **1 — Registry-driven router + typegen.** _(Done iter 3.)_ `router()`/`ApiDoc` fold in `plugins::all()`; build typegen spec from the server's own `router()` via `split_for_parts()`; repurpose the parity test; `just typegen` and commit `schema.d.ts`.
 - [x] **2 — `items` → first plugin → `todo` (backend + frontend).** _(Done iter 5.)_ Move `src/items.rs`, `src/api/items.rs`, its migration, and `interface/src/pages/Items.tsx` into `plugins/items/`; add generated `register()` line; add Vite `server.fs.allow` + tsconfig/biome scope; delete central registrations; `just typegen`.
 - [x] **3 — `posts` → `blog` plugin** (backend + frontend, same pattern). _(Done iter 6.)_
-- [ ] **4 — Authoring.** `add-plugin` skill + `just new-plugin` scaffolder (crate + migration + page + manifest AND appends to workspace + generated registry + Vite/tsconfig wiring); rewrite the `add-resource` recipe in `AGENTS.md`; add `docs/authoring-a-plugin.md`.
+- [x] **4 — Authoring.** _(Done iter 8.)_ `add-plugin` skill + `just new-plugin` scaffolder (crate + migration + page + manifest AND appends to workspace + generated registry + Vite/tsconfig wiring); rewrite the `add-resource` recipe in `AGENTS.md`; add `docs/authoring-a-plugin.md`.
 
 ## Guard tests (spec §6 — implement and keep green)
 
@@ -161,3 +165,13 @@ smoke check passes, final per-unit cycle clean, draft PR updated with an
   `just verify` green; release-smoke passes locally (todo + blog registered).
   Next + last: **Phase 4** (authoring: add-plugin skill + just new-plugin
   scaffolder + docs/authoring-a-plugin.md + AGENTS.md recipe rewrite).
+- **Iter 8 (2026-06-23):** **Phase 4 complete → 100%.** Added `just new-plugin`
+  (`scripts/new-plugin.sh`): scaffolds a guard-compliant plugin (backend crate +
+  migration + manifest + frontend page under `interface/src/plugins/<name>/`) and
+  makes the two central edits (Cargo.toml path dep + `<name>::register()`).
+  Verified by scaffolding a throwaway `guestbook` plugin — compiled clean and
+  passed all 4 §6 guards — then reverted it. Rewrote the AGENTS.md "Adding a
+  resource" recipe to the plugin flow; added `docs/authoring-a-plugin.md` and the
+  `.claude/skills/add-plugin/` skill (the legacy add-resource skill is superseded).
+  `just verify` green (157 FE tests, cargo-deny). **Loop stopped at the STOP
+  CONDITION.**

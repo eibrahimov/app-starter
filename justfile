@@ -92,6 +92,12 @@ docker-build:
 release-smoke:
     bash scripts/release-smoke.sh
 
+# Scaffold a new plugin end to end (crate + migration + frontend page + manifest,
+# and wire it into Cargo.toml + the generated registry). See docs/authoring-a-plugin.md.
+# Usage: just new-plugin <name>   (lowercase, e.g. guestbook). Then run `just typegen`.
+new-plugin name:
+    bash scripts/new-plugin.sh {{name}}
+
 # Tauri desktop app (needs platform prerequisites: https://tauri.app/start/prerequisites/)
 desktop-dev:
     cd desktop && bun install && bun run dev
