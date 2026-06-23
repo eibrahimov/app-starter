@@ -172,9 +172,9 @@ async fn seed_todos(pool: &SqlitePool) -> anyhow::Result<u64> {
     // (title, done)
     let fixtures = [
         ("Read AGENTS.md for the project conventions", true),
-        ("Explore the todo and posts worked examples", true),
+        ("Explore the todo and blog worked examples", true),
         ("Add your first plugin with the add-plugin skill", false),
-        ("Replace todo and posts with your own domain", false),
+        ("Replace todo and blog with your own domain", false),
     ];
 
     let mut inserted = 0;

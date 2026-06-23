@@ -31,9 +31,9 @@ const REQUEST_TIMEOUT: Duration = Duration::from_secs(30);
 pub struct ApiDoc;
 
 /// The application API as an `OpenApiRouter`: every route registered here also
-/// contributes its OpenAPI path + schemas. Core resources (items, posts, the
-/// health probe) are registered directly; every registered plugin folds in via
-/// `plugins::all()` under its own `/api/v1/<name>` prefix (empty until Phase 2).
+/// contributes its OpenAPI path + schemas. The health probe is the only core
+/// route registered directly; every registered plugin folds in via
+/// `plugins::all()` under its own `/api/v1/<name>` prefix.
 ///
 /// Shared HTTP layers and the SPA fallback are deliberately NOT added here -- they
 /// are attached once in [`router`] after `split_for_parts()`, so plugins

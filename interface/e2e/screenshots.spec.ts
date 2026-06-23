@@ -13,7 +13,7 @@ const HEALTH = { database: "ok", status: "ok", version: "0.3.0" };
 const TODOS = [
   {
     id: "44444444-4444-4444-4444-444444444444",
-    title: "Replace todo and posts with your own domain",
+    title: "Replace todo and blog with your own domain",
     done: false,
     created_at: "2026-01-05T10:00:00Z",
   },
@@ -25,7 +25,7 @@ const TODOS = [
   },
   {
     id: "22222222-2222-2222-2222-222222222222",
-    title: "Explore the todo and posts worked examples",
+    title: "Explore the todo and blog worked examples",
     done: true,
     created_at: "2026-01-03T10:00:00Z",
   },
@@ -135,7 +135,7 @@ test("todo screenshot (populated rows)", async ({ page }) => {
     page.getByText("Read AGENTS.md for the project conventions"),
   ).toBeVisible();
   await expect(
-    page.getByText("Replace todo and posts with your own domain"),
+    page.getByText("Replace todo and blog with your own domain"),
   ).toBeVisible();
   await page.screenshot({ path: "../docs/assets/todo.png" });
 });
