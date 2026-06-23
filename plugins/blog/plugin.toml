@@ -1,0 +1,9 @@
+[plugin]
+name = "blog"                          # namespace key: route/schema/table prefixes derive from it
+version = "0.1.0"
+description = "A blog-posts resource with a draft -> published -> archived lifecycle"
+author = "app-starter"
+host_api = "^1"                        # semver range against PLUGIN_API_VERSION, checked at startup
+# The frontend lives under interface/src/plugins/blog/ (so it resolves the shared
+# UI deps + typed client); path is repo-relative. The backend crate is here.
+frontend = "interface/src/plugins/blog/plugin.tsx"

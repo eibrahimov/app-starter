@@ -19,16 +19,12 @@ import { ErrorFallback } from "./components/app/ErrorFallback";
 import { reportBoundaryError } from "./components/app/reportBoundaryError";
 import { ThemeToggle } from "./components/theme/ThemeToggle";
 import { HomePage } from "./pages/Home";
-import { PostsPage } from "./pages/Posts";
 import { pluginRoutes } from "./plugins/registry";
 
 // Core nav entries: Home plus the still-core resources. Plugin routes (e.g.
 // /todo) are appended from the discovered registry below, so adding a plugin
 // never edits this file.
-const CORE_NAV = [
-  { to: "/", label: "Home" },
-  { to: "/posts", label: "Posts" },
-] as const;
+const CORE_NAV = [{ to: "/", label: "Home" }] as const;
 
 // TanStack Router adds an `.active` class to the <Link> for the current route.
 // We render each nav item as a Themes `Link` via `asChild` so it inherits the
@@ -114,12 +110,6 @@ const indexRoute = createRoute({
   component: HomePage,
 });
 
-const postsRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: "/posts",
-  component: PostsPage,
-});
-
 // Wrap a plugin's lazy component loader in React.lazy so the page ships in its
 // own chunk and only loads when its route is visited.
 function lazyPluginPage(load: () => Promise<ComponentType>) {
@@ -145,11 +135,7 @@ const pluginRouteObjects = pluginRoutes.map((route) =>
 );
 
 export const router = createRouter({
-  routeTree: rootRoute.addChildren([
-    indexRoute,
-    postsRoute,
-    ...pluginRouteObjects,
-  ]),
+  routeTree: rootRoute.addChildren([indexRoute, ...pluginRouteObjects]),
 });
 
 declare module "@tanstack/react-router" {

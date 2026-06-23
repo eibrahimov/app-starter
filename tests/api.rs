@@ -217,7 +217,7 @@ async fn probe(app: &Router, method: &str, path: &str) -> (StatusCode, bool) {
 /// Replaces every `{param}` path segment with a dummy value so a parameterized
 /// route can be probed (`/api/v1/todo/{id}` -> `/api/v1/todo/__parity_probe__`).
 /// The sentinel is deliberately improbable so it cannot collide with a real static
-/// route (e.g. `/api/v1/posts/stats`) and mask a missing parameterized route.
+/// route (e.g. `/api/v1/blog/stats`) and mask a missing parameterized route.
 fn concrete_path(path: &str) -> String {
     path.split('/')
         .map(|segment| {
@@ -345,7 +345,7 @@ async fn posts_lifecycle_roundtrip() {
     let response = app
         .clone()
         .oneshot(
-            Request::post("/api/v1/posts")
+            Request::post("/api/v1/blog")
                 .header(header::CONTENT_TYPE, "application/json")
                 .body(Body::from(r#"{"title":"hello world","body":"first post"}"#))
                 .unwrap(),
@@ -362,7 +362,7 @@ async fn posts_lifecycle_roundtrip() {
     let response = app
         .clone()
         .oneshot(
-            Request::get("/api/v1/posts/stats")
+            Request::get("/api/v1/blog/stats")
                 .body(Body::empty())
                 .unwrap(),
         )
@@ -377,7 +377,7 @@ async fn posts_lifecycle_roundtrip() {
     let response = app
         .clone()
         .oneshot(
-            Request::get(format!("/api/v1/posts/{id}"))
+            Request::get(format!("/api/v1/blog/{id}"))
                 .body(Body::empty())
                 .unwrap(),
         )
@@ -389,7 +389,7 @@ async fn posts_lifecycle_roundtrip() {
     let response = app
         .clone()
         .oneshot(
-            Request::post(format!("/api/v1/posts/{id}/publish"))
+            Request::post(format!("/api/v1/blog/{id}/publish"))
                 .body(Body::empty())
                 .unwrap(),
         )
@@ -404,7 +404,7 @@ async fn posts_lifecycle_roundtrip() {
     let response = app
         .clone()
         .oneshot(
-            Request::post(format!("/api/v1/posts/{id}/publish"))
+            Request::post(format!("/api/v1/blog/{id}/publish"))
                 .body(Body::empty())
                 .unwrap(),
         )
@@ -416,7 +416,7 @@ async fn posts_lifecycle_roundtrip() {
     let response = app
         .clone()
         .oneshot(
-            Request::get("/api/v1/posts?status=published")
+            Request::get("/api/v1/blog?status=published")
                 .body(Body::empty())
                 .unwrap(),
         )
@@ -427,7 +427,7 @@ async fn posts_lifecycle_roundtrip() {
     let response = app
         .clone()
         .oneshot(
-            Request::get("/api/v1/posts?status=draft")
+            Request::get("/api/v1/blog?status=draft")
                 .body(Body::empty())
                 .unwrap(),
         )
@@ -440,7 +440,7 @@ async fn posts_lifecycle_roundtrip() {
     let response = app
         .clone()
         .oneshot(
-            Request::post(format!("/api/v1/posts/{id}/archive"))
+            Request::post(format!("/api/v1/blog/{id}/archive"))
                 .body(Body::empty())
                 .unwrap(),
         )
@@ -459,7 +459,7 @@ async fn post_invalid_input_rejected() {
     let response = app
         .clone()
         .oneshot(
-            Request::post("/api/v1/posts")
+            Request::post("/api/v1/blog")
                 .header(header::CONTENT_TYPE, "application/json")
                 .body(Body::from(r#"{"title":"   "}"#))
                 .unwrap(),
@@ -471,7 +471,7 @@ async fn post_invalid_input_rejected() {
     // Unknown status filter is a 400
     let response = app
         .oneshot(
-            Request::get("/api/v1/posts?status=bogus")
+            Request::get("/api/v1/blog?status=bogus")
                 .body(Body::empty())
                 .unwrap(),
         )
@@ -485,7 +485,7 @@ async fn post_unknown_id_is_404() {
     let app = test_app().await;
     let response = app
         .oneshot(
-            Request::post("/api/v1/posts/does-not-exist/publish")
+            Request::post("/api/v1/blog/does-not-exist/publish")
                 .body(Body::empty())
                 .unwrap(),
         )
@@ -577,20 +577,28 @@ async fn health_returns_503_when_database_is_down() {
 /// request an unbounded page or a negative offset (src/api/posts.rs).
 #[tokio::test]
 async fn list_posts_clamps_pagination() {
-    let (app, pool) = test_app_with_pool().await;
+    let app = test_app().await;
 
-    // Seed 101 posts directly through the pool (faster than 101 HTTP calls).
+    // Seed 101 posts through the API (the posts domain now lives in the blog plugin).
     for i in 0..101 {
-        app_starter::posts::create(&pool, format!("post {i}"), String::new())
+        let response = app
+            .clone()
+            .oneshot(
+                Request::post("/api/v1/blog")
+                    .header(header::CONTENT_TYPE, "application/json")
+                    .body(Body::from(format!(r#"{{"title":"post {i}"}}"#)))
+                    .unwrap(),
+            )
             .await
-            .expect("seed post");
+            .unwrap();
+        assert_eq!(response.status(), StatusCode::CREATED);
     }
 
     // A limit far above the cap returns at most 100.
     let response = app
         .clone()
         .oneshot(
-            Request::get("/api/v1/posts?limit=100000")
+            Request::get("/api/v1/blog?limit=100000")
                 .body(Body::empty())
                 .unwrap(),
         )
@@ -603,7 +611,7 @@ async fn list_posts_clamps_pagination() {
     // A negative offset is clamped to 0 rather than erroring.
     let response = app
         .oneshot(
-            Request::get("/api/v1/posts?offset=-5&limit=10")
+            Request::get("/api/v1/blog?offset=-5&limit=10")
                 .body(Body::empty())
                 .unwrap(),
         )
@@ -623,7 +631,7 @@ async fn archiving_a_draft_is_rejected() {
     let response = app
         .clone()
         .oneshot(
-            Request::post("/api/v1/posts")
+            Request::post("/api/v1/blog")
                 .header(header::CONTENT_TYPE, "application/json")
                 .body(Body::from(r#"{"title":"draft post"}"#))
                 .unwrap(),
@@ -635,7 +643,7 @@ async fn archiving_a_draft_is_rejected() {
 
     let response = app
         .oneshot(
-            Request::post(format!("/api/v1/posts/{id}/archive"))
+            Request::post(format!("/api/v1/blog/{id}/archive"))
                 .body(Body::empty())
                 .unwrap(),
         )
@@ -651,7 +659,7 @@ async fn get_unknown_post_is_404() {
     let app = test_app().await;
     let response = app
         .oneshot(
-            Request::get("/api/v1/posts/does-not-exist")
+            Request::get("/api/v1/blog/does-not-exist")
                 .body(Body::empty())
                 .unwrap(),
         )
@@ -671,20 +679,21 @@ async fn get_unknown_post_is_404() {
 async fn out_of_vocabulary_status_is_rejected_by_the_check_constraint() {
     let (_app, pool) = test_app_with_pool().await;
 
-    let rejected =
-        sqlx::query("INSERT INTO posts (id, title, status, created_at) VALUES (?1, ?2, ?3, ?4)")
-            .bind("bad-row")
-            .bind("nope")
-            .bind("scheduled")
-            .bind("2026-06-21T00:00:00Z")
-            .execute(&pool)
-            .await;
+    let rejected = sqlx::query(
+        "INSERT INTO blog_posts(id, title, status, created_at) VALUES (?1, ?2, ?3, ?4)",
+    )
+    .bind("bad-row")
+    .bind("nope")
+    .bind("scheduled")
+    .bind("2026-06-21T00:00:00Z")
+    .execute(&pool)
+    .await;
     assert!(
         rejected.is_err(),
         "CHECK (status IN (...)) must reject an out-of-vocabulary status, got {rejected:?}"
     );
 
-    sqlx::query("INSERT INTO posts (id, title, status, created_at) VALUES (?1, ?2, ?3, ?4)")
+    sqlx::query("INSERT INTO blog_posts(id, title, status, created_at) VALUES (?1, ?2, ?3, ?4)")
         .bind("good-row")
         .bind("ok")
         .bind("draft")
@@ -719,14 +728,16 @@ async fn out_of_vocabulary_legacy_row_fails_loudly_on_every_read_path() {
             .execute(&mut *conn)
             .await
             .expect("disable check enforcement");
-        sqlx::query("INSERT INTO posts (id, title, status, created_at) VALUES (?1, ?2, ?3, ?4)")
-            .bind("legacy-row")
-            .bind("legacy")
-            .bind("scheduled")
-            .bind("2026-06-21T00:00:00Z")
-            .execute(&mut *conn)
-            .await
-            .expect("seed an out-of-vocabulary status row");
+        sqlx::query(
+            "INSERT INTO blog_posts(id, title, status, created_at) VALUES (?1, ?2, ?3, ?4)",
+        )
+        .bind("legacy-row")
+        .bind("legacy")
+        .bind("scheduled")
+        .bind("2026-06-21T00:00:00Z")
+        .execute(&mut *conn)
+        .await
+        .expect("seed an out-of-vocabulary status row");
         sqlx::query("PRAGMA ignore_check_constraints = OFF")
             .execute(&mut *conn)
             .await
@@ -735,7 +746,7 @@ async fn out_of_vocabulary_legacy_row_fails_loudly_on_every_read_path() {
 
     // Both the aggregate and the unfiltered list decode the poisoned row, so each
     // fails loud (AppError::Sqlx -> 500) instead of returning 200 with it dropped.
-    for path in ["/api/v1/posts/stats", "/api/v1/posts"] {
+    for path in ["/api/v1/blog/stats", "/api/v1/blog"] {
         let response = app
             .clone()
             .oneshot(Request::get(path).body(Body::empty()).unwrap())

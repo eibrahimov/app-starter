@@ -57,12 +57,12 @@ describe("useApiQuery", () => {
     getMock.mockResolvedValue({ data: [], error: undefined });
 
     const init = { params: { query: { status: "draft" } } } as const;
-    const { result } = renderHook(() => useApiQuery("/api/v1/posts", init), {
+    const { result } = renderHook(() => useApiQuery("/api/v1/blog", init), {
       wrapper: withClient(),
     });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
-    expect(getMock).toHaveBeenCalledWith("/api/v1/posts", init);
+    expect(getMock).toHaveBeenCalledWith("/api/v1/blog", init);
   });
 
   it("respects an explicit queryKey", async () => {

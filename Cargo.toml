@@ -32,6 +32,7 @@ utoipa = { version = "5", features = ["axum_extras", "chrono"] }
 utoipa-axum = "0.2"
 app-starter-plugin-api = { path = "plugin-api" }
 todo = { path = "plugins/todo" }
+blog = { path = "plugins/blog" }
 anyhow = "1"
 thiserror = "2"
 tracing = "0.1"

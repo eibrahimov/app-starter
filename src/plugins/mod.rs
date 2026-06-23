@@ -12,6 +12,7 @@ use crate::Plugin;
 pub fn all() -> Vec<Box<dyn Plugin>> {
     vec![
         todo::register(),
+        blog::register(),
         // <scaffolder inserts register() calls here>
     ]
 }

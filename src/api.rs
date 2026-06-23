@@ -1,5 +1,4 @@
 pub mod health;
-pub mod posts;
 
 use crate::AppState;
 use axum::Json;
@@ -42,16 +41,9 @@ pub struct ApiDoc;
 fn api_router() -> OpenApiRouter<AppState> {
     let mut router = OpenApiRouter::with_openapi(ApiDoc::openapi())
         // Operational health probe stays unversioned (stable across API versions).
-        .routes(routes!(health::health))
-        // Versioned application API. Within a major version, only ADD fields or
-        // endpoints -- never remove or repurpose them; the generated TypeScript
-        // client and downstream consumers are pinned to it. A breaking change
-        // graduates to /api/v2 alongside /api/v1.
-        .routes(routes!(posts::list_posts, posts::create_post))
-        .routes(routes!(posts::post_stats))
-        .routes(routes!(posts::get_post))
-        .routes(routes!(posts::publish_post))
-        .routes(routes!(posts::archive_post));
+        // Core registers only the operational health probe; every versioned
+        // application resource (/api/v1/*) is contributed by a registered plugin.
+        .routes(routes!(health::health));
 
     for plugin in crate::plugins::all() {
         router = router.merge(plugin.api());

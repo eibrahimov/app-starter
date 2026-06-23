@@ -26,7 +26,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/posts": {
+    "/api/v1/blog": {
         parameters: {
             query?: never;
             header?: never;
@@ -42,7 +42,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/posts/stats": {
+    "/api/v1/blog/stats": {
         parameters: {
             query?: never;
             header?: never;
@@ -58,7 +58,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/posts/{id}": {
+    "/api/v1/blog/{id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -74,7 +74,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/posts/{id}/archive": {
+    "/api/v1/blog/{id}/archive": {
         parameters: {
             query?: never;
             header?: never;
@@ -90,7 +90,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/posts/{id}/publish": {
+    "/api/v1/blog/{id}/publish": {
         parameters: {
             query?: never;
             header?: never;
@@ -192,15 +192,9 @@ export interface components {
             published: number;
         };
         /**
-         * @description Lifecycle state of a post.
-         *
-         *     One closed vocabulary, expressed once: the same lowercase strings are the
-         *     stored TEXT value (`sqlx::Type`), the on-the-wire JSON (`serde`), and the
-         *     OpenAPI/TypeScript enum (`utoipa::ToSchema`). Typing `Post.status` as this
-         *     enum narrows the generated `status` from an open `string` to the closed
-         *     union `"draft" | "published" | "archived"`. Because the wire values are
-         *     unchanged, this is an additive contract refinement that stays compatible
-         *     within `/api/v1`.
+         * @description Lifecycle state of a post. One closed vocabulary expressed once: the same
+         *     lowercase strings are the stored TEXT (`sqlx::Type`), the wire JSON (`serde`),
+         *     and the OpenAPI/TypeScript enum (`utoipa::ToSchema`).
          * @enum {string}
          */
         PostStatus: "draft" | "published" | "archived";
