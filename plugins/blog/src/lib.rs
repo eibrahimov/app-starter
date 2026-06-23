@@ -151,30 +151,58 @@ async fn create(pool: &SqlitePool, title: String, body: String) -> Result<Post, 
     Ok(post)
 }
 
+/// Move a post from `from` to `to`, but only if it is currently `from` -- the
+/// `status = ?` guard makes the check-and-set atomic. Pass `published_at` to
+/// stamp the publish time on the draft -> published move; other moves leave it.
+/// Returns true when a row changed, false when the id is missing or already in
+/// a different state.
+async fn transition(
+    pool: &SqlitePool,
+    id: &str,
+    from: PostStatus,
+    to: PostStatus,
+    published_at: Option<DateTime<Utc>>,
+) -> Result<bool, sqlx::Error> {
+    let result = match published_at {
+        Some(at) => {
+            sqlx::query(
+                "UPDATE blog_posts SET status = ?2, published_at = ?3 \
+                 WHERE id = ?1 AND status = ?4",
+            )
+            .bind(id)
+            .bind(to.as_str())
+            .bind(at)
+            .bind(from.as_str())
+            .execute(pool)
+            .await?
+        }
+        None => {
+            sqlx::query("UPDATE blog_posts SET status = ?2 WHERE id = ?1 AND status = ?3")
+                .bind(id)
+                .bind(to.as_str())
+                .bind(from.as_str())
+                .execute(pool)
+                .await?
+        }
+    };
+    Ok(result.rows_affected() > 0)
+}
+
 /// Returns true when the post moved draft -> published.
 async fn publish(pool: &SqlitePool, id: &str) -> Result<bool, sqlx::Error> {
-    let result = sqlx::query(
-        "UPDATE blog_posts SET status = ?2, published_at = ?3 \
-         WHERE id = ?1 AND status = ?4",
+    transition(
+        pool,
+        id,
+        PostStatus::Draft,
+        PostStatus::Published,
+        Some(Utc::now()),
     )
-    .bind(id)
-    .bind(PostStatus::Published.as_str())
-    .bind(Utc::now())
-    .bind(PostStatus::Draft.as_str())
-    .execute(pool)
-    .await?;
-    Ok(result.rows_affected() > 0)
+    .await
 }
 
 /// Returns true when the post moved published -> archived.
 async fn archive(pool: &SqlitePool, id: &str) -> Result<bool, sqlx::Error> {
-    let result = sqlx::query("UPDATE blog_posts SET status = ?2 WHERE id = ?1 AND status = ?3")
-        .bind(id)
-        .bind(PostStatus::Archived.as_str())
-        .bind(PostStatus::Published.as_str())
-        .execute(pool)
-        .await?;
-    Ok(result.rows_affected() > 0)
+    transition(pool, id, PostStatus::Published, PostStatus::Archived, None).await
 }
 
 async fn stats(pool: &SqlitePool) -> Result<PostStats, sqlx::Error> {
