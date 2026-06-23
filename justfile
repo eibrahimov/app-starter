@@ -86,6 +86,12 @@ build:
 docker-build:
     docker build -t app-starter .
 
+# Release-profile plugin-registration smoke check (docs/plugin-framework.md §6):
+# builds the lto+strip release binary, boots it, and asserts every expected plugin
+# is served at /api/v1/<name> in /api/openapi.json. Catches release-only registry loss.
+release-smoke:
+    bash scripts/release-smoke.sh
+
 # Tauri desktop app (needs platform prerequisites: https://tauri.app/start/prerequisites/)
 desktop-dev:
     cd desktop && bun install && bun run dev

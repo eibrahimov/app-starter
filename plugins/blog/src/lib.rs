@@ -24,6 +24,7 @@ use uuid::Uuid;
 /// lowercase strings are the stored TEXT (`sqlx::Type`), the wire JSON (`serde`),
 /// and the OpenAPI/TypeScript enum (`utoipa::ToSchema`).
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, ToSchema, sqlx::Type)]
+#[schema(as = blog_PostStatus)]
 #[serde(rename_all = "lowercase")]
 #[sqlx(rename_all = "lowercase")]
 pub enum PostStatus {
@@ -54,6 +55,7 @@ impl PostStatus {
 }
 
 #[derive(Debug, Serialize, sqlx::FromRow, ToSchema)]
+#[schema(as = blog_Post)]
 pub struct Post {
     pub id: String,
     pub title: String,
@@ -64,6 +66,7 @@ pub struct Post {
 }
 
 #[derive(Debug, Deserialize, ToSchema)]
+#[schema(as = blog_CreatePost)]
 pub struct CreatePost {
     pub title: String,
     #[serde(default)]
@@ -72,6 +75,7 @@ pub struct CreatePost {
 
 /// Per-status counts for the stats endpoint.
 #[derive(Debug, Default, Serialize, ToSchema)]
+#[schema(as = blog_PostStats)]
 pub struct PostStats {
     pub draft: i64,
     pub published: i64,

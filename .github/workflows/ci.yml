@@ -127,6 +127,23 @@ jobs:
 
       - uses: EmbarkStudios/cargo-deny-action@v2
 
+  registration:
+    name: Plugin registration (release smoke)
+    runs-on: ubuntu-24.04
+    # The silent-plugin-loss risk is a release lto+strip phenomenon, so this guard
+    # MUST run against a release artifact (docs/plugin-framework.md §6, [M1]).
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: dtolnay/rust-toolchain@1.96.0
+
+      - uses: Swatinem/rust-cache@v2
+
+      - name: Release-profile registration smoke check
+        run: bash scripts/release-smoke.sh
+        env:
+          SKIP_FRONTEND_BUILD: "1"
+
   db:
     name: DB tooling
     runs-on: ubuntu-24.04

@@ -17,7 +17,7 @@ import { useApiQuery } from "../../hooks/useApiQuery";
 // The post lifecycle vocabulary, sourced from the generated contract: the
 // backend `PostStatus` enum surfaces here as the closed union
 // `"draft" | "published" | "archived"` instead of a bare string.
-type PostStatus = components["schemas"]["PostStatus"];
+type PostStatus = components["schemas"]["blog_PostStatus"];
 
 const FILTERS = ["all", "draft", "published", "archived"] as const;
 type Filter = (typeof FILTERS)[number];

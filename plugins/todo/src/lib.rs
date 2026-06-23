@@ -21,6 +21,7 @@ use uuid::Uuid;
 // ---- domain -------------------------------------------------------------
 
 #[derive(Debug, Serialize, sqlx::FromRow, ToSchema)]
+#[schema(as = todo_Todo)]
 pub struct Todo {
     pub id: String,
     pub title: String,
@@ -29,6 +30,7 @@ pub struct Todo {
 }
 
 #[derive(Debug, Deserialize, ToSchema)]
+#[schema(as = todo_CreateTodo)]
 pub struct CreateTodo {
     pub title: String,
 }

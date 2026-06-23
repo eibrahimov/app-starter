@@ -158,13 +158,6 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
-        CreatePost: {
-            body?: string;
-            title: string;
-        };
-        CreateTodo: {
-            title: string;
-        };
         Health: {
             /** @description "ok" when a trivial query against the database succeeds, else "unreachable". */
             database: string;
@@ -172,18 +165,22 @@ export interface components {
             status: string;
             version: string;
         };
-        Post: {
+        blog_CreatePost: {
+            body?: string;
+            title: string;
+        };
+        blog_Post: {
             body: string;
             /** Format: date-time */
             created_at: string;
             id: string;
             /** Format: date-time */
             published_at?: string | null;
-            status: components["schemas"]["PostStatus"];
+            status: components["schemas"]["blog_PostStatus"];
             title: string;
         };
         /** @description Per-status counts for the stats endpoint. */
-        PostStats: {
+        blog_PostStats: {
             /** Format: int64 */
             archived: number;
             /** Format: int64 */
@@ -197,8 +194,11 @@ export interface components {
          *     and the OpenAPI/TypeScript enum (`utoipa::ToSchema`).
          * @enum {string}
          */
-        PostStatus: "draft" | "published" | "archived";
-        Todo: {
+        blog_PostStatus: "draft" | "published" | "archived";
+        todo_CreateTodo: {
+            title: string;
+        };
+        todo_Todo: {
             /** Format: date-time */
             created_at: string;
             done: boolean;
@@ -265,7 +265,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Post"][];
+                    "application/json": components["schemas"]["blog_Post"][];
                 };
             };
             /** @description Unknown status value */
@@ -286,7 +286,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["CreatePost"];
+                "application/json": components["schemas"]["blog_CreatePost"];
             };
         };
         responses: {
@@ -296,7 +296,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Post"];
+                    "application/json": components["schemas"]["blog_Post"];
                 };
             };
             /** @description Empty title */
@@ -323,7 +323,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PostStats"];
+                    "application/json": components["schemas"]["blog_PostStats"];
                 };
             };
         };
@@ -346,7 +346,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Post"];
+                    "application/json": components["schemas"]["blog_Post"];
                 };
             };
             /** @description Unknown id */
@@ -376,7 +376,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Post"];
+                    "application/json": components["schemas"]["blog_Post"];
                 };
             };
             /** @description Post is not published */
@@ -413,7 +413,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Post"];
+                    "application/json": components["schemas"]["blog_Post"];
                 };
             };
             /** @description Post is not a draft */
@@ -447,7 +447,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Todo"][];
+                    "application/json": components["schemas"]["todo_Todo"][];
                 };
             };
         };
@@ -461,7 +461,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["CreateTodo"];
+                "application/json": components["schemas"]["todo_CreateTodo"];
             };
         };
         responses: {
@@ -471,7 +471,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Todo"];
+                    "application/json": components["schemas"]["todo_Todo"];
                 };
             };
             /** @description Empty title */
@@ -529,7 +529,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Todo"];
+                    "application/json": components["schemas"]["todo_Todo"];
                 };
             };
             /** @description Unknown id */
