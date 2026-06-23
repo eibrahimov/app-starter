@@ -65,12 +65,16 @@ uuid = { version = "1", features = ["v4"] }
 EOF
 
 cat > "${PLUGDIR}/plugin.toml" <<EOF
+# Informational manifest. The runtime contract is the Rust \`impl Plugin\` in
+# src/lib.rs (name/host_api/api/migrator); this file is NOT parsed at runtime, so
+# keep its \`name\`/\`host_api\` in sync with the impl (the impl's values are what
+# the host actually enforces).
 [plugin]
 name = "${NAME}"                        # namespace key: route/schema/table prefixes derive from it
 version = "0.1.0"
 description = "TODO: describe the ${NAME} plugin"
 author = "TODO"
-host_api = "^1"                         # semver range against PLUGIN_API_VERSION, checked at startup
+host_api = "^1"                         # semver range; host checks the impl's host_api() at startup
 frontend = "interface/src/plugins/${NAME}/plugin.tsx"
 EOF
 

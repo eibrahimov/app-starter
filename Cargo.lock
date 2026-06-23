@@ -96,6 +96,7 @@ dependencies = [
  "http-body-util",
  "mime_guess",
  "rust-embed",
+ "semver",
  "serde",
  "serde_json",
  "sqlx",

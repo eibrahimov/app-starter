@@ -87,6 +87,22 @@ async fn plugin_tables_are_prefixed_and_unique() {
     }
 }
 
+/// Every plugin name is a safe identifier (`^[a-z][a-z0-9_]*$`). The name derives
+/// the route prefix, the OpenAPI component prefix, and the migration tracking-table
+/// name, so a malformed name would break the router or produce an invalid SQL
+/// identifier. The host also enforces this at startup (`db::validate_registry`);
+/// this is the §6 guard counterpart.
+#[test]
+fn plugin_names_are_valid_identifiers() {
+    for plugin in app_starter::plugins::all() {
+        let name = plugin.name();
+        assert!(
+            app_starter::db::is_valid_plugin_name(name),
+            "plugin name '{name}' must match ^[a-z][a-z0-9_]*$"
+        );
+    }
+}
+
 /// The expected plugins are actually registered. The silent-registry-loss risk is
 /// a release `lto`+`strip` phenomenon, so CI ALSO runs a release-profile smoke
 /// check on the served `/api/openapi.json` (`just release-smoke`); this debug test

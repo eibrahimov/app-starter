@@ -105,7 +105,8 @@ plugins/
       Guestbook.test.tsx
 ```
 
-`plugin.toml` (manifest, consumed by the scaffolder, `just plugins`, and guards):
+`plugin.toml` (an informational manifest — written by `just new-plugin` but NOT
+parsed at runtime; the Rust `impl Plugin` is the enforced source of truth):
 
 ```toml
 [plugin]
@@ -113,7 +114,7 @@ name = "guestbook"                 # the namespace key — route prefix + schema
 version = "0.1.0"
 description = "A public guestbook resource"
 author = "community@example.com"
-host_api = "^1"                    # [research] semver range against PLUGIN_API_VERSION, checked at startup
+host_api = "^1"                    # informational mirror of the impl's host_api(); the impl is what the host checks
 frontend = "frontend/plugin.tsx"
 ```
 
@@ -128,12 +129,16 @@ overwritten** by naive/`.merge()` composition (the design's own path), so two
 plugins each defining `Item`/`Settings` would corrupt the generated client
 without it. A guard enforces the derivation (§6).
 
-**[research] `host_api` compatibility.** Mature ecosystems pin plugin↔host compat
+**`host_api` compatibility.** Mature ecosystems pin plugin↔host compat
 with one machine-checked declaration that fails loudly (VS Code `engines.vscode`,
 Grafana `grafanaDependency`, go-plugin's protocol version). The core exposes a
-`PLUGIN_API_VERSION` constant; `host_api` is a semver range against it; startup
-refuses an out-of-range plugin with a human-readable error. Introducing that
-constant is itself a small API-surface commitment (see §10).
+`PLUGIN_API_VERSION` constant; each plugin's `host_api()` is a semver range against
+it. At startup, `db::validate_registry` (`src/db.rs`, run from `run_all_migrators`
+before any migration) refuses a plugin whose `host_api` range does not match this
+host's `PLUGIN_API_VERSION`, or is unparseable — and, in the same pass, one whose
+`name` is not a safe `^[a-z][a-z0-9_]*$` identifier — with a human-readable error
+naming the plugin. A unit test plus the §6 `plugin_names_are_valid_identifiers`
+guard keep it honest.
 
 ### Backend contract
 
@@ -148,7 +153,8 @@ pub trait Plugin: Send + Sync + 'static {
     /// Stable identifier; the route/schema/table namespace key.
     fn name(&self) -> &'static str;
 
-    /// Required host-API semver range (from plugin.toml host_api).
+    /// Required host-API semver range, checked against PLUGIN_API_VERSION at
+    /// startup (plugin.toml's host_api is an informational mirror of this).
     fn host_api(&self) -> &'static str;
 
     /// Routes AND their OpenAPI paths/schemas, built together so they can't
@@ -336,6 +342,9 @@ Rules (drawn from Rails engines, Django apps, WordPress):
   `schema.d.ts` can't drift from what's served.
 - **`every_plugin_route_is_under_its_derived_prefix`** — each plugin's routes
   start with `/api/v1/<name>`.
+- **`plugin_names_are_valid_identifiers`** — each plugin `name` matches
+  `^[a-z][a-z0-9_]*$` (it derives the route/schema/table names); the host also
+  enforces this at startup via `db::validate_registry`.
 - **[research] `no_cross_plugin_schema_name_collisions`** — plugin OpenAPI
   component names are prefixed by `name`.
 - **[review M3] `plugin_tables_are_prefixed_and_unique`** — every plugin-created

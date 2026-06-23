@@ -35,6 +35,23 @@
 - [x] `no_cross_plugin_schema_name_collisions` _(iter 7; components prefixed via `#[schema(as = <name>_*)]`)_
 - [x] `plugin_tables_are_prefixed_and_unique` _(iter 7)_
 - [x] `expected_plugins_are_registered` _(iter 7)_ — debug test + a RELEASE (lto+strip) CI smoke check (`scripts/release-smoke.sh` / `just release-smoke`, new `registration` ci.yml job) on `/api/openapi.json`.
+- [x] `plugin_names_are_valid_identifiers` _(PR #70 review)_ — names must match `^[a-z][a-z0-9_]*$`; the host enforces this (and `host_api` compat) at startup.
+
+## Post-review hardening (PR #70)
+
+- [x] **`host_api` compatibility gate implemented.** The §3 contract (each plugin's
+  `host_api()` is a semver range checked against `PLUGIN_API_VERSION`) was documented
+  but never executed — `host_api()` had zero call sites. Added `db::validate_registry`
+  (`src/db.rs`, run from `run_all_migrators` before any migration): it parses
+  `PLUGIN_API_VERSION`, and for every plugin checks the `host_api` range matches AND
+  the `name` is a safe `^[a-z][a-z0-9_]*$` identifier (the name derives the route,
+  schema, and `_sqlx_migrations_<name>` table names). Failure aborts the boot naming
+  the plugin. New dep `semver` (already transitive). Covered by db.rs unit tests
+  (`check_plugin_*`, `accepts/rejects_*_plugin_names`, `registered_plugins_satisfy_the_contract`)
+  and the §6 `plugin_names_are_valid_identifiers` guard.
+- [x] **`plugin.toml` marked informational.** It is not parsed at runtime; added a
+  header to both manifests and the scaffolder template noting the Rust `impl Plugin`
+  is the enforced source of truth.
 
 ## Decisions (locked in-loop)
 

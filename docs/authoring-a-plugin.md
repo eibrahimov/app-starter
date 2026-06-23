@@ -97,6 +97,8 @@ every path is unique and well-formed.
 `just verify` runs, among others, the §6 namespacing guards in `tests/plugins.rs`:
 
 - `every_plugin_route_is_under_its_derived_prefix`
+- `plugin_names_are_valid_identifiers` (each `name` matches `^[a-z][a-z0-9_]*$`,
+  also host-enforced at startup via `db::validate_registry`)
 - `no_cross_plugin_schema_name_collisions` (components prefixed + unique)
 - `plugin_tables_are_prefixed_and_unique`
 - `expected_plugins_are_registered` (plus a **release-profile** CI smoke,

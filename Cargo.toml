@@ -35,6 +35,9 @@ todo = { path = "plugins/todo" }
 blog = { path = "plugins/blog" }
 anyhow = "1"
 thiserror = "2"
+# Machine-checks each plugin's `host_api` range against PLUGIN_API_VERSION at
+# startup (src/db.rs `validate_registry`). Already in the tree transitively.
+semver = "1"
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 clap = { version = "4", features = ["derive", "env"] }

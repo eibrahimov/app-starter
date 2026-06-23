@@ -85,8 +85,10 @@ pub trait Plugin: Send + Sync + 'static {
     /// declared prefix.
     fn name(&self) -> &'static str;
 
-    /// Required host-API semver range (from the plugin's `plugin.toml`
-    /// `host_api`), checked against [`PLUGIN_API_VERSION`].
+    /// Required host-API semver range, checked against [`PLUGIN_API_VERSION`] at
+    /// startup by the host (`db::validate_registry`). The plugin's `plugin.toml`
+    /// `host_api` is an informational mirror of this value, not the enforced
+    /// source — this method is what the host actually reads.
     fn host_api(&self) -> &'static str;
 
     /// Routes AND their OpenAPI paths/schemas, built together so they cannot

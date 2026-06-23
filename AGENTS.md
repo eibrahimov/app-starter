@@ -158,7 +158,7 @@ worked examples are plugins: `todo` (minimal CRUD, `plugins/todo/`) and `blog`
 3. **Typegen:** `just typegen` and COMMIT the regenerated
    `interface/src/api/schema.d.ts` (never hand-edit it).
 4. **Verify:** `just verify` — lint, backend tests (including the §6 namespacing
-   guards in `tests/plugins.rs`: route-prefix, schema-prefix/no-collision,
+   guards in `tests/plugins.rs`: route-prefix, name-validity, schema-prefix/no-collision,
    table-prefix, registered), typegen drift, frontend build/test, cargo-deny.
 
 The frontend page lives under `interface/src/plugins/<name>/` (so it resolves the

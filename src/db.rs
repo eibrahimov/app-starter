@@ -1,3 +1,4 @@
+use crate::{PLUGIN_API_VERSION, Plugin};
 use anyhow::Context;
 use sqlx::SqlitePool;
 use sqlx::sqlite::SqlitePoolOptions;
@@ -35,6 +36,12 @@ pub async fn init(database_url: &str) -> anyhow::Result<SqlitePool> {
 /// tolerates brief contention during startup. Both [`init`] and the integration
 /// tests route through here, so the test schema always matches `init`.
 pub async fn run_all_migrators(pool: &SqlitePool) -> anyhow::Result<()> {
+    // Assemble the registry once and refuse an incompatible or malformed plugin
+    // BEFORE touching the database, so a bad build fails the boot with a clear
+    // error instead of half-migrating (docs/plugin-framework.md §3).
+    let plugins = crate::plugins::all();
+    validate_registry(&plugins)?;
+
     // A small busy timeout + WAL keep startup resilient to brief contention on a
     // file-backed DB (§5 M4). On `sqlite::memory:` WAL is a documented no-op (the
     // PRAGMA returns "memory"); neither statement errors there.
@@ -50,12 +57,13 @@ pub async fn run_all_migrators(pool: &SqlitePool) -> anyhow::Result<()> {
     sqlx::migrate!("./migrations").run(pool).await?;
 
     // Then each plugin, each into its own keyspace so their versions can't collide.
-    for plugin in crate::plugins::all() {
+    for plugin in &plugins {
         let Some(mut migrator) = plugin.migrator() else {
             continue;
         };
         // The host -- not the plugin -- sets the tracking-table name, derived
-        // from the validated plugin name (§5).
+        // from the plugin name (§5); `validate_registry` already proved the name
+        // is a safe `^[a-z][a-z0-9_]*$` identifier.
         migrator.dangerous_set_table_name(format!("_sqlx_migrations_{}", plugin.name()));
         // §5.4: on partial failure, abort startup naming the failing plugin.
         // Earlier plugins stay applied (each owns its keyspace); a re-run resumes.
@@ -65,6 +73,53 @@ pub async fn run_all_migrators(pool: &SqlitePool) -> anyhow::Result<()> {
             .with_context(|| format!("plugin '{}' migrations failed", plugin.name()))?;
     }
     Ok(())
+}
+
+/// Refuses a plugin whose declared `host_api` range is incompatible with this
+/// host's [`PLUGIN_API_VERSION`], or whose `name` is not a safe identifier. The
+/// name derives the route prefix (`/api/v1/<name>`), the OpenAPI component prefix
+/// (`<name>_*`), and the migration tracking-table name (`_sqlx_migrations_<name>`),
+/// so a malformed name would yield a broken router or an invalid SQL identifier.
+/// Called once at startup before any migration runs, so an incompatible build
+/// fails loudly with a human-readable error (docs/plugin-framework.md §3).
+fn validate_registry(plugins: &[Box<dyn Plugin>]) -> anyhow::Result<()> {
+    let host = semver::Version::parse(PLUGIN_API_VERSION).with_context(|| {
+        format!("PLUGIN_API_VERSION '{PLUGIN_API_VERSION}' is not valid semver")
+    })?;
+    for plugin in plugins {
+        check_plugin(plugin.name(), plugin.host_api(), &host)?;
+    }
+    Ok(())
+}
+
+/// The per-plugin half of [`validate_registry`], split out as a pure function so
+/// the name-format and version-compatibility rules can be unit-tested without a
+/// live registry. The name is checked first, since the range error message is
+/// less useful when the name itself is malformed.
+fn check_plugin(name: &str, host_api: &str, host: &semver::Version) -> anyhow::Result<()> {
+    anyhow::ensure!(
+        is_valid_plugin_name(name),
+        "plugin name '{name}' must match ^[a-z][a-z0-9_]*$: it derives the route, \
+         schema, and migration-table names"
+    );
+    let req = semver::VersionReq::parse(host_api).with_context(|| {
+        format!("plugin '{name}' declared an invalid host_api range '{host_api}'")
+    })?;
+    anyhow::ensure!(
+        req.matches(host),
+        "plugin '{name}' requires host_api '{host_api}', incompatible with this host's \
+         PLUGIN_API_VERSION {host}"
+    );
+    Ok(())
+}
+
+/// Whether `name` is a valid plugin namespace key: `^[a-z][a-z0-9_]*$`. Public
+/// (and matched by the `just new-plugin` scaffolder's own regex) because the §6
+/// guard test asserts the same shape over the real registry.
+pub fn is_valid_plugin_name(name: &str) -> bool {
+    let mut chars = name.chars();
+    matches!(chars.next(), Some(first) if first.is_ascii_lowercase())
+        && chars.all(|c| c.is_ascii_lowercase() || c.is_ascii_digit() || c == '_')
 }
 
 /// Redacts any `user:password@` userinfo from a connection string so it is safe
@@ -89,6 +144,59 @@ pub fn redact_url(database_url: &str) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn accepts_valid_plugin_names() {
+        for name in ["todo", "blog", "guest_book", "a", "a1", "x_9_y"] {
+            assert!(is_valid_plugin_name(name), "{name:?} should be valid");
+        }
+    }
+
+    #[test]
+    fn rejects_invalid_plugin_names() {
+        // Leading non-letter, uppercase, hyphen, space, punctuation, non-ascii, empty.
+        for name in [
+            "", "Todo", "1todo", "_todo", "to-do", "to do", "todo!", "tödo",
+        ] {
+            assert!(!is_valid_plugin_name(name), "{name:?} should be rejected");
+        }
+    }
+
+    #[test]
+    fn check_plugin_accepts_compatible_ranges() {
+        let host = semver::Version::parse("1.0.0").unwrap();
+        assert!(check_plugin("todo", "^1", &host).is_ok());
+        assert!(check_plugin("blog", "^1.0", &host).is_ok());
+        assert!(check_plugin("x", ">=1, <2", &host).is_ok());
+    }
+
+    #[test]
+    fn check_plugin_rejects_incompatible_range() {
+        let host = semver::Version::parse("1.0.0").unwrap();
+        let err = check_plugin("todo", "^2", &host).unwrap_err().to_string();
+        assert!(err.contains("incompatible"), "unexpected error: {err}");
+    }
+
+    #[test]
+    fn check_plugin_rejects_unparseable_range() {
+        let host = semver::Version::parse("1.0.0").unwrap();
+        assert!(check_plugin("todo", "not-a-range", &host).is_err());
+    }
+
+    #[test]
+    fn check_plugin_rejects_bad_name_before_range() {
+        // A malformed name fails even when paired with an otherwise valid range.
+        let host = semver::Version::parse("1.0.0").unwrap();
+        let err = check_plugin("Bad-Name", "^1", &host)
+            .unwrap_err()
+            .to_string();
+        assert!(err.contains("must match"), "unexpected error: {err}");
+    }
+
+    #[test]
+    fn registered_plugins_satisfy_the_contract() {
+        validate_registry(&crate::plugins::all()).expect("the real registry must validate");
+    }
 
     #[test]
     fn leaves_sqlite_urls_untouched() {
