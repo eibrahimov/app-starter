@@ -11,6 +11,7 @@ use crate::Plugin;
 /// and migration runner are all built by iterating this set.
 pub fn all() -> Vec<Box<dyn Plugin>> {
     vec![
+        todo::register(),
         // <scaffolder inserts register() calls here>
     ]
 }

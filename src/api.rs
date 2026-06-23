@@ -1,5 +1,4 @@
 pub mod health;
-pub mod items;
 pub mod posts;
 
 use crate::AppState;
@@ -48,9 +47,6 @@ fn api_router() -> OpenApiRouter<AppState> {
         // endpoints -- never remove or repurpose them; the generated TypeScript
         // client and downstream consumers are pinned to it. A breaking change
         // graduates to /api/v2 alongside /api/v1.
-        .routes(routes!(items::list_items, items::create_item))
-        .routes(routes!(items::toggle_item))
-        .routes(routes!(items::delete_item))
         .routes(routes!(posts::list_posts, posts::create_post))
         .routes(routes!(posts::post_stats))
         .routes(routes!(posts::get_post))

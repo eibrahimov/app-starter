@@ -13,21 +13,29 @@ import {
   Outlet,
   useRouterState,
 } from "@tanstack/react-router";
+import { type ComponentType, lazy, Suspense } from "react";
 import { ErrorBoundary } from "react-error-boundary";
 import { ErrorFallback } from "./components/app/ErrorFallback";
 import { reportBoundaryError } from "./components/app/reportBoundaryError";
 import { ThemeToggle } from "./components/theme/ThemeToggle";
 import { HomePage } from "./pages/Home";
-import { ItemsPage } from "./pages/Items";
 import { PostsPage } from "./pages/Posts";
+import { pluginRoutes } from "./plugins/registry";
+
+// Core nav entries: Home plus the still-core resources. Plugin routes (e.g.
+// /todo) are appended from the discovered registry below, so adding a plugin
+// never edits this file.
+const CORE_NAV = [
+  { to: "/", label: "Home" },
+  { to: "/posts", label: "Posts" },
+] as const;
 
 // TanStack Router adds an `.active` class to the <Link> for the current route.
 // We render each nav item as a Themes `Link` via `asChild` so it inherits the
 // accessible Themes link styling and touch sizing. The active page is surfaced
 // with the high-contrast accent treatment (full-strength accent text via
 // `--accent-12` plus a weight bump) applied through TanStack's `activeProps`
-// inline style, so the current route reads as active without any Tailwind
-// utility. Inactive links use the low-contrast gray (`--gray-11`).
+// inline style. Inactive links use the low-contrast gray (`--gray-11`).
 const ACTIVE_STYLE = {
   color: "var(--accent-12)",
   fontWeight: 600,
@@ -70,9 +78,16 @@ function Layout() {
             <Heading as="h1" size="3" weight="bold" trim="both">
               App Starter
             </Heading>
-            <NavLink to="/">Home</NavLink>
-            <NavLink to="/items">Items</NavLink>
-            <NavLink to="/posts">Posts</NavLink>
+            {CORE_NAV.map((entry) => (
+              <NavLink key={entry.to} to={entry.to}>
+                {entry.label}
+              </NavLink>
+            ))}
+            {pluginRoutes.map((route) => (
+              <NavLink key={route.path} to={route.path}>
+                {route.label}
+              </NavLink>
+            ))}
             <Box flexGrow="1" />
             <ThemeToggle />
           </Flex>
@@ -99,20 +114,42 @@ const indexRoute = createRoute({
   component: HomePage,
 });
 
-const itemsRoute = createRoute({
-  getParentRoute: () => rootRoute,
-  path: "/items",
-  component: ItemsPage,
-});
-
 const postsRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/posts",
   component: PostsPage,
 });
 
+// Wrap a plugin's lazy component loader in React.lazy so the page ships in its
+// own chunk and only loads when its route is visited.
+function lazyPluginPage(load: () => Promise<ComponentType>) {
+  const Lazy = lazy(() => load().then((component) => ({ default: component })));
+  return function PluginPage() {
+    return (
+      <Suspense fallback={null}>
+        <Lazy />
+      </Suspense>
+    );
+  };
+}
+
+// Build a route per discovered plugin. Navigation is not statically typed (the
+// path literals are erased by the runtime mapping); the registry guard test
+// asserts the paths are unique and well-formed (docs/plugin-framework.md §3).
+const pluginRouteObjects = pluginRoutes.map((route) =>
+  createRoute({
+    getParentRoute: () => rootRoute,
+    path: route.path,
+    component: lazyPluginPage(route.component),
+  }),
+);
+
 export const router = createRouter({
-  routeTree: rootRoute.addChildren([indexRoute, itemsRoute, postsRoute]),
+  routeTree: rootRoute.addChildren([
+    indexRoute,
+    postsRoute,
+    ...pluginRouteObjects,
+  ]),
 });
 
 declare module "@tanstack/react-router" {

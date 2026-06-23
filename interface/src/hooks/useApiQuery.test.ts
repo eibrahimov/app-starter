@@ -29,13 +29,13 @@ describe("useApiQuery", () => {
       error: undefined,
     });
 
-    const { result } = renderHook(() => useApiQuery("/api/v1/items"), {
+    const { result } = renderHook(() => useApiQuery("/api/v1/todo"), {
       wrapper: withClient(),
     });
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(result.current.data?.[0]?.title).toBe("write tests");
-    expect(getMock).toHaveBeenCalledWith("/api/v1/items", undefined);
+    expect(getMock).toHaveBeenCalledWith("/api/v1/todo", undefined);
   });
 
   it("surfaces an error when the API returns one", async () => {
@@ -44,7 +44,7 @@ describe("useApiQuery", () => {
       error: { message: "boom" },
     });
 
-    const { result } = renderHook(() => useApiQuery("/api/v1/items"), {
+    const { result } = renderHook(() => useApiQuery("/api/v1/todo"), {
       wrapper: withClient(),
     });
 
@@ -73,7 +73,7 @@ describe("useApiQuery", () => {
 
     const { result } = renderHook(
       () =>
-        useApiQuery("/api/v1/items", undefined, {
+        useApiQuery("/api/v1/todo", undefined, {
           queryKey: ["items", "custom-scope"],
         }),
       { wrapper: withClient() },
@@ -87,7 +87,7 @@ describe("useApiQuery", () => {
     getMock.mockResolvedValue({ data: [], error: undefined });
 
     const { result } = renderHook(
-      () => useApiQuery("/api/v1/items", undefined, { enabled: false }),
+      () => useApiQuery("/api/v1/todo", undefined, { enabled: false }),
       { wrapper: withClient() },
     );
 
@@ -104,7 +104,7 @@ describe("useApiQuery", () => {
 
     const { result } = renderHook(
       () =>
-        useApiQuery("/api/v1/items", undefined, {
+        useApiQuery("/api/v1/todo", undefined, {
           placeholderData: keepPreviousData,
         }),
       { wrapper: withClient() },

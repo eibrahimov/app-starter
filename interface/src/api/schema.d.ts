@@ -26,54 +26,6 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/items": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["list_items"];
-        put?: never;
-        post: operations["create_item"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/items/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        delete: operations["delete_item"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/items/{id}/toggle": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["toggle_item"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
     "/api/v1/posts": {
         parameters: {
             query?: never;
@@ -154,15 +106,63 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/todo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list_todos"];
+        put?: never;
+        post: operations["create_todo"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/todo/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["delete_todo"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/todo/{id}/toggle": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["toggle_todo"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
-        CreateItem: {
-            title: string;
-        };
         CreatePost: {
             body?: string;
+            title: string;
+        };
+        CreateTodo: {
             title: string;
         };
         Health: {
@@ -171,13 +171,6 @@ export interface components {
             /** @description "ok" when the service and its database are reachable, else "degraded". */
             status: string;
             version: string;
-        };
-        Item: {
-            /** Format: date-time */
-            created_at: string;
-            done: boolean;
-            id: string;
-            title: string;
         };
         Post: {
             body: string;
@@ -211,6 +204,13 @@ export interface components {
          * @enum {string}
          */
         PostStatus: "draft" | "published" | "archived";
+        Todo: {
+            /** Format: date-time */
+            created_at: string;
+            done: boolean;
+            id: string;
+            title: string;
+        };
     };
     responses: never;
     parameters: never;
@@ -246,115 +246,6 @@ export interface operations {
                 content: {
                     "application/json": components["schemas"]["Health"];
                 };
-            };
-        };
-    };
-    list_items: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description All items, newest first */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Item"][];
-                };
-            };
-        };
-    };
-    create_item: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CreateItem"];
-            };
-        };
-        responses: {
-            /** @description Item created */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Item"];
-                };
-            };
-            /** @description Empty title */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    delete_item: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Item id */
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Item deleted */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Unknown id */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    toggle_item: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Item id */
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Toggled item */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Item"];
-                };
-            };
-            /** @description Unknown id */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
             };
         };
     };
@@ -537,6 +428,115 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Unknown id */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    list_todos: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description All to-dos, newest first */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Todo"][];
+                };
+            };
+        };
+    };
+    create_todo: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateTodo"];
+            };
+        };
+        responses: {
+            /** @description To-do created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Todo"];
+                };
+            };
+            /** @description Empty title */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    delete_todo: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description To-do id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description To-do deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unknown id */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    toggle_todo: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description To-do id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Toggled to-do */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Todo"];
+                };
             };
             /** @description Unknown id */
             404: {

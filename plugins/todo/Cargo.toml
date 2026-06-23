@@ -1,0 +1,18 @@
+[package]
+name = "todo"
+version = "0.1.0"
+edition = "2024"
+rust-version = "1.94"
+license = "MIT"
+publish = false
+
+[dependencies]
+app-starter-plugin-api = { path = "../../plugin-api" }
+axum = "0.8"
+sqlx = { version = "0.9", features = ["runtime-tokio", "tls-rustls", "sqlite", "migrate", "chrono"] }
+serde = { version = "1", features = ["derive"] }
+utoipa = { version = "5", features = ["axum_extras", "chrono"] }
+utoipa-axum = "0.2"
+chrono = { version = "0.4", features = ["serde"] }
+uuid = { version = "1", features = ["v4"] }
+anyhow = "1"

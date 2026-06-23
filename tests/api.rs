@@ -215,7 +215,7 @@ async fn probe(app: &Router, method: &str, path: &str) -> (StatusCode, bool) {
 }
 
 /// Replaces every `{param}` path segment with a dummy value so a parameterized
-/// route can be probed (`/api/v1/items/{id}` -> `/api/v1/items/__parity_probe__`).
+/// route can be probed (`/api/v1/todo/{id}` -> `/api/v1/todo/__parity_probe__`).
 /// The sentinel is deliberately improbable so it cannot collide with a real static
 /// route (e.g. `/api/v1/posts/stats`) and mask a missing parameterized route.
 fn concrete_path(path: &str) -> String {
@@ -257,14 +257,14 @@ fn collect_schema_refs(value: &serde_json::Value, out: &mut Vec<String>) {
 }
 
 #[tokio::test]
-async fn items_crud_roundtrip() {
+async fn todo_crud_roundtrip() {
     let app = test_app().await;
 
     // Create
     let response = app
         .clone()
         .oneshot(
-            Request::post("/api/v1/items")
+            Request::post("/api/v1/todo")
                 .header(header::CONTENT_TYPE, "application/json")
                 .body(Body::from(r#"{"title":"first item"}"#))
                 .unwrap(),
@@ -279,7 +279,7 @@ async fn items_crud_roundtrip() {
     // List
     let response = app
         .clone()
-        .oneshot(Request::get("/api/v1/items").body(Body::empty()).unwrap())
+        .oneshot(Request::get("/api/v1/todo").body(Body::empty()).unwrap())
         .await
         .unwrap();
     assert_eq!(response.status(), StatusCode::OK);
@@ -290,7 +290,7 @@ async fn items_crud_roundtrip() {
     let response = app
         .clone()
         .oneshot(
-            Request::post(format!("/api/v1/items/{id}/toggle"))
+            Request::post(format!("/api/v1/todo/{id}/toggle"))
                 .body(Body::empty())
                 .unwrap(),
         )
@@ -304,7 +304,7 @@ async fn items_crud_roundtrip() {
     let response = app
         .clone()
         .oneshot(
-            Request::delete(format!("/api/v1/items/{id}"))
+            Request::delete(format!("/api/v1/todo/{id}"))
                 .body(Body::empty())
                 .unwrap(),
         )
@@ -316,7 +316,7 @@ async fn items_crud_roundtrip() {
     let response = app
         .clone()
         .oneshot(
-            Request::post("/api/v1/items")
+            Request::post("/api/v1/todo")
                 .header(header::CONTENT_TYPE, "application/json")
                 .body(Body::from(r#"{"title":"   "}"#))
                 .unwrap(),
@@ -328,7 +328,7 @@ async fn items_crud_roundtrip() {
     // Unknown id is a 404
     let response = app
         .oneshot(
-            Request::delete("/api/v1/items/does-not-exist")
+            Request::delete("/api/v1/todo/does-not-exist")
                 .body(Body::empty())
                 .unwrap(),
         )
@@ -547,7 +547,7 @@ async fn oversized_body_is_rejected_with_413() {
     let payload = "a".repeat(11 * 1024 * 1024);
     let response = app
         .oneshot(
-            Request::post("/api/v1/items")
+            Request::post("/api/v1/todo")
                 .header(header::CONTENT_TYPE, "application/json")
                 .body(Body::from(payload))
                 .unwrap(),

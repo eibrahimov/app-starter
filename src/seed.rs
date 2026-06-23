@@ -1,78 +1,54 @@
 //! OPTIONAL, DELETABLE seed data — a removable demo seam.
 //!
 //! Purpose: a fresh database is empty, so a first `cargo run` opens the UI on
-//! empty states for both Items and Posts. Running with `--seed` (or `SEED=1`,
-//! or `just seed`) inserts a handful of example rows so the worked examples —
-//! the post status lifecycle, filters, pagination, and the stats endpoint —
-//! are visible "in 30 seconds." It is OFF by default and never runs in tests,
-//! on a normal boot, or in the Docker/compose defaults.
+//! empty states. Running with `--seed` (or `SEED=1`, or `just seed`) inserts a
+//! handful of example rows so the worked examples — the post status lifecycle,
+//! filters, pagination, the stats endpoint, and each plugin's resource — are
+//! visible "in 30 seconds." It is OFF by default and never runs in tests, on a
+//! normal boot, or in the Docker/compose defaults.
 //!
-//! This is a worked example to copy or delete, not core infrastructure. To
-//! remove the whole seam from a fork:
-//!   1. delete this file (`src/seed.rs`) and its test (`tests/seed.rs`),
-//!   2. remove `pub mod seed;` from `src/lib.rs`,
-//!   3. remove the `seed` field, the `if args.seed ... seed::run(...)` block,
-//!      and the `is_truthy` helper from `src/main.rs`,
-//!   4. delete the `seed` recipe from the `justfile`.
-//!
-//! Nothing else depends on it.
+//! Core example resources (posts) are seeded here directly; each registered
+//! plugin contributes its own seed data through `Plugin::seed`, which this runner
+//! iterates — so core never depends on a plugin.
 //!
 //! It is idempotent by design: each resource is seeded only when its table is
-//! empty, so re-running (or leaving `--seed` on) never duplicates rows and
-//! never overwrites real data. The empty check and the inserts are separate
-//! statements, so this assumes a single seeding process — two instances
-//! booting with `--seed` against the same database could each seed once. That
-//! is fine for the single-instance startup this seam targets. It deliberately
-//! goes through the same `items`/`posts` domain functions the HTTP handlers
-//! use, so the seed path exercises the real code instead of bypassing it with
-//! raw SQL.
+//! empty, so re-running (or leaving `--seed` on) never duplicates rows. The empty
+//! check and the inserts are separate statements, so this assumes a single
+//! seeding process. The core path goes through the same `posts` domain functions
+//! the HTTP handlers use, exercising the real code instead of raw SQL.
+//!
+//! To remove the whole seam from a fork: delete this file and `tests/seed.rs`,
+//! remove `pub mod seed;` from `src/lib.rs`, the `if args.seed … seed::run(…)`
+//! block and `is_truthy` from `src/main.rs`, and the `seed` recipe from the
+//! `justfile`.
 
 use sqlx::SqlitePool;
 
-use crate::items;
 use crate::posts::{self, PostStatus};
 
-/// Seed example items and posts, skipping any resource that already has rows.
-/// Safe to call on every startup. Returns the total number of rows inserted.
-pub async fn run(pool: &SqlitePool) -> Result<u64, sqlx::Error> {
-    let items_added = seed_items(pool).await?;
+/// Seed example posts and every registered plugin's example rows, skipping any
+/// resource that already has rows. Safe to call on every startup. Returns the
+/// total number of rows inserted.
+pub async fn run(pool: &SqlitePool) -> anyhow::Result<u64> {
     let posts_added = seed_posts(pool).await?;
-    let total = items_added + posts_added;
+
+    // Each plugin owns its seed data, so core never has to depend on a plugin.
+    let mut plugins_added = 0;
+    for plugin in crate::plugins::all() {
+        plugins_added += plugin.seed(pool).await?;
+    }
+
+    let total = posts_added + plugins_added;
     if total == 0 {
         tracing::info!("seed: database already populated; nothing inserted");
     } else {
         tracing::info!(
-            items = items_added,
             posts = posts_added,
+            plugins = plugins_added,
             "seed: inserted example rows"
         );
     }
     Ok(total)
-}
-
-/// Inserts a few items (a mix of done and not-done) when the table is empty.
-async fn seed_items(pool: &SqlitePool) -> Result<u64, sqlx::Error> {
-    if !items::list(pool).await?.is_empty() {
-        return Ok(0);
-    }
-
-    // (title, done)
-    let fixtures = [
-        ("Read AGENTS.md for the project conventions", true),
-        ("Explore the items and posts worked examples", true),
-        ("Add your first resource with the add-resource skill", false),
-        ("Replace items and posts with your own domain", false),
-    ];
-
-    let mut inserted = 0;
-    for (title, done) in fixtures {
-        let item = items::create(pool, title.to_owned()).await?;
-        if done {
-            items::toggle(pool, &item.id).await?;
-        }
-        inserted += 1;
-    }
-    Ok(inserted)
 }
 
 /// Inserts a mix of draft/published/archived posts when the table is empty,
@@ -93,8 +69,9 @@ async fn seed_posts(pool: &SqlitePool) -> Result<u64, sqlx::Error> {
         ),
         (
             "How the worked examples fit together",
-            "Items shows minimal CRUD; posts adds a draft -> published -> archived \
-             lifecycle, filtered list queries with pagination, and a stats endpoint.",
+            "The todo plugin shows minimal CRUD; posts adds a draft -> published \
+             -> archived lifecycle, filtered list queries with pagination, and a \
+             stats endpoint.",
             PostStatus::Published,
         ),
         (
@@ -129,9 +106,9 @@ async fn seed_posts(pool: &SqlitePool) -> Result<u64, sqlx::Error> {
     Ok(inserted)
 }
 
-/// Total posts across all statuses. Unlike `items::list`, `posts::list` takes
-/// status/limit/offset arguments, so the emptiness check reuses the existing
-/// `stats` aggregate instead of fetching rows just to count them.
+/// Total posts across all statuses. `posts::list` takes status/limit/offset
+/// arguments, so the emptiness check reuses the existing `stats` aggregate
+/// instead of fetching rows just to count them.
 async fn post_count(pool: &SqlitePool) -> Result<i64, sqlx::Error> {
     let stats = posts::stats(pool).await?;
     Ok(stats.draft + stats.published + stats.archived)

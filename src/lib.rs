@@ -2,7 +2,6 @@ pub mod api;
 pub mod db;
 pub mod error;
 pub mod frontend;
-pub mod items;
 pub mod plugins;
 pub mod posts;
 pub mod seed;
