@@ -20,7 +20,7 @@
 - [x] **0c — Plugin-API crate (cycle fix, iter 4).** Extracted `app-starter-plugin-api` (Plugin trait + AppState + PLUGIN_API_VERSION) so host and plugins depend on it without a cycle; `app-starter` re-exports it and keeps the registry.
 - [x] **1 — Registry-driven router + typegen.** _(Done iter 3.)_ `router()`/`ApiDoc` fold in `plugins::all()`; build typegen spec from the server's own `router()` via `split_for_parts()`; repurpose the parity test; `just typegen` and commit `schema.d.ts`.
 - [x] **2 — `items` → first plugin → `todo` (backend + frontend).** _(Done iter 5.)_ Move `src/items.rs`, `src/api/items.rs`, its migration, and `interface/src/pages/Items.tsx` into `plugins/items/`; add generated `register()` line; add Vite `server.fs.allow` + tsconfig/biome scope; delete central registrations; `just typegen`.
-- [ ] **3 — `posts` → second plugin** (backend + frontend together, same pattern).
+- [x] **3 — `posts` → `blog` plugin** (backend + frontend, same pattern). _(Done iter 6.)_
 - [ ] **4 — Authoring.** `add-plugin` skill + `just new-plugin` scaffolder (crate + migration + page + manifest AND appends to workspace + generated registry + Vite/tsconfig wiring); rewrite the `add-resource` recipe in `AGENTS.md`; add `docs/authoring-a-plugin.md`.
 
 ## Guard tests (spec §6 — implement and keep green)
@@ -40,6 +40,10 @@
   cleanly and satisfies the prefix invariant without an `items_items` oddity.
   Consequence: the committed `items` migration is replaced by a fresh plugin
   migration; pre-existing dev DBs need recreation (fresh-DB template — acceptable).
+  Phase 3 (iter 6) applies the same principle: `posts` → **`blog`** (table
+  `blog_posts`, routes `/api/v1/blog`); the internal `Post`/`PostStatus` Rust type
+  names are kept (only the plugin name + table + routes change). The two posts
+  migrations collapse into one fresh `blog_posts` migration with the CHECK.
 - **Plugin seed (iter 4):** add an optional `seed()` hook to the `Plugin` trait so
   each plugin owns its seed data (core's seed runner iterates `plugins::all()`),
   honoring "core never depends on a plugin."
@@ -135,3 +139,13 @@ smoke check passes, final per-unit cycle clean, draft PR updated with an
   repointed hook tests. `just typegen` → `/api/v1/todo`. `just verify` fully green
   (lint, 16 api tests incl. `todo_crud_roundtrip`, typegen clean, FE build with
   Todo code-split + 157 vitest, cargo-deny). Next: **Phase 3** (posts → plugin).
+- **Iter 6 (2026-06-23):** **Phase 3 complete** (posts → `blog` plugin). Built
+  `plugins/blog` crate (status lifecycle, filtered/paginated list, stats, seed)
+  with one collapsed `blog_posts` migration (CHECK kept); frontend under
+  `interface/src/plugins/blog/` (page + tests); router drops the core Posts route
+  (Home is now the only core nav). Removed central posts (domain, handlers, 2
+  migrations); `seed::run` now purely iterates plugins. Repointed backend +
+  hook tests to `/api/v1/blog`. `just verify` green; live smoke: both plugins
+  seed (todo=4, blog=4), blog lifecycle + 400 validation work, per-plugin tables
+  (`blog_posts`/`todo_items`) + keyspaces present. **Both worked examples are now
+  plugins.** Next: **Phase 4** (authoring) + remaining guard tests.
