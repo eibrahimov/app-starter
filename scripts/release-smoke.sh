@@ -37,7 +37,11 @@ spec=$(curl -fs --retry-connrefused --retry 60 --retry-delay 1 \
 
 fail=0
 for name in "${EXPECTED[@]}"; do
-    if printf '%s' "${spec}" | grep -q "\"/api/v1/${name}\""; then
+    # Match the plugin's base path key OR any subpath under it ("/api/v1/<name>"
+    # or "/api/v1/<name>/..."), so a plugin that only exposes subpaths (e.g.
+    # /api/v1/<name>/{id}) still counts as registered. The trailing `(/|")` keeps
+    # `<name>` from matching a longer sibling name (e.g. `blog` vs `blogarchive`).
+    if printf '%s' "${spec}" | grep -qE "\"/api/v1/${name}(/|\")"; then
         echo "ok: plugin '${name}' registered (/api/v1/${name} served)"
     else
         echo "ERROR: plugin '${name}' is missing from the release spec (/api/v1/${name})" >&2
