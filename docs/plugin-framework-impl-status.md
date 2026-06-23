@@ -19,7 +19,7 @@
 - [x] **0b — Foundations.** _(Done iter 2.)_ Add `utoipa-axum 0.2`; `src/plugin.rs` (`Plugin` trait + `PLUGIN_API_VERSION`); empty generated `src/plugins/mod.rs`; convert to Cargo workspace with `plugins/*` glob; add `run_all_migrators(pool)` and route BOTH `db::init()` and `tests/common.rs` through it; prove `default-run="app-starter"`, Docker `--bin app-starter`, and `build.rs` paths still work.
 - [x] **0c — Plugin-API crate (cycle fix, iter 4).** Extracted `app-starter-plugin-api` (Plugin trait + AppState + PLUGIN_API_VERSION) so host and plugins depend on it without a cycle; `app-starter` re-exports it and keeps the registry.
 - [x] **1 — Registry-driven router + typegen.** _(Done iter 3.)_ `router()`/`ApiDoc` fold in `plugins::all()`; build typegen spec from the server's own `router()` via `split_for_parts()`; repurpose the parity test; `just typegen` and commit `schema.d.ts`.
-- [ ] **2 — `items` → first plugin (backend + frontend together).** Move `src/items.rs`, `src/api/items.rs`, its migration, and `interface/src/pages/Items.tsx` into `plugins/items/`; add generated `register()` line; add Vite `server.fs.allow` + tsconfig/biome scope; delete central registrations; `just typegen`.
+- [x] **2 — `items` → first plugin → `todo` (backend + frontend).** _(Done iter 5.)_ Move `src/items.rs`, `src/api/items.rs`, its migration, and `interface/src/pages/Items.tsx` into `plugins/items/`; add generated `register()` line; add Vite `server.fs.allow` + tsconfig/biome scope; delete central registrations; `just typegen`.
 - [ ] **3 — `posts` → second plugin** (backend + frontend together, same pattern).
 - [ ] **4 — Authoring.** `add-plugin` skill + `just new-plugin` scaffolder (crate + migration + page + manifest AND appends to workspace + generated registry + Vite/tsconfig wiring); rewrite the `add-resource` recipe in `AGENTS.md`; add `docs/authoring-a-plugin.md`.
 
@@ -43,6 +43,14 @@
 - **Plugin seed (iter 4):** add an optional `seed()` hook to the `Plugin` trait so
   each plugin owns its seed data (core's seed runner iterates `plugins::all()`),
   honoring "core never depends on a plugin."
+- **Frontend location (iter 5):** the spec's "plugin frontend in
+  `plugins/<name>/frontend/` importing interface deps" is **not buildable** —
+  `node_modules` lives only in `interface/`, and Vite/vitest/tsc resolve a file's
+  bare imports by walking up from its dir, never reaching `interface/node_modules`
+  (a second spec flaw, after the Cargo cycle). Per decision, plugin **frontends
+  live under `interface/src/plugins/<name>/`** (resolve shared deps + the typed
+  client normally; no JS workspace); the backend **crate** stays in
+  `plugins/<name>/`. `AppError` also moved to `plugin-api` (plugins return it).
 
 ## BLOCKER (iter 4) — circular package dependency — RESOLVED (Option A, phase 0c)
 
@@ -116,3 +124,14 @@ smoke check passes, final per-unit cycle clean, draft PR updated with an
   intra-workspace path deps pass the wildcard ban. Registry still empty → behavior
   unchanged. Gates: `just verify` + `cargo deny` green. **Phase 2 (items → todo
   plugin) is now unblocked** and is the next unit.
+- **Iter 5 (2026-06-23):** **Phase 2 complete** (items → `todo` plugin, backend +
+  frontend). Hit + resolved a 2nd spec flaw (plugin frontend can't resolve
+  interface deps from `plugins/<name>/frontend/`); per decision, frontends live
+  under `interface/src/plugins/<name>/`. Built `plugins/todo` crate (domain +
+  handlers `/api/v1/todo` + migration `todo_items` + `seed()`); moved `AppError`
+  + added `seed()` hook to `plugin-api`; registered `todo::register()`; removed
+  central items; built FE plugin discovery (`contract`/`registry`/`registry.test`
+  + lazy router) and the `todo` page + tests under `interface/src/plugins/todo/`;
+  repointed hook tests. `just typegen` → `/api/v1/todo`. `just verify` fully green
+  (lint, 16 api tests incl. `todo_crud_roundtrip`, typegen clean, FE build with
+  Todo code-split + 157 vitest, cargo-deny). Next: **Phase 3** (posts → plugin).
