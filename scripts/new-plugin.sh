@@ -35,6 +35,32 @@ if [ -e "${PLUGDIR}" ] || [ -e "${FEDIR}" ]; then
     exit 1
 fi
 
+# The name becomes a crate name, a [dependencies] key in the root Cargo.toml, AND
+# an extern-crate path root in src/plugins.rs (`<name>::register()`). So it must
+# not be a Rust keyword or std crate (would not compile as a crate name / path
+# segment), nor collide with a crate the host already depends on (would produce a
+# duplicate Cargo key and an ambiguous `<name>::` path). Reject early, with a
+# clear message, instead of letting `cargo` fail confusingly after files exist.
+RESERVED="as async await break const continue crate dyn else enum extern false fn \
+for if impl in let loop match mod move mut pub ref return self static struct super \
+trait true type unsafe use where while std core alloc test proc_macro build main"
+for word in ${RESERVED}; do
+    if [ "${NAME}" = "${word}" ]; then
+        echo "ERROR: plugin name '${NAME}' is reserved (a Rust keyword or std crate); it cannot be a crate name." >&2
+        exit 1
+    fi
+done
+
+# Read the current [dependencies] keys rather than hardcoding them, so this stays
+# correct as the host's dependency set changes.
+EXISTING_DEPS="$(awk '/^\[dependencies\]/{d=1;next} /^\[/{d=0} d && /^[A-Za-z0-9_-]+[[:space:]]*=/{sub(/[[:space:]]*=.*/,"");print}' "${ROOT}/Cargo.toml")"
+for dep in ${EXISTING_DEPS}; do
+    if [ "${NAME}" = "${dep}" ]; then
+        echo "ERROR: plugin name '${NAME}' collides with an existing dependency in the root Cargo.toml." >&2
+        exit 1
+    fi
+done
+
 # PascalCase type name from the snake_case plugin name (guestbook -> Guestbook,
 # guest_book -> GuestBook).
 TYPE="$(printf '%s' "${NAME}" | awk -F_ '{ out=""; for (i=1;i<=NF;i++) out=out toupper(substr($i,1,1)) substr($i,2); print out }')"
@@ -82,6 +108,8 @@ cat > "${PLUGDIR}/migrations/${TS}_create_${NAME}_items.sql" <<EOF
 -- Plugin-owned migration (its own _sqlx_migrations_${NAME} keyspace). The table
 -- is prefixed with the plugin name (${NAME}_*) per docs/plugin-framework.md §5.
 -- Replace these columns with your real schema; keep the ${NAME}_ prefix.
+-- Plugins are independent: FK only to core tables, never to another plugin's --
+-- there is no cross-plugin migration ordering guarantee (docs/plugin-framework.md §5).
 CREATE TABLE ${NAME}_items (
     id TEXT PRIMARY KEY,
     label TEXT NOT NULL,

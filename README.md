@@ -51,7 +51,7 @@ Open http://localhost:8080 — the Todo and Blog pages already have data. Withou
 
 ## Setup
 
-Prerequisites: [Rust](https://rustup.rs), [Bun](https://bun.sh), and optionally [just](https://github.com/casey/just). Run `just doctor` (or `bash scripts/doctor.sh`) at any point to check your toolchain and build state — it prints a fix for anything missing.
+Prerequisites: [Rust](https://rustup.rs) **1.94+** (sqlx 0.9's macros set that floor; `rust-toolchain.toml` pins a newer toolchain that rustup installs automatically), [Bun](https://bun.sh), and optionally [just](https://github.com/casey/just). Run `just doctor` (or `bash scripts/doctor.sh`) at any point to check your toolchain and build state — it prints a fix for anything missing.
 
 ```bash
 # 1. Rename the project (one time, the script deletes itself)

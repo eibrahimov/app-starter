@@ -54,20 +54,26 @@ fn api_router() -> OpenApiRouter<AppState> {
 /// The OpenAPI spec the server serves and that `just typegen` consumes (via the
 /// `openapi_spec` bin). Built from the same [`api_router`] as the live routes
 /// [review M2], so the generated `schema.d.ts` cannot diverge from what is served.
+///
+/// The registry (`plugins::all()`) is static for the process's lifetime, so the
+/// spec is identical on every call: build it once and clone. This keeps the
+/// rarely-hit `/api/openapi.json` endpoint from re-iterating every plugin and
+/// re-deriving the document per request.
 pub fn api_spec() -> utoipa::openapi::OpenApi {
-    api_router().split_for_parts().1
+    static SPEC: std::sync::OnceLock<utoipa::openapi::OpenApi> = std::sync::OnceLock::new();
+    SPEC.get_or_init(|| api_router().split_for_parts().1)
+        .clone()
 }
 
-/// Serves the generated spec. Built fresh from [`api_spec`] so it is always the
-/// exact document the router serves -- `/api/openapi.json` is tooling-only and
-/// rarely hit, so rebuilding per request is fine.
+/// Serves the generated spec. Returns a clone of the memoized [`api_spec`] (built
+/// once on first access), so it is always the exact document the router serves.
 async fn openapi_json() -> Json<utoipa::openapi::OpenApi> {
     Json(api_spec())
 }
 
 pub fn router(state: AppState) -> Router {
     // Take the axum routes from the registry-built router; the OpenAPI spec side
-    // is served separately via `openapi_json` (which rebuilds it identically).
+    // is served separately via `openapi_json` (which returns the memoized spec).
     let router = api_router().split_for_parts().0;
     router
         // Operational endpoint stays unversioned and outside the OpenApiRouter:
