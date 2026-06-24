@@ -14,7 +14,7 @@ jobs:
     name: Rust
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # Enforce the no-mod.rs convention: use <module>.rs + <module>/ instead.
       - name: Forbid mod.rs files
@@ -49,7 +49,7 @@ jobs:
     name: Typegen drift
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: dtolnay/rust-toolchain@1.96.0
 
@@ -75,7 +75,7 @@ jobs:
       run:
         working-directory: interface
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: oven-sh/setup-bun@v2
 
@@ -106,7 +106,7 @@ jobs:
       run:
         working-directory: interface
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: oven-sh/setup-bun@v2
 
@@ -123,7 +123,7 @@ jobs:
     name: cargo-deny
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: EmbarkStudios/cargo-deny-action@v2
 
@@ -133,7 +133,7 @@ jobs:
     # The silent-plugin-loss risk is a release lto+strip phenomenon, so this guard
     # MUST run against a release artifact (docs/plugin-framework.md §6, [M1]).
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       - uses: dtolnay/rust-toolchain@1.96.0
 
@@ -148,7 +148,7 @@ jobs:
     name: DB tooling
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
 
       # scripts/db.sh needs the sqlite3 CLI; it ships on the ubuntu runner, but
       # install it defensively so this gate stays self-contained on any image.
