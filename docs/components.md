@@ -7,7 +7,7 @@ and data hooks over the OpenAPI contract — all configured by props, all
 relative-imported.
 
 The canonical worked example of the whole stack composed together is
-`interface/src/pages/Items.tsx`; `Posts.tsx` adds filtering, stats, and
+`interface/src/plugins/todo/Todo.tsx`; `Blog.tsx` adds filtering, stats, and
 lifecycle actions.
 
 > For the full Radix vocabulary — the component catalog, the `<Theme>` prop
@@ -82,7 +82,7 @@ Themes component when a primitive does not yet exist.
   accent action (`variant="solid"`); `ghost` is the muted inline text button; and
   `danger`/`success`/`warning` stay ghost-styled but carry a semantic Radix hue
   (`red`/`grass`/`amber`). `success` and `warning` back the Publish/Archive row
-  actions in `Posts.tsx`.
+  actions in `Blog.tsx`.
 - **`Input`** — wraps Themes `TextField.Root` (`size="2"`); pass
   `style={{ flexGrow: 1 }}` to fill a `Toolbar`.
 - **`Card`** `{ as?: "div" | "li" }` — wraps Themes `Card`; use `as="li"` inside
@@ -101,7 +101,7 @@ Themes component when a primitive does not yet exist.
   **`VisuallyHidden`** — wrap the matching Themes components.
 
 > **Scaffolding vs. wired-in.** `Checkbox` is the only Radix-backed primitive a
-> page currently renders (`Items.tsx`). `Dialog`, `DropdownMenu`, `Tooltip`, and
+> page currently renders (`Todo.tsx`). `Dialog`, `DropdownMenu`, `Tooltip`, and
 > `VisuallyHidden` ship ready-to-use but are **not yet consumed by a page** — they
 > are intentional scaffolding for the next resource, kept honest by their
 > co-located tests. They are tree-shaken out of the bundle until a page imports
@@ -137,10 +137,10 @@ them in tests.
 
 - **`useApiQuery(path, init?, { queryKey?, enabled?, placeholderData? })`** —
   typed GET. `data` is inferred from the schema. The query key defaults to
-  `[path, query]`; pass an explicit `queryKey` (e.g. `["items"]`) to match a
+  `[path, query]`; pass an explicit `queryKey` (e.g. `["todo"]`) to match a
   resource's invalidation scope. Pass `placeholderData: keepPreviousData` to keep
   the current list visible while a new query key (e.g. a changed filter)
-  refetches, instead of flashing the loading state (see `Posts.tsx`).
+  refetches, instead of flashing the loading state (see `Blog.tsx`).
 - **`useApiMutation(method, path, { invalidateKeys?, onSuccess? })`** — typed
   `"post"`/`"delete"`. The mutation variable is the openapi-fetch init
   (`{ body }` or `{ params: { path: { id } } }`). On success it invalidates each
@@ -149,22 +149,22 @@ them in tests.
   convenience layer for the common list + create case; returns `{ list, create }`
   and invalidates the broad `[key]` prefix. Pass `onSuccess` to run after a
   create (e.g. to clear the input). Reach for the two wrappers directly when a
-  page needs filtered lists, stats, or lifecycle actions (see `Posts.tsx`).
+  page needs filtered lists, stats, or lifecycle actions (see `Blog.tsx`).
 
 ### Query-key & invalidation rules
 
-- Resource-scoped first segment: `["items"]`, `["posts", filter]`,
-  `["posts", "stats"]`.
+- Resource-scoped first segment: `["todo"]`, `["blog", filter]`,
+  `["blog", "stats"]`.
 - Mutations invalidate the broad `[key]` prefix so all sub-keyed queries (list +
   stats) refresh together — exactly
-  `queryClient.invalidateQueries({ queryKey: ["posts"] })`.
+  `queryClient.invalidateQueries({ queryKey: ["blog"] })`.
 
-### Example (from `Items.tsx`)
+### Example (from `Todo.tsx`)
 
 ```tsx
-const items = useApiQuery("/api/v1/items", undefined, { queryKey: ["items"] });
-const create = useApiMutation("post", "/api/v1/items", {
-  invalidateKeys: [["items"]],
+const items = useApiQuery("/api/v1/todo", undefined, { queryKey: ["todo"] });
+const create = useApiMutation("post", "/api/v1/todo", {
+  invalidateKeys: [["todo"]],
   onSuccess: () => setTitle(""),
 });
 // ...
@@ -219,7 +219,7 @@ so contrast holds in both appearances:
 `Badge` exposes these as tones (`emerald` → `grass`, `amber` → `amber`,
 `red` → `red`, `neutral`/`zinc` → `gray`); `Button` exposes them as variants
 (`success` → `grass`, `warning` → `amber`, `danger` → `red`). The Playwright a11y
-smoke renders one `Posts` row per status so every tone's contrast is audited.
+smoke renders one `Blog` row per status so every tone's contrast is audited.
 
 ## Dark mode
 
@@ -248,8 +248,8 @@ dark scales automatically off the class, so you never hand-tune dark values.
   `just verify` and the blocking CI Frontend job; add an `axe` assertion there for
   new components. The **Playwright + axe** page smoke (`just a11y`,
   `e2e/a11y.spec.ts`) loads each route in a real browser with the API mocked to
-  **populated** fixtures, so it audits the real rendered states — Items rows,
-  Posts rows across every Badge tone (draft/amber, published/grass,
+  **populated** fixtures, so it audits the real rendered states — Todo rows,
+  Blog rows across every Badge tone (draft/amber, published/grass,
   archived/gray), and the resolved Home health line — for contrast and landmarks.
 
 ## Testing components

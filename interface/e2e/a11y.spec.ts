@@ -8,7 +8,9 @@ import { expect, type Page, type Route, test } from "@playwright/test";
 // tone, where the AA contrast actually matters) would never render.
 const HEALTH = { database: "ok", status: "ok", version: "0.3.0" };
 
-const ITEMS = [
+// Two to-dos (one done, one not) so the `todo` plugin page renders populated
+// rows — the checkbox + struck-through "done" title states axe should audit.
+const TODOS = [
   {
     id: "11111111-1111-1111-1111-111111111111",
     title: "Buy groceries",
@@ -23,7 +25,7 @@ const ITEMS = [
   },
 ];
 
-// One post per status so every Badge tone (amber/emerald/zinc) is on screen.
+// One blog post per status so every Badge tone (amber/emerald/zinc) is on screen.
 const POSTS = [
   {
     id: "33333333-3333-3333-3333-333333333333",
@@ -66,9 +68,10 @@ function json(route: Route, body: unknown) {
 // Match on the URL *pathname*, not a `**/api/**` glob: in Vite dev the app's own
 // source module is served at /src/api/client.ts, which a glob would also catch —
 // aborting it would stop the SPA from booting. The client uses baseUrl "/"
-// (api/client.ts), so real calls are same-origin /api/... paths. Check
-// /posts/stats before /posts so the longer path wins; honor ?status= so the mock
-// mirrors the real filtered list.
+// (api/client.ts), so real calls are same-origin /api/... paths. The worked
+// examples are now plugins, so their resources live under /api/v1/todo and
+// /api/v1/blog. Check /blog/stats before /blog so the longer path wins; honor
+// ?status= so the mock mirrors the real filtered list.
 async function mockApi(page: Page) {
   await page.route(
     (url) => url.pathname.startsWith("/api/"),
@@ -78,9 +81,9 @@ async function mockApi(page: Page) {
       const status = url.searchParams.get("status");
 
       if (path === "/api/health") return json(route, HEALTH);
-      if (path === "/api/v1/items") return json(route, ITEMS);
-      if (path === "/api/v1/posts/stats") return json(route, POST_STATS);
-      if (path === "/api/v1/posts") {
+      if (path === "/api/v1/todo") return json(route, TODOS);
+      if (path === "/api/v1/blog/stats") return json(route, POST_STATS);
+      if (path === "/api/v1/blog") {
         return json(
           route,
           status ? POSTS.filter((p) => p.status === status) : POSTS,
@@ -113,20 +116,20 @@ test("no detectable a11y violations on / (resolved health line)", async ({
   await expectNoViolations(page);
 });
 
-test("no detectable a11y violations on /items (populated rows)", async ({
+test("no detectable a11y violations on /todo (populated rows)", async ({
   page,
 }) => {
-  await page.goto("/items");
+  await page.goto("/todo");
   // Rows only mount after React Query resolves the mocked GET.
   await expect(page.getByText("Buy groceries")).toBeVisible();
   await expect(page.getByText("Ship the release")).toBeVisible();
   await expectNoViolations(page);
 });
 
-test("no detectable a11y violations on /posts (all Badge tones)", async ({
+test("no detectable a11y violations on /blog (all Badge tones)", async ({
   page,
 }) => {
-  await page.goto("/posts");
+  await page.goto("/blog");
   // Each status row renders a differently-toned Badge; wait for all three.
   await expect(page.getByText("Draft post")).toBeVisible();
   await expect(page.getByText("Published post")).toBeVisible();

@@ -28,7 +28,7 @@ describe("useApiMutation", () => {
 
     const { result } = renderHook(
       () =>
-        useApiMutation("post", "/api/v1/items", {
+        useApiMutation("post", "/api/v1/todo", {
           invalidateKeys: [["items"]],
           onSuccess,
         }),
@@ -39,7 +39,7 @@ describe("useApiMutation", () => {
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(postMock).toHaveBeenCalledTimes(1);
-    expect(postMock).toHaveBeenCalledWith("/api/v1/items", {
+    expect(postMock).toHaveBeenCalledWith("/api/v1/todo", {
       body: { title: "x" },
     });
     expect(deleteMock).not.toHaveBeenCalled();
@@ -51,7 +51,7 @@ describe("useApiMutation", () => {
     deleteMock.mockResolvedValue({ data: undefined, error: undefined });
 
     const { result } = renderHook(
-      () => useApiMutation("delete", "/api/v1/items/{id}"),
+      () => useApiMutation("delete", "/api/v1/todo/{id}"),
       { wrapper: withClient() },
     );
 
@@ -59,7 +59,7 @@ describe("useApiMutation", () => {
 
     await waitFor(() => expect(result.current.isSuccess).toBe(true));
     expect(deleteMock).toHaveBeenCalledTimes(1);
-    expect(deleteMock).toHaveBeenCalledWith("/api/v1/items/{id}", {
+    expect(deleteMock).toHaveBeenCalledWith("/api/v1/todo/{id}", {
       params: { path: { id: "1" } },
     });
     expect(postMock).not.toHaveBeenCalled();
@@ -73,7 +73,7 @@ describe("useApiMutation", () => {
     const onSuccess = vi.fn();
 
     const { result } = renderHook(
-      () => useApiMutation("post", "/api/v1/items", { onSuccess }),
+      () => useApiMutation("post", "/api/v1/todo", { onSuccess }),
       { wrapper: withClient() },
     );
 
@@ -88,7 +88,7 @@ describe("useApiMutation", () => {
     postMock.mockResolvedValue({ data: { id: "2" }, error: undefined });
 
     const { result } = renderHook(
-      () => useApiMutation("post", "/api/v1/items"),
+      () => useApiMutation("post", "/api/v1/todo"),
       { wrapper: withClient() },
     );
 

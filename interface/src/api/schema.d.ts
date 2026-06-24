@@ -26,55 +26,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/items": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get: operations["list_items"];
-        put?: never;
-        post: operations["create_item"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/items/{id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post?: never;
-        delete: operations["delete_item"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/items/{id}/toggle": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        post: operations["toggle_item"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/posts": {
+    "/api/v1/blog": {
         parameters: {
             query?: never;
             header?: never;
@@ -90,7 +42,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/posts/stats": {
+    "/api/v1/blog/stats": {
         parameters: {
             query?: never;
             header?: never;
@@ -106,7 +58,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/posts/{id}": {
+    "/api/v1/blog/{id}": {
         parameters: {
             query?: never;
             header?: never;
@@ -122,7 +74,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/posts/{id}/archive": {
+    "/api/v1/blog/{id}/archive": {
         parameters: {
             query?: never;
             header?: never;
@@ -138,7 +90,7 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
-    "/api/v1/posts/{id}/publish": {
+    "/api/v1/blog/{id}/publish": {
         parameters: {
             query?: never;
             header?: never;
@@ -154,17 +106,58 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/api/v1/todo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get: operations["list_todos"];
+        put?: never;
+        post: operations["create_todo"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/todo/{id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        delete: operations["delete_todo"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/api/v1/todo/{id}/toggle": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post: operations["toggle_todo"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
-        CreateItem: {
-            title: string;
-        };
-        CreatePost: {
-            body?: string;
-            title: string;
-        };
         Health: {
             /** @description "ok" when a trivial query against the database succeeds, else "unreachable". */
             database: string;
@@ -172,25 +165,22 @@ export interface components {
             status: string;
             version: string;
         };
-        Item: {
-            /** Format: date-time */
-            created_at: string;
-            done: boolean;
-            id: string;
+        blog_CreatePost: {
+            body?: string;
             title: string;
         };
-        Post: {
+        blog_Post: {
             body: string;
             /** Format: date-time */
             created_at: string;
             id: string;
             /** Format: date-time */
             published_at?: string | null;
-            status: components["schemas"]["PostStatus"];
+            status: components["schemas"]["blog_PostStatus"];
             title: string;
         };
         /** @description Per-status counts for the stats endpoint. */
-        PostStats: {
+        blog_PostStats: {
             /** Format: int64 */
             archived: number;
             /** Format: int64 */
@@ -199,18 +189,22 @@ export interface components {
             published: number;
         };
         /**
-         * @description Lifecycle state of a post.
-         *
-         *     One closed vocabulary, expressed once: the same lowercase strings are the
-         *     stored TEXT value (`sqlx::Type`), the on-the-wire JSON (`serde`), and the
-         *     OpenAPI/TypeScript enum (`utoipa::ToSchema`). Typing `Post.status` as this
-         *     enum narrows the generated `status` from an open `string` to the closed
-         *     union `"draft" | "published" | "archived"`. Because the wire values are
-         *     unchanged, this is an additive contract refinement that stays compatible
-         *     within `/api/v1`.
+         * @description Lifecycle state of a post. One closed vocabulary expressed once: the same
+         *     lowercase strings are the stored TEXT (`sqlx::Type`), the wire JSON (`serde`),
+         *     and the OpenAPI/TypeScript enum (`utoipa::ToSchema`).
          * @enum {string}
          */
-        PostStatus: "draft" | "published" | "archived";
+        blog_PostStatus: "draft" | "published" | "archived";
+        todo_CreateTodo: {
+            title: string;
+        };
+        todo_Todo: {
+            /** Format: date-time */
+            created_at: string;
+            done: boolean;
+            id: string;
+            title: string;
+        };
     };
     responses: never;
     parameters: never;
@@ -249,115 +243,6 @@ export interface operations {
             };
         };
     };
-    list_items: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description All items, newest first */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Item"][];
-                };
-            };
-        };
-    };
-    create_item: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["CreateItem"];
-            };
-        };
-        responses: {
-            /** @description Item created */
-            201: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Item"];
-                };
-            };
-            /** @description Empty title */
-            400: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    delete_item: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Item id */
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Item deleted */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Unknown id */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
-    toggle_item: {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                /** @description Item id */
-                id: string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Toggled item */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["Item"];
-                };
-            };
-            /** @description Unknown id */
-            404: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-        };
-    };
     list_posts: {
         parameters: {
             query?: {
@@ -380,7 +265,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Post"][];
+                    "application/json": components["schemas"]["blog_Post"][];
                 };
             };
             /** @description Unknown status value */
@@ -401,7 +286,7 @@ export interface operations {
         };
         requestBody: {
             content: {
-                "application/json": components["schemas"]["CreatePost"];
+                "application/json": components["schemas"]["blog_CreatePost"];
             };
         };
         responses: {
@@ -411,7 +296,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Post"];
+                    "application/json": components["schemas"]["blog_Post"];
                 };
             };
             /** @description Empty title */
@@ -438,7 +323,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["PostStats"];
+                    "application/json": components["schemas"]["blog_PostStats"];
                 };
             };
         };
@@ -461,7 +346,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Post"];
+                    "application/json": components["schemas"]["blog_Post"];
                 };
             };
             /** @description Unknown id */
@@ -491,7 +376,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Post"];
+                    "application/json": components["schemas"]["blog_Post"];
                 };
             };
             /** @description Post is not published */
@@ -528,7 +413,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Post"];
+                    "application/json": components["schemas"]["blog_Post"];
                 };
             };
             /** @description Post is not a draft */
@@ -537,6 +422,115 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content?: never;
+            };
+            /** @description Unknown id */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    list_todos: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description All to-dos, newest first */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["todo_Todo"][];
+                };
+            };
+        };
+    };
+    create_todo: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["todo_CreateTodo"];
+            };
+        };
+        responses: {
+            /** @description To-do created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["todo_Todo"];
+                };
+            };
+            /** @description Empty title */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    delete_todo: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description To-do id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description To-do deleted */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Unknown id */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+        };
+    };
+    toggle_todo: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path: {
+                /** @description To-do id */
+                id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Toggled to-do */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["todo_Todo"];
+                };
             };
             /** @description Unknown id */
             404: {

@@ -60,6 +60,36 @@ Review every change, but these categories are often portable:
   keep light/dark on the `.dark` class that `ThemeProvider` toggles. The full
   vocabulary is in `docs/radix-reference.md`.
 
+## Adopting the plugin framework
+
+The template's example resources moved from central modules into self-contained
+**plugins** (`plugins/todo/`, `plugins/blog/`; see
+[docs/authoring-a-plugin.md](docs/authoring-a-plugin.md)). Their migrations now run
+in per-plugin keyspaces (`_sqlx_migrations_<name>`), so an **existing database
+created before the change fails to start**:
+
+```
+Error: migration 20260611000001 was previously applied but is missing in the resolved migrations
+```
+
+sqlx sees the old `items`/`posts` rows in the core `_sqlx_migrations` table, which
+the now-empty core migrator no longer owns. A fresh database (no `data/app.db`) is
+unaffected — this is a one-time recreation for existing dev databases.
+
+The example tables hold only demo data, so recreate the database (back up first if
+yours holds anything you care about):
+
+```bash
+mv data/app.db data/app.db.bak     # back up the old DB
+cargo run                          # creates a fresh DB on the plugin migrations
+# or `SEED=1 cargo run` to reseed example rows; `mv` the .bak back to restore
+```
+
+If your app already replaced `items`/`posts` with your own resources, this change
+does not apply — port the *plugin pattern* to your resources (`just new-plugin`)
+rather than copying the example plugins, and migrate any real data deliberately:
+the old tables are **not** auto-migrated into the new `<name>_*` plugin tables.
+
 ## Cherry-pick workflow
 
 ```bash

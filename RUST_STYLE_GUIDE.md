@@ -398,7 +398,7 @@ pool plus `Path`, `Query`, or `Json` as needed.
 ```rust
 #[utoipa::path(
     post,
-    path = "/api/v1/items",
+    path = "/api/v1/todo",
     tag = "items",
     request_body = CreateItem,
     responses(
@@ -457,29 +457,31 @@ A handler that returns one of two status codes from the same body type may retur
 
 The OpenAPI document is the single source of truth for the frontend's types.
 Every handler carries `#[utoipa::path(...)]` with the HTTP method, the **full
-literal path including the version prefix**, a per-resource `tag`, any
+literal path** under the plugin's `/api/v1/<name>` prefix, a per-plugin `tag`, any
 `params(...)` and `request_body`, and a `responses(...)` entry for every status
-code with its `body =` type. The path string must match the route, both in
-axum 0.8 brace syntax (`/api/v1/items/{id}`).
+code with its `body =` type, in axum 0.8 brace syntax (`/api/v1/todo/{id}`).
 
-Register each handler in **three places** in `src/api.rs`:
+Registration is **automatic**: a plugin contributes its routes AND their OpenAPI
+paths/schemas from one `utoipa-axum` declaration, so they cannot drift —
 
 ```rust
-#[derive(OpenApi)]
-#[openapi(
-    paths(items::list_items, items::create_item, /* ... */),
-    components(schemas(crate::items::Item, crate::items::CreateItem, /* ... */))
-)]
-pub struct ApiDoc;
-// ...and a `.route(...)` in `router(...)`.
+fn api(&self) -> OpenApiRouter<AppState> {
+    OpenApiRouter::new()
+        .routes(routes!(list_todos, create_todo)) // route + path + schemas, together
+        .routes(routes!(delete_todo))
+}
 ```
 
-A schema type missing from `components(schemas(...))` does not error -- it
-silently vanishes from the spec and the generated TypeScript. After changing
-handlers, params, payloads, or schemas, run `just typegen` to regenerate
+The host folds every registered plugin's `api()` into the server router and builds
+the served spec from that same router (`split_for_parts()`), so there is no
+separate `paths(...)`/`components(...)` list to keep in sync — the old "three
+places" footgun is gone by construction. Prefix each `ToSchema` component with
+`#[schema(as = <name>_Type)]` (e.g. `todo_Todo`) so plugins can't collide. After
+changing handlers, params, payloads, or schemas, run `just typegen` to regenerate
 `interface/src/api/schema.d.ts`; **never hand-edit that file**. CI fails on drift
-via `just check-typegen`, and the `openapi_spec_has_no_dangling_schema_refs` test
-catches a dangling `$ref` before it reaches the frontend.
+via `just check-typegen`; `openapi_spec_has_no_dangling_schema_refs` catches a
+dangling `$ref`, and `typegen_spec_matches_server` plus the §6 plugin guards
+(`tests/plugins.rs`) catch registry and namespacing regressions.
 
 **Versioning.** Application routes live under `/api/v1`. Within a major version,
 changes are additive only -- add fields or endpoints, never remove or repurpose
@@ -677,7 +679,7 @@ sync.
 
 - **Module-level `const` for limits and fixed strings**, named and centralized so
   they are auditable: `MAX_BODY_BYTES` and `REQUEST_TIMEOUT` in `src/api.rs`,
-  `SELECT_COLUMNS` in `src/posts.rs`.
+  `SELECT_COLUMNS` in `plugins/blog/src/lib.rs`.
 
   ```rust
   const MAX_BODY_BYTES: usize = 10 * 1024 * 1024;
